@@ -2,7 +2,7 @@ use std::io;
 
 use crate::{terminal::Terminal, Rect};
 
-pub const DEFAULT_LEADERBOARD: [([u8; 8], u8); 10] = [
+pub const DEFAULT_LEADERBOARD: [([u8; 8], u8); 9] = [
     (*b"1-------", 0),
     (*b"2-------", 0),
     (*b"3-------", 0),
@@ -12,7 +12,6 @@ pub const DEFAULT_LEADERBOARD: [([u8; 8], u8); 10] = [
     (*b"7-------", 0),
     (*b"8-------", 0),
     (*b"9-------", 0),
-    (*b"10------", 0),
 ];
 
 const YOU_NAME: &str = "--\x1B[95mYOU!\x1B[90m--";
@@ -20,7 +19,7 @@ const YOU_NAME: &str = "--\x1B[95mYOU!\x1B[90m--";
 pub struct Leaderboard {
     rect: Rect,
     you_row: Option<u16>,
-    entries: [([u8; 8], u8); 10],
+    entries: [([u8; 8], u8); 9],
 }
 
 impl Leaderboard {
@@ -44,30 +43,23 @@ impl Leaderboard {
 
     pub fn draw_values(&mut self, terminal: &mut Terminal, you: u8) -> io::Result<()> {
         self.you_row = None;
-        let mut i = 1;
-        while i <= self.entries.len() {
-            let (name, score) = if self.you_row.is_some() {
-                self.entries[i - 2]
-            } else {
-                self.entries[i - 1]
-            };
-
+        for i in 0..=self.entries.len() {
             let (name, score, score_color) =
-                if self.you_row.is_none() && (you > score || i == self.entries.len()) {
+                if self.you_row.is_none() && (i == self.entries.len() || you > self.entries[i].1) {
                     self.you_row = Some(i as u16);
                     (YOU_NAME, you, 95)
                 } else {
-                    let name = std::str::from_utf8(&name).unwrap();
-                    (name, score, 39)
+                    let offset = self.you_row.map(|_| 1).unwrap_or(0);
+                    let entry = &self.entries[i - offset];
+                    let name = std::str::from_utf8(&entry.0).unwrap();
+                    (name, entry.1, 39)
                 };
 
             terminal.draw_text(
                 self.rect.x + 5,
-                self.rect.y + 2 + i as u16,
+                self.rect.y + 3 + i as u16,
                 &format!("\x1B[1;90m{name} \x1B[{score_color}m{score:0>3}\x1B[0m",),
             )?;
-
-            i += 1;
         }
 
         Ok(())
@@ -75,17 +67,14 @@ impl Leaderboard {
 
     pub fn update_you(&mut self, terminal: &mut Terminal, new_val: u8) -> io::Result<()> {
         let you_row = self.you_row.unwrap();
-        if you_row > 1 {
-            let next_highest = self.entries[you_row as usize - 1].1;
-            if new_val > next_highest {
-                self.draw_values(terminal, new_val)?;
-                return Ok(());
-            }
+        if you_row > 0 && new_val > self.entries[you_row as usize - 1].1 {
+            self.draw_values(terminal, new_val)
+        } else {
+            terminal.draw_text(
+                self.rect.x + 14,
+                self.rect.y + 3 + you_row,
+                &format!("\x1B[1;95m{new_val:0>3}\x1B[0m",),
+            )
         }
-        terminal.draw_text(
-            self.rect.x + 14,
-            self.rect.y + 2 + you_row,
-            &format!("\x1B[1;95m{new_val:0>3}\x1B[0m",),
-        )
     }
 }
