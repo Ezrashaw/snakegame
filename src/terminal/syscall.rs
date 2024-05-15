@@ -29,7 +29,7 @@ pub unsafe fn syscall2(id: u64, arg0: u64, arg1: u64) -> u64 {
             out("rcx") _, // the kernel clears %rcx and r11
             out("r11") _, // ^^^
             lateout("rax") ret,
-            options(nomem, nostack)
+            options(nostack)
         );
     }
     ret
@@ -60,7 +60,7 @@ pub unsafe fn syscall3(id: u64, arg0: u64, arg1: u64, arg2: u64) -> u64 {
             out("rcx") _, // the kernel clears %rcx and r11
             out("r11") _, // ^^^
             lateout("rax") ret,
-            options(nomem, nostack)
+            options(nostack)
         );
     }
     ret

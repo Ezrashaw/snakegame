@@ -1,5 +1,5 @@
 use std::{
-    io::{self, ErrorKind, Read, Write},
+    io::{self, ErrorKind, Read},
     ptr,
 };
 
@@ -70,8 +70,7 @@ impl Terminal {
     pub fn get_last_key(&mut self) -> io::Result<Option<Key>> {
         let mut last_key = None;
         loop {
-            let res = self.get_key();
-            match res {
+            match self.get_key() {
                 Ok(key) => last_key = Some(key),
                 Err(err) if matches!(err.kind(), ErrorKind::WouldBlock) => return Ok(last_key),
                 Err(err) => return Err(err),
