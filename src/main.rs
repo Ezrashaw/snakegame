@@ -1,4 +1,4 @@
-#![feature(strict_overflow_ops)]
+#![feature(strict_overflow_ops, array_chunks)]
 
 mod leaderboard;
 mod snake;

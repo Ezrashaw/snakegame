@@ -1,18 +1,9 @@
-use std::io;
+use std::{
+    io::{self, Read},
+    net::{Ipv4Addr, TcpStream},
+};
 
 use crate::{terminal::Terminal, Rect};
-
-pub const DEFAULT_LEADERBOARD: [([u8; 8], u8); 9] = [
-    (*b"1-------", 0),
-    (*b"2-------", 0),
-    (*b"3-------", 0),
-    (*b"4-------", 0),
-    (*b"5-------", 0),
-    (*b"6-------", 0),
-    (*b"7-------", 0),
-    (*b"8-------", 0),
-    (*b"9-------", 0),
-];
 
 const YOU_NAME: &str = "--\x1B[95mYOU!\x1B[90m--";
 
@@ -20,10 +11,22 @@ pub struct Leaderboard {
     rect: Rect,
     you_row: Option<u16>,
     entries: [([u8; 8], u8); 9],
+    conn: TcpStream,
 }
 
 impl Leaderboard {
     pub fn init(terminal: &mut Terminal, canvas: Rect) -> io::Result<Self> {
+        let mut conn = TcpStream::connect((Ipv4Addr::LOCALHOST, 1234))?;
+        let mut buf = [0u8; 10 * 9];
+        conn.read_exact(&mut buf)?;
+
+        let mut entries = [([0u8; 8], 0u8); 9];
+        for (idx, entry) in buf.array_chunks::<10>().enumerate() {
+            assert_eq!(entry[9], b'\n');
+            entries[idx].0 = entry[0..8].try_into().unwrap();
+            entries[idx].1 = entry[8];
+        }
+
         let rect = Rect::new(canvas.x + canvas.w + 5, canvas.y, 17, 12);
         terminal.draw_rect_sep(rect, rect.w, rect.h, 1)?;
         terminal.draw_text_centered(
@@ -37,7 +40,8 @@ impl Leaderboard {
         Ok(Self {
             rect,
             you_row: None,
-            entries: DEFAULT_LEADERBOARD,
+            entries,
+            conn,
         })
     }
 
