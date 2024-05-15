@@ -55,7 +55,10 @@ pub fn game_main(mut canvas: Canvas, leaderboard: &mut Leaderboard) -> io::Resul
     let mut len = STARTING_LENGTH;
     // initialize the fruits from the locations in FOOD_LOCATIONS
     let mut fruits: [Coord; FOOD_COUNT] = array::from_fn(|i| {
-        let coord = Coord { x: FOOD_LOCATIONS[i].0, y: FOOD_LOCATIONS[i].1 };
+        let coord = Coord {
+            x: FOOD_LOCATIONS[i].0,
+            y: FOOD_LOCATIONS[i].1,
+        };
         set_bb(&mut bitboard, &canvas, coord, true);
         // TODO: remove `unwrap` here
         canvas.draw_pixel(coord, Color::BrightYellow).unwrap();
@@ -93,8 +96,7 @@ pub fn game_main(mut canvas: Canvas, leaderboard: &mut Leaderboard) -> io::Resul
             }
 
             // poll interupted our sleep, so we have to sleep the rest of the 140ms
-            let t = Instant::now() - time;
-            let t = STEP_MS - t.as_millis() as u64;
+            let t = STEP_MS - time.elapsed().as_millis() as u64;
             sleep(Duration::from_millis(t));
         }
 
@@ -219,7 +221,7 @@ fn set_bb(bitboard: &mut [u64], canvas: &Canvas, coord: Coord, value: bool) {
 }
 
 /// Check whether a coordinate on the bitboard is occupied or unoccupied.
-fn get_bb(bitboard: &[u64], canvas: &Canvas, coord: Coord) -> bool {
+const fn get_bb(bitboard: &[u64], canvas: &Canvas, coord: Coord) -> bool {
     // turn the 2d coordinate into a flat index
     // TODO: inline `as_idx`
     let idx = coord.as_idx(canvas);

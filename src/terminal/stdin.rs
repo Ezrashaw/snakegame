@@ -60,6 +60,7 @@ impl Terminal {
         Ok(())
     }
 
+    #[allow(unused)]
     pub fn get_key_blocking(&mut self) -> io::Result<Key> {
         self.flags = set_non_block(self.flags, false);
         let key = self.get_key()?;
@@ -122,7 +123,7 @@ pub(super) fn set_non_block(mut flags: i64, non_block: bool) -> i64 {
     flags
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Key {
     CrtlC,
     Enter,

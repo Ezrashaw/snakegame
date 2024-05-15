@@ -1,22 +1,14 @@
-use std::{
-    io::{self, Write},
-    ptr,
-};
-
-use crate::terminal::{
-    syscall::{syscall3, SYS_ioctl},
-    termios::STDOUT_FD,
-};
+use std::io::{self, Write};
 
 use super::Terminal;
 
 impl Terminal {
     pub fn write(&mut self, s: &str) -> io::Result<()> {
-        write!(self.out, "{}", s)
+        write!(self.out, "{s}")
     }
 
     pub fn draw_text(&mut self, x: u16, y: u16, s: &str) -> io::Result<()> {
-        write!(self.out, "\x1B[{y};{x}H{}", s)
+        write!(self.out, "\x1B[{y};{x}H{s}")
     }
 
     pub fn draw_pixel(&mut self, x: u16, y: u16, color: Color) -> io::Result<()> {
@@ -69,6 +61,7 @@ impl Terminal {
         write!(&mut self.out, "\x1B[{x}G└{:─<w$}┘", "")
     }
 
+    #[allow(unused)]
     pub fn draw_rect_centered(&mut self, rect: Rect, w: u16, h: u16) -> io::Result<()> {
         let height_padding = (rect.h - h) / 2;
         let width_padding = (rect.w - w) / 2;
@@ -122,29 +115,6 @@ impl Terminal {
         }
         write!(&mut self.out, "\x1B[{x}G{:w$}", "")
     }
-
-    pub fn get_termsize(&mut self) -> (u16, u16) {
-        #[derive(Default)]
-        #[repr(C)]
-        struct WinSize {
-            ws_row: u16,
-            ws_col: u16,
-            ws_xpixel: u16, /* unused */
-            ws_ypixel: u16, /* unused */
-        }
-
-        let mut win_size = WinSize::default();
-        let res = unsafe {
-            syscall3(
-                SYS_ioctl,
-                STDOUT_FD,
-                0x5413, // TIOCGWINSZ
-                ptr::from_mut(&mut win_size) as u64,
-            )
-        };
-        assert_eq!(res, 0);
-        (win_size.ws_col, win_size.ws_row)
-    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -157,7 +127,7 @@ pub struct Rect {
 
 impl Rect {
     /// Creates a new [`Rect`] with the given coordinates and size.
-    pub fn new(x: u16, y: u16, w: u16, h: u16) -> Self {
+    pub const fn new(x: u16, y: u16, w: u16, h: u16) -> Self {
         Self { x, y, w, h }
     }
 
@@ -174,6 +144,7 @@ impl Rect {
     }
 }
 
+#[derive(Clone, Copy)]
 pub enum Color {
     Red,
     Green,
@@ -183,18 +154,18 @@ pub enum Color {
 }
 
 impl Color {
-    pub fn as_ansi(&self) -> &'static str {
+    pub const fn as_ansi(self) -> &'static str {
         match self {
-            Color::Red => "31",
-            Color::Green => "32",
-            Color::BrightYellow => "93",
-            Color::BrightRed => "91",
-            Color::Lime => "92",
+            Self::Red => "31",
+            Self::Green => "32",
+            Self::BrightYellow => "93",
+            Self::BrightRed => "91",
+            Self::Lime => "92",
         }
     }
 }
 
-fn ansi_str_len(s: &str) -> u16 {
+const fn ansi_str_len(s: &str) -> u16 {
     let mut len = 0;
     let mut i = 0;
 

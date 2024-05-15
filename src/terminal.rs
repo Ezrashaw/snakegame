@@ -10,12 +10,13 @@ use std::{
     fs::File,
     io::{self, Write},
     os::fd::FromRawFd,
+    ptr,
 };
 
 use crate::terminal::{
     stdin::F_GETFL,
-    syscall::{syscall2, SYS_fcntl},
-    termios::STDIN_FD,
+    syscall::{syscall2, syscall3, SYS_fcntl, SYS_ioctl},
+    termios::{STDIN_FD, STDOUT_FD},
 };
 
 use self::termios::Termios;
@@ -66,4 +67,27 @@ impl Drop for Terminal {
         write!(&mut self.out, "\x1B[?1049l\x1B[?25h").unwrap();
         termios::restore(self.old_termios);
     }
+}
+
+pub fn get_termsize() -> (u16, u16) {
+    #[derive(Default)]
+    #[repr(C)]
+    struct WinSize {
+        ws_row: u16,
+        ws_col: u16,
+        ws_xpixel: u16, /* unused */
+        ws_ypixel: u16, /* unused */
+    }
+
+    let mut win_size = WinSize::default();
+    let res = unsafe {
+        syscall3(
+            SYS_ioctl,
+            STDOUT_FD,
+            0x5413, // TIOCGWINSZ
+            ptr::from_mut(&mut win_size) as u64,
+        )
+    };
+    assert_eq!(res, 0);
+    (win_size.ws_col, win_size.ws_row)
 }

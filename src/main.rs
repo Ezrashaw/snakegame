@@ -25,7 +25,7 @@ const CANVAS_H: u16 = 13;
 
 fn main() -> io::Result<()> {
     let mut terminal = Terminal::new()?;
-    let size = terminal.get_termsize();
+    let size = terminal::get_termsize();
     let screen_rect = Rect::new(1, 1, size.0 - 2, size.1 - 2);
 
     terminal.draw_text(0, size.1 - 3, CREDITS_TEXT)?;
@@ -64,15 +64,15 @@ struct Canvas<'a> {
 }
 
 impl<'a> Canvas<'a> {
-    fn new(term: &'a mut Terminal, rect: Rect) -> Self {
+    pub fn new(term: &'a mut Terminal, rect: Rect) -> Self {
         Self { term, rect }
     }
 
-    pub fn w(&self) -> u16 {
+    pub const fn w(&self) -> u16 {
         self.rect.w / 2
     }
 
-    pub fn h(&self) -> u16 {
+    pub const fn h(&self) -> u16 {
         self.rect.h
     }
 
@@ -90,7 +90,7 @@ impl<'a> Canvas<'a> {
         self.term.poll_key(timeout_ms)
     }
 
-    fn get_xy(&self, coord: Coord) -> (u16, u16) {
+    const fn get_xy(&self, coord: Coord) -> (u16, u16) {
         (self.rect.x + 1 + (coord.x * 2), self.rect.y + 1 + coord.y)
     }
 }
@@ -102,7 +102,7 @@ struct Coord {
 }
 
 impl Coord {
-    pub fn as_idx(self, canvas: &Canvas) -> usize {
+    pub const fn as_idx(self, canvas: &Canvas) -> usize {
         self.y as usize * canvas.w() as usize + self.x as usize
     }
 }
