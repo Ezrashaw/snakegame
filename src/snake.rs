@@ -15,12 +15,18 @@ use crate::{
 /// Defines the time (in milliseconds) between each movement of the snake. During this time, if a
 /// key is pressed, then we process the key event, and wait for the remainer of the time
 const STEP_MS: u64 = 140;
+
 /// Defines the starting length of the snake. Note that the snake does not actualy start at this
 /// length, but slowly expands out of a single point.
 const STARTING_LENGTH: usize = 7;
+
 /// Defines the number of fruits on the canvas. Throughout the game, this is the number of fruits
 /// is _always_ equal to this value.
 const FOOD_COUNT: usize = 5;
+
+/// Defines the starting locations for the fruits. At the beginning of the game, we do not choose
+/// random locations for the fruits, instead we create an 'X' pattern (from this constant).
+const FOOD_LOCATIONS: [(u16, u16); FOOD_COUNT] = [(20, 3), (20, 9), (26, 3), (26, 9), (23, 6)];
 
 /// Main entry point for the game logic.
 ///
@@ -44,15 +50,16 @@ pub fn game_main(mut canvas: Canvas) -> io::Result<Option<usize>> {
     // the number of game cells, divided by size of each value (64 bits). note also that division
     // rounds down, so we have to add another u64 (which will only be partly filled).
     let mut bitboard = vec![0u64; canvas.w() as usize * canvas.h() as usize / 64 + 1];
-    // write the snake's head into the bitboard early so that the fruit generation can't place a
-    // fruit on the spawn position
-    set_bb(&mut bitboard, &canvas, head, true);
     // initialize the snake's length to the starting length
     let mut len = STARTING_LENGTH;
-    // initialize the fruits by choosing random locations on the canvas,
-    // FIXME: don't unwrap the result of the `gen_fruit` function
-    let mut fruits: [Coord; FOOD_COUNT] =
-        array::from_fn(|_| gen_fruit(&mut rng, &mut canvas, &mut bitboard).unwrap());
+    // initialize the fruits from the locations in FOOD_LOCATIONS
+    let mut fruits: [Coord; FOOD_COUNT] = array::from_fn(|i| {
+        let coord = Coord { x: FOOD_LOCATIONS[i].0, y: FOOD_LOCATIONS[i].1 };
+        set_bb(&mut bitboard, &canvas, coord, true);
+        // TODO: remove `unwrap` here
+        canvas.draw_pixel(coord, Color::BrightYellow).unwrap();
+        coord
+    });
 
     loop {
         // put the head into the tail, and mark it as occupied on the bitboard
