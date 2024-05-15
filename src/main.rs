@@ -47,6 +47,7 @@ fn main() -> io::Result<()> {
 
     Ok(())
 }
+
 struct Canvas<'a> {
     term: &'a mut Terminal,
     rect: Rect,

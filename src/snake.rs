@@ -155,7 +155,7 @@ fn gen_fruit(rng: &mut File, canvas: &mut Canvas, bitboard: &mut [u64]) -> io::R
     // read eight bytes (a u64) into a buffer
     let mut rand = [0u8; 8];
     rng.read_exact(&mut rand)?;
-    let rand = usize::from_le_bytes(idx);
+    let rand = usize::from_le_bytes(rand);
 
     // calculate how many filled and free squares there are
     let filled = bitboard.iter().map(|x| x.count_ones()).sum::<u32>() as usize;

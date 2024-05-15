@@ -39,7 +39,7 @@ impl Terminal {
             0 => Ok(None),
             1 => {
                 assert!(poll_fd.revents == POLLIN);
-                Ok(Some(self.get_key()?))
+                Ok(self.get_last_key()?)
             }
             _ => unreachable!(),
         }
@@ -48,14 +48,7 @@ impl Terminal {
     pub fn wait_key(&mut self, key: Key) -> io::Result<()> {
         // flush any keys currently in the buffer (we don't want prompts using
         // this function to immediately close)
-        loop {
-            let res = self.get_key();
-            match res {
-                Ok(_) => (),
-                Err(err) if matches!(err.kind(), ErrorKind::WouldBlock) => break,
-                Err(err) => return Err(err),
-            }
-        }
+        let _ = self.get_last_key()?;
 
         self.flags = set_non_block(self.flags, false);
         loop {
@@ -72,6 +65,18 @@ impl Terminal {
         let key = self.get_key()?;
         self.flags = set_non_block(self.flags, true);
         Ok(key)
+    }
+
+    pub fn get_last_key(&mut self) -> io::Result<Option<Key>> {
+        let mut last_key = None;
+        loop {
+            let res = self.get_key();
+            match res {
+                Ok(key) => last_key = Some(key),
+                Err(err) if matches!(err.kind(), ErrorKind::WouldBlock) => return Ok(last_key),
+                Err(err) => return Err(err),
+            }
+        }
     }
 
     pub fn get_key(&mut self) -> io::Result<Key> {
