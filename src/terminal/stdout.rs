@@ -37,7 +37,7 @@ impl Terminal {
         write!(self.out, "\x1B[{};{}H{}", rect.y, rect.x + x_pad, s)
     }
 
-    pub fn draw_canvas(&mut self, rect: Rect, w: u16, h: u16) -> io::Result<Rect> {
+    pub fn draw_rect_sep(&mut self, rect: Rect, w: u16, h: u16, sep: u16) -> io::Result<Rect> {
         let height_padding = (rect.h - h) / 2;
         let width_padding = (rect.w - w) / 2;
         let x = rect.x + width_padding;
@@ -46,7 +46,7 @@ impl Terminal {
 
         writeln!(&mut self.out, "\x1B[{y};{x}H┌{:─<w$}┐", "")?;
         for i in 0..h {
-            if i + 2 == h {
+            if i == sep {
                 writeln!(&mut self.out, "\x1B[{x}G├{:─<w$}┤", "")?;
             } else {
                 writeln!(&mut self.out, "\x1B[{x}G│{:w$}│", "")?;
