@@ -11,7 +11,7 @@ use terminal::{Color, Key, Rect, Terminal};
 const WELCOME_TEXT: &str =
     "Welcome to \x1B[1;32mSNAKE\x1B[0m!\n\n\x1B[2;37mPress \x1B[1m<ENTER>\x1B[22;2m to play!\x1B[0m";
 
-const HELP_TEXT: &str = "MOVE WITH \x1B[1;34mARROW KEYS\x1B[0m; EAT \x1B[1;33mFRUIT\x1B[0m; AVOID \x1B[1;32mTAIL\x1B[0m AND \x1B[1;2;37mWALLS\x1B[0m";
+const HELP_TEXT: &str = "MOVE WITH \x1B[1;34mARROW KEYS\x1B[0m; EAT \x1B[1;93mFRUIT\x1B[0m; AVOID \x1B[1;32mTAIL\x1B[0m AND \x1B[1;2;37mWALLS\x1B[0m";
 
 const GAME_OVER_TEXT: &str =
     "GAME OVER!!\x1B[0m\nSCORE: \x1B[1;32m00\x1B[0m\n\n\x1B[2;37mPress \x1B[1m<ENTER>\x1B[22;2m to continue\x1B[0m";
@@ -36,6 +36,20 @@ fn main() -> io::Result<()> {
         Rect::new(canvas.x + 1, canvas.y + CANVAS_H + 2, CANVAS_W, 1),
         HELP_TEXT,
     )?;
+
+    let leaderboard = Rect::new(canvas.x + canvas.w + 5, canvas.y, 17, 15);
+    terminal.draw_rect(leaderboard)?;
+    terminal.draw_text_centered(leaderboard.move_xy(1, 1).change_size(0, -14), "LEADERBOARD")?;
+    terminal.draw_text_centered(leaderboard.move_xy(1, 3).change_size(0, -14), "1. -------- 000")?;
+    terminal.draw_text_centered(leaderboard.move_xy(1, 4).change_size(0, -14), "2. --YOU!-- 000")?;
+    terminal.draw_text_centered(leaderboard.move_xy(1, 5).change_size(0, -14), "3. --YOU!-- 000")?;
+    terminal.draw_text_centered(leaderboard.move_xy(1, 6).change_size(0, -14), "4. --YOU!-- 000")?;
+    terminal.draw_text_centered(leaderboard.move_xy(1, 7).change_size(0, -14), "5.   YOU!   000")?;
+    terminal.draw_text_centered(leaderboard.move_xy(1, 8).change_size(0, -14), "6.   YOU!   000")?;
+    terminal.draw_text_centered(leaderboard.move_xy(1, 9).change_size(0, -14), "7.   YOU!   000")?;
+    terminal.draw_text_centered(leaderboard.move_xy(1, 10).change_size(0, -14), "8.   YOU!   000")?;
+    terminal.draw_text_centered(leaderboard.move_xy(1, 11).change_size(0, -14), "9.   YOU!   000")?;
+    terminal.draw_text_centered(leaderboard.move_xy(1, 12).change_size(0, -14), "10.-------- 000")?;
 
     terminal.wait_key(Key::Enter)?;
     terminal.clear_rect(textbox)?;
