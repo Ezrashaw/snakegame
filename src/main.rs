@@ -12,8 +12,11 @@ const WELCOME_TEXT: &str =
     "Welcome to \x1B[1;32mSNAKE\x1B[0m!\n\n\x1B[2;37mPress \x1B[1m<ENTER>\x1B[22;2m to play!\x1B[0m";
 
 const HELP_TEXT: &str = "MOVE WITH \x1B[1;34mARROW KEYS\x1B[0m; EAT \x1B[1;33mFRUIT\x1B[0m; AVOID \x1B[1;32mTAIL\x1B[0m AND \x1B[1;2;37mWALLS\x1B[0m";
+
 const GAME_OVER_TEXT: &str =
     "GAME OVER!!\x1B[0m\nSCORE: \x1B[1;32m00\x1B[0m\n\n\x1B[2;37mPress \x1B[1m<ENTER>\x1B[22;2m to continue\x1B[0m";
+
+const CREDITS_TEXT: &str = "Written by \x1B[1;38;5;214mEzra Shaw\x1B[0m\nfor the\n2024 \x1B[1;32mOnslow \x1B[31mCollege\x1B[0m Open Evening";
 
 const CANVAS_W: u16 = 61;
 const CANVAS_H: u16 = 13;
@@ -22,6 +25,8 @@ fn main() -> io::Result<()> {
     let mut terminal = Terminal::new()?;
     let size = terminal.get_termsize();
     let screen_rect = Rect::new(1, 1, size.0 - 2, size.1 - 2);
+
+    terminal.draw_textbox(2, size.1 - 5, CREDITS_TEXT)?;
 
     let canvas = terminal.draw_canvas(screen_rect, CANVAS_W, CANVAS_H + 2)?;
     let canvas = canvas.change_size(0, -2);
