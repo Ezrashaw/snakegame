@@ -12,34 +12,55 @@ use crate::{
     Canvas, Coord,
 };
 
+/// Defines the time (in milliseconds) between each movement of the snake. During this time, if a
+/// key is pressed, then we process the key event, and wait for the remainer of the time
 const STEP_MS: u64 = 140;
+/// Defines the starting length of the snake. Note that the snake does not actualy start at this
+/// length, but slowly expands out of a single point.
 const STARTING_LENGTH: usize = 7;
+/// Defines the number of fruits on the canvas. Throughout the game, this is the number of fruits
+/// is _always_ equal to this value.
 const FOOD_COUNT: usize = 5;
 
+/// Main entry point for the game logic.
+///
+/// Returns [`None`] if the game exits because of a user action (Crtl-C). Otherwise, returns
+/// `Some(score)`.
 pub fn game_main(mut canvas: Canvas) -> io::Result<Option<usize>> {
+    // open /dev/urandom, a fast source of entropy on Linux systems.
     let mut rng = File::open("/dev/urandom")?;
 
+    // -- snake state --
+    // the snake begins in the vertical center of the screen and x = 3
     let mut head = Coord {
         x: 3,
         y: canvas.h() / 2,
     };
+    // we face towards the rest of the canvas, that is, rightwards
     let mut direction = Direction::Right;
+    // the tail starts out being
     let mut tail = VecDeque::new();
+    // initialize the bitboard that we use to determine valid locations for placing fruits. we take
+    // the number of game cells, divided by size of each value (64 bits). note also that division
+    // rounds down, so we have to add another u64 (which will only be partly filled).
     let mut bitboard = vec![0u64; canvas.w() as usize * canvas.h() as usize / 64 + 1];
+    // initialize the snake's length to the starting length
     let mut len = STARTING_LENGTH;
+    // initialize the fruits by choosing random locations on the canvas,
+    // FIXME: we haven't yet init'ed the bitboard with the snake's initial position, so we could
+    // spawn a fruit and then override it by spawning the snake.
+    // FIXME: don't unwrap the result of the `gen_fruit` function
     let mut fruits: [Coord; FOOD_COUNT] =
         array::from_fn(|_| gen_fruit(&mut rng, &mut canvas, &mut bitboard).unwrap());
 
     loop {
         tail.push_back(head);
-        let idx = head.as_idx(&canvas);
-        bitboard[idx / 64] |= 0b1 << (idx % 64);
+        set_bb(&mut bitboard, &canvas, head, true);
         if tail.len() > len {
             let coord = tail.pop_front().unwrap();
             canvas.clear_pixel(coord)?;
 
-            let idx = coord.as_idx(&canvas);
-            bitboard[idx / 64] &= !(0b1 << (idx % 64));
+            set_bb(&mut bitboard, &canvas, coord, false);
         }
 
         canvas.draw_pixel(head, Color::Lime)?;
@@ -55,8 +76,7 @@ pub fn game_main(mut canvas: Canvas) -> io::Result<Option<usize>> {
                 _ => (),
             }
 
-            // poll interupted our sleep, so we have to sleep the rest of the
-            // 140ms
+            // poll interupted our sleep, so we have to sleep the rest of the 140ms
             let t = Instant::now() - time;
             let t = STEP_MS - t.as_millis() as u64;
             sleep(Duration::from_millis(t));
@@ -71,8 +91,7 @@ pub fn game_main(mut canvas: Canvas) -> io::Result<Option<usize>> {
             _ => break,
         }
 
-        let idx = head.as_idx(&canvas);
-        if bitboard[idx / 64] & (0b1 << (idx % 64)) != 0 && !fruits.contains(&head) {
+        if get_bb(&bitboard, &canvas, head) && !fruits.contains(&head) {
             // make sure to reset the head position back to where it was,
             // otherwise the animation mucks up
             head = old_pos;
@@ -107,7 +126,6 @@ fn gen_fruit(rng: &mut File, canvas: &mut Canvas, bitboard: &mut [u64]) -> io::R
     let rand = usize::from_le_bytes(idx);
 
     let filled = bitboard.iter().map(|x| x.count_ones()).sum::<u32>() as usize;
-    // let target_idx = rand % ((canvas.w() as usize * canvas.h() as usize) - filled);
     let target_idx = rand % ((canvas.w() as usize * canvas.h() as usize) - filled + 1);
 
     let mut idx = 0;
@@ -115,11 +133,7 @@ fn gen_fruit(rng: &mut File, canvas: &mut Canvas, bitboard: &mut [u64]) -> io::R
     // for each xy point on the canvas...
     'outer: for y in 0..canvas.h() {
         for x in 0..canvas.w() {
-            // get the flat index of the xy point...
-            let i = Coord { x, y }.as_idx(canvas);
-            // ...and check if it is occupied
-            if bitboard[i / 64] & (0b1 << (i % 64)) == 0 {
-                // if not, then
+            if !get_bb(bitboard, canvas, Coord { x, y }) {
                 idx += 1;
             }
             if idx >= target_idx {
@@ -133,10 +147,25 @@ fn gen_fruit(rng: &mut File, canvas: &mut Canvas, bitboard: &mut [u64]) -> io::R
     assert_ne!(fx, u16::MAX);
 
     let coord = Coord { x: fx, y: fy };
-    let idx = coord.as_idx(canvas);
-    bitboard[idx / 64] |= 0b1 << (idx % 64);
+    set_bb(bitboard, canvas, coord, true);
     canvas.draw_pixel(coord, Color::BrightYellow)?;
     Ok(coord)
+}
+
+fn set_bb(bitboard: &mut [u64], canvas: &Canvas, coord: Coord, value: bool) {
+    // TODO: inline `as_idx`
+    let idx = coord.as_idx(canvas);
+    if value {
+        bitboard[idx / 64] |= 0b1 << (idx % 64);
+    } else {
+        bitboard[idx / 64] &= !(0b1 << (idx % 64));
+    }
+}
+
+fn get_bb(bitboard: &[u64], canvas: &Canvas, coord: Coord) -> bool {
+    // TODO: inline `as_idx`
+    let idx = coord.as_idx(canvas);
+    bitboard[idx / 64] & (0b1 << (idx % 64)) != 0
 }
 
 #[derive(PartialEq, Eq)]
