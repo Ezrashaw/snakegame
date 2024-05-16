@@ -5,4 +5,5 @@ The classic game Snake, written in Rust. This program runs entirely in a termina
 ### TODO
 - Speeding up the snake over time (undecided).
 - Continuing work on the leaderboard.
-- Remove jitter (doesn't actually exist but could) from the 140ms step.
+- Documenting the remainder of the code (everything except `src/snake.rs`).
+- Porting the program to MacOS.
