@@ -7,9 +7,9 @@ pub use x86::*;
 mod x86 {
     use std::arch::asm;
 
-    pub const SYS_poll: u64 = 7;
     pub const SYS_ioctl: u64 = 16;
     pub const SYS_fcntl: u64 = 72;
+    pub const SYS_ppoll: u64 = 271;
 
     /// Two argument syscall on x86-64 Linux.
     ///
@@ -61,6 +61,39 @@ mod x86 {
                 in("rdi") arg0,
                 in("rsi") arg1,
                 in("rdx") arg2,
+
+                out("rcx") _, // the kernel clobbers %rcx and r11
+                out("r11") _, // ^^^
+                lateout("rax") ret,
+                options(nostack, preserves_flags)
+            );
+        }
+        ret
+    }
+
+    /// Four argument syscall on x86-64 Linux.
+    ///
+    /// Linux calling convention states that (ret value: %rax):
+    ///
+    /// **Arguments**:
+    ///
+    /// 0. %rax (syscall number)
+    /// 1. %rdi
+    /// 2. %rsi
+    /// 3. %rdx
+    /// 3. %r10
+    pub unsafe fn syscall4(id: u64, arg0: u64, arg1: u64, arg2: u64, arg3: u64) -> u64 {
+        let mut ret;
+        unsafe {
+            asm!(
+                "syscall",
+                in("rax") id,
+
+                // syscall arguments
+                in("rdi") arg0,
+                in("rsi") arg1,
+                in("rdx") arg2,
+                in("r10") arg3,
 
                 out("rcx") _, // the kernel clobbers %rcx and r11
                 out("r11") _, // ^^^

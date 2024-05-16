@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::terminal::{
-    syscall::{syscall3, SYS_fcntl, SYS_poll},
+    syscall::{syscall3, syscall4, SYS_fcntl, SYS_ppoll},
     termios::STDIN_FD,
 };
 
@@ -26,13 +26,32 @@ impl Terminal {
             revents: u16, /* returned events */
         }
 
+        #[repr(C)]
+        struct TimeSpec {
+            secs: u64,
+            nano: u64,
+        }
+
         let mut poll_fd = PollFD {
             fd: 0,
             events: POLLIN,
             revents: 0,
         };
-        let res =
-            unsafe { syscall3(SYS_poll, ptr::from_mut(&mut poll_fd) as u64, 1, timeout_ms) } as i64;
+
+        let time_spec = TimeSpec {
+            secs: timeout_ms / 1000,
+            nano: (timeout_ms % 1000) * 1_000_000,
+        };
+
+        let res = unsafe {
+            syscall4(
+                SYS_ppoll,
+                ptr::from_mut(&mut poll_fd) as u64,
+                1,
+                ptr::from_ref(&time_spec) as u64,
+                ptr::null::<u8>() as u64,
+            )
+        } as i64;
 
         match res {
             -1 => panic!("syscall failed"),
