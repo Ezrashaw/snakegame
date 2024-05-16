@@ -33,7 +33,10 @@ const FOOD_LOCATIONS: [(u16, u16); FOOD_COUNT] = [(20, 3), (20, 9), (26, 3), (26
 ///
 /// Returns [`None`] if the game exits because of a user action (Crtl-C). Otherwise, returns
 /// `Some(score)`.
-pub fn game_main(mut canvas: Canvas, leaderboard: &mut Leaderboard) -> io::Result<Option<usize>> {
+pub fn game_main(
+    mut canvas: Canvas,
+    leaderboard: &mut Option<Leaderboard>,
+) -> io::Result<Option<usize>> {
     // open /dev/urandom, a fast source of entropy on Linux systems.
     let mut rng = File::open("/dev/urandom")?;
 
@@ -123,10 +126,18 @@ pub fn game_main(mut canvas: Canvas, leaderboard: &mut Leaderboard) -> io::Resul
         if let Some(fruit_idx) = fruits.iter().position(|&f| f == head) {
             len += 1;
             // update the local player position on the leaderboard
-            leaderboard.update_you(canvas.term, (len - STARTING_LENGTH) as u8)?;
+            if let Some(leaderboard) = leaderboard {
+                leaderboard.update_you(canvas.term, (len - STARTING_LENGTH) as u8)?;
+            }
             // shouldn't remove fruit from bitboard because we ate it and will "digest" it (normal
             // snake code will remove it)
             fruits[fruit_idx] = gen_fruit(&mut rng, &mut canvas, &mut bitboard)?;
+        }
+
+        // give the leaderboard a chance to update, if we have received a new leaderboard from the
+        // server
+        if let Some(leaderboard) = leaderboard {
+            leaderboard.check_update(canvas.term)?;
         }
     }
 

@@ -43,7 +43,9 @@ fn main() -> io::Result<()> {
     )?;
 
     let mut leaderboard = Leaderboard::init(&mut terminal, canvas)?;
-    leaderboard.draw_values(&mut terminal, 0)?;
+    if let Some(leaderboard) = &mut leaderboard {
+        leaderboard.draw_values(&mut terminal, 0)?;
+    }
 
     terminal.wait_key(Key::Enter)?;
     terminal.clear_rect(textbox)?;

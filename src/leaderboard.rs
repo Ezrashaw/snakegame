@@ -5,27 +5,30 @@ use std::{
 
 use crate::{terminal::Terminal, Rect};
 
+type Entries = [([u8; 8], u8); 9];
+
 const YOU_NAME: &str = "--\x1B[95mYOU!\x1B[90m--";
 
 pub struct Leaderboard {
     rect: Rect,
-    you_row: Option<u16>,
-    entries: [([u8; 8], u8); 9],
+    you: Option<(u16, u8)>,
+    entries: Entries,
     conn: TcpStream,
 }
 
 impl Leaderboard {
-    pub fn init(terminal: &mut Terminal, canvas: Rect) -> io::Result<Self> {
-        let mut conn = TcpStream::connect((Ipv4Addr::LOCALHOST, 1234))?;
-        let mut buf = [0u8; 10 * 9];
-        conn.read_exact(&mut buf)?;
+    pub fn init(terminal: &mut Terminal, canvas: Rect) -> io::Result<Option<Self>> {
+        fn init_tcp() -> io::Result<(Entries, TcpStream)> {
+            let mut conn = TcpStream::connect((Ipv4Addr::LOCALHOST, 1234))?;
+            let entries = Leaderboard::entries_from_stream(&mut conn)?;
+            conn.set_nonblocking(true)?;
 
-        let mut entries = [([0u8; 8], 0u8); 9];
-        for (idx, entry) in buf.array_chunks::<10>().enumerate() {
-            assert_eq!(entry[9], b'\n');
-            entries[idx].0 = entry[0..8].try_into().unwrap();
-            entries[idx].1 = entry[8];
+            Ok((entries, conn))
         }
+
+        let Ok((entries, conn)) = init_tcp() else {
+            return Ok(None);
+        };
 
         let rect = Rect::new(canvas.x + canvas.w + 5, canvas.y, 17, 12);
         terminal.draw_rect_sep(rect, rect.w, rect.h, 1)?;
@@ -37,23 +40,51 @@ impl Leaderboard {
             terminal.draw_text(rect.x + 2, rect.y + 2 + i, &format!("{i}."))?;
         }
 
-        Ok(Self {
+        Ok(Some(Self {
             rect,
-            you_row: None,
+            you: None,
             entries,
             conn,
-        })
+        }))
+    }
+
+    pub fn check_update(&mut self, terminal: &mut Terminal) -> io::Result<()> {
+        let entries = Self::entries_from_stream(&mut self.conn);
+        self.entries = match entries {
+            Ok(e) => e,
+            Err(err) if matches!(err.kind(), io::ErrorKind::WouldBlock) => return Ok(()),
+            Err(err) => return Err(err),
+        };
+
+        let you = self.you.unwrap().1;
+        self.draw_values(terminal, you)?;
+
+        Ok(())
+    }
+
+    fn entries_from_stream(conn: &mut TcpStream) -> io::Result<[([u8; 8], u8); 9]> {
+        let mut buf: [u8; 90] = [0u8; 10 * 9];
+        conn.read_exact(&mut buf)?;
+
+        let mut entries = [([0u8; 8], 0u8); 9];
+        for (idx, entry) in buf.array_chunks::<10>().enumerate() {
+            assert_eq!(entry[9], b'\n');
+            entries[idx].0 = entry[0..8].try_into().unwrap();
+            entries[idx].1 = entry[8];
+        }
+
+        Ok(entries)
     }
 
     pub fn draw_values(&mut self, terminal: &mut Terminal, you: u8) -> io::Result<()> {
-        self.you_row = None;
+        self.you = None;
         for i in 0..=self.entries.len() {
             let (name, score, score_color) =
-                if self.you_row.is_none() && (i == self.entries.len() || you > self.entries[i].1) {
-                    self.you_row = Some(i as u16);
+                if self.you.is_none() && (i == self.entries.len() || you > self.entries[i].1) {
+                    self.you = Some((i as u16, you));
                     (YOU_NAME, you, 95)
                 } else {
-                    let offset = self.you_row.map(|_| 1).unwrap_or(0);
+                    let offset = self.you.map(|_| 1).unwrap_or(0);
                     let entry = &self.entries[i - offset];
                     let name = std::str::from_utf8(&entry.0).unwrap();
                     (name, entry.1, 39)
@@ -90,7 +121,7 @@ impl Leaderboard {
     }
 
     pub fn update_you(&mut self, terminal: &mut Terminal, new_val: u8) -> io::Result<()> {
-        let you_row = self.you_row.unwrap();
+        let you_row = self.you.unwrap().0;
         if you_row > 0 && new_val > self.entries[you_row as usize - 1].1 {
             self.draw_values(terminal, new_val)
         } else {

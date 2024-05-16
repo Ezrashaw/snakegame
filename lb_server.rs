@@ -1,6 +1,8 @@
 use std::{
     io::{self, Write},
     net::{Ipv4Addr, TcpListener},
+    thread::sleep,
+    time::Duration,
 };
 
 fn main() -> io::Result<()> {
@@ -8,6 +10,18 @@ fn main() -> io::Result<()> {
     for incoming in server.incoming() {
         let mut stream = incoming?;
         println!("got incoming {:?}", stream.peer_addr());
+
+        writeln!(stream, "-bobby1-\x00")?;
+        writeln!(stream, "-bobby2-\x00")?;
+        writeln!(stream, "-bobby3-\x00")?;
+        writeln!(stream, "-bobby4-\x00")?;
+        writeln!(stream, "-bobby5-\x00")?;
+        writeln!(stream, "-bobby6-\x00")?;
+        writeln!(stream, "-bobby7-\x00")?;
+        writeln!(stream, "-bobby8-\x00")?;
+        writeln!(stream, "-bobby9-\x00")?;
+
+        sleep(Duration::from_secs(10));
 
         writeln!(stream, "-bobby1-\x28")?;
         writeln!(stream, "-bobby2-\x23")?;
@@ -18,6 +32,7 @@ fn main() -> io::Result<()> {
         writeln!(stream, "-bobby7-\x11")?;
         writeln!(stream, "-bobby8-\x11")?;
         writeln!(stream, "-bobby9-\x08")?;
+        sleep(Duration::from_secs(30));
     }
 
     Ok(())
