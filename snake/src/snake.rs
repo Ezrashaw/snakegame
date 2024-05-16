@@ -1,5 +1,4 @@
 use std::{
-    array,
     collections::VecDeque,
     fs::File,
     io::{self, Read},
@@ -21,13 +20,10 @@ const STEP_MS: u64 = 140;
 /// length, but slowly expands out of a single point.
 const STARTING_LENGTH: usize = 7;
 
-/// Defines the number of fruits on the canvas. Throughout the game, this is the number of fruits
-/// is _always_ equal to this value.
-const FOOD_COUNT: usize = 5;
-
 /// Defines the starting locations for the fruits. At the beginning of the game, we do not choose
 /// random locations for the fruits, instead we create an 'X' pattern (from this constant).
-const FOOD_LOCATIONS: [(u16, u16); FOOD_COUNT] = [(20, 3), (20, 9), (26, 3), (26, 9), (23, 6)];
+/// Throughout the game, the number of fruits is _always_ equal to the length of this array.
+const FOOD_LOCATIONS: [(u16, u16); 5] = [(20, 3), (20, 9), (26, 3), (26, 9), (23, 6)];
 
 /// Main entry point for the game logic.
 ///
@@ -57,16 +53,13 @@ pub fn game_main(
     // initialize the snake's length to the starting length
     let mut len = STARTING_LENGTH;
     // initialize the fruits from the locations in FOOD_LOCATIONS
-    let mut fruits: [Coord; FOOD_COUNT] = array::from_fn(|i| {
-        let coord = Coord {
-            x: FOOD_LOCATIONS[i].0,
-            y: FOOD_LOCATIONS[i].1,
-        };
+    for (x, y) in FOOD_LOCATIONS {
+        let coord = Coord { x, y };
+
+        // plot the fruit on the canvas
         set_bb(&mut bitboard, &canvas, coord, true);
-        // TODO: remove `unwrap` here
-        canvas.draw_pixel(coord, Color::BrightYellow).unwrap();
-        coord
-    });
+        canvas.draw_pixel(coord, Color::BrightYellow)?;
+    }
 
     loop {
         // put the head into the tail, and mark it as occupied on the bitboard
@@ -110,29 +103,31 @@ pub fn game_main(
             _ => break,
         }
 
-        // TODO: remove `fruits` array and merge this conditional with the next
-        // check if we have hit our own tail
-        if get_bb(&bitboard, &canvas, head) && !fruits.contains(&head) {
-            // make sure to reset the head position back to where it was, otherwise the animation
-            // mucks up
-            head = old_pos;
-            break;
-        }
+        // check if we have encountered *something*, we'll find out what it is below
+        if get_bb(&bitboard, &canvas, head) {
+            // if we have hit our own tail, then we die...
+            if tail.contains(&head) {
+                // make sure to reset the head position back to where it was, otherwise the animation
+                // mucks up
+                head = old_pos;
+                break;
+            }
 
-        // draw the previous head position as the tail colour
-        canvas.draw_pixel(old_pos, Color::Green)?;
-
-        // check if we have encountered a fruit
-        if let Some(fruit_idx) = fruits.iter().position(|&f| f == head) {
+            // ...otherwise, we have eaten a fruit
             len += 1;
+
             // update the local player position on the leaderboard
             if let Some(leaderboard) = leaderboard {
                 leaderboard.update_you(canvas.term, (len - STARTING_LENGTH) as u8)?;
             }
-            // shouldn't remove fruit from bitboard because we ate it and will "digest" it (normal
+
+            // needn't remove fruit from bitboard because we ate it and will "digest" it (normal
             // snake code will remove it)
-            fruits[fruit_idx] = gen_fruit(&mut rng, &mut canvas, &mut bitboard)?;
+            gen_fruit(&mut rng, &mut canvas, &mut bitboard)?;
         }
+
+        // draw the previous head position as the tail colour
+        canvas.draw_pixel(old_pos, Color::Green)?;
 
         // give the leaderboard a chance to update, if we have received a new leaderboard from the
         // server
@@ -171,7 +166,7 @@ pub fn game_main(
 /// 3. Map the generated index onto the canvas (we iterate over the whole canvas, and only
 /// increment on free squares).
 /// 4. Place the fruit on the canvas.
-fn gen_fruit(rng: &mut File, canvas: &mut Canvas, bitboard: &mut [u64]) -> io::Result<Coord> {
+fn gen_fruit(rng: &mut File, canvas: &mut Canvas, bitboard: &mut [u64]) -> io::Result<()> {
     // read eight bytes (a u64) into a buffer
     let mut rand = [0u8; 8];
     rng.read_exact(&mut rand)?;
@@ -212,7 +207,7 @@ fn gen_fruit(rng: &mut File, canvas: &mut Canvas, bitboard: &mut [u64]) -> io::R
     set_bb(bitboard, canvas, coord, true);
     canvas.draw_pixel(coord, Color::BrightYellow)?;
 
-    Ok(coord)
+    Ok(())
 }
 
 /// Mark a coordinate on the bitboard as either occupied or unoccupied.
