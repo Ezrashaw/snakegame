@@ -59,10 +59,30 @@ impl Leaderboard {
                     (name, entry.1, 39)
                 };
 
+            // quicker check to see if name isn't YOU_NAME
+            let colored_name = if score_color == 39 {
+                let mut colored_name = String::new();
+                let mut in_dashes = true;
+                for ch in name.chars() {
+                    if ch == '-' && !in_dashes {
+                        in_dashes = true;
+                        colored_name.push_str("\x1B[1;90m");
+                    } else if ch != '-' && in_dashes {
+                        in_dashes = false;
+                        colored_name.push_str("\x1B[22;32m");
+                    }
+                    colored_name.push(ch);
+                }
+
+                colored_name
+            } else {
+                YOU_NAME.to_owned()
+            };
+
             terminal.draw_text(
                 self.rect.x + 5,
                 self.rect.y + 3 + i as u16,
-                &format!("\x1B[1;90m{name} \x1B[{score_color}m{score:0>3}\x1B[0m",),
+                &format!("\x1B[1;90m{colored_name} \x1B[1;{score_color}m{score:0>3}\x1B[0m\n",),
             )?;
         }
 
