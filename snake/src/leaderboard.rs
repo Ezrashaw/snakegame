@@ -5,13 +5,14 @@ use std::{
 
 use crate::{terminal::Terminal, Rect};
 
-type Entries = [([u8; 8], u8); 9];
+type Entries = [([u8; 8], u8); 10];
 
 const YOU_NAME: &str = "--\x1B[95mYOU!\x1B[90m--";
 
 pub struct Leaderboard {
     rect: Rect,
-    you: Option<(u16, u8)>,
+    you_row: Option<u16>,
+    you: Option<u8>,
     entries: Entries,
     conn: TcpStream,
 }
@@ -42,6 +43,7 @@ impl Leaderboard {
 
         Ok(Some(Self {
             rect,
+            you_row: None,
             you: None,
             entries,
             conn,
@@ -56,17 +58,16 @@ impl Leaderboard {
             Err(err) => return Err(err),
         };
 
-        let you = self.you.unwrap().1;
-        self.draw_values(terminal, you)?;
+        self.draw_values(terminal)?;
 
         Ok(())
     }
 
-    fn entries_from_stream(conn: &mut TcpStream) -> io::Result<[([u8; 8], u8); 9]> {
-        let mut buf: [u8; 90] = [0u8; 10 * 9];
+    fn entries_from_stream(conn: &mut TcpStream) -> io::Result<Entries> {
+        let mut buf: [u8; 100] = [0u8; 10 * 10];
         conn.read_exact(&mut buf)?;
 
-        let mut entries = [([0u8; 8], 0u8); 9];
+        let mut entries = [([0u8; 8], 0u8); 10];
         for (idx, entry) in buf.array_chunks::<10>().enumerate() {
             assert_eq!(entry[9], b'\n');
             entries[idx].0 = entry[0..8].try_into().unwrap();
@@ -76,19 +77,21 @@ impl Leaderboard {
         Ok(entries)
     }
 
-    pub fn draw_values(&mut self, terminal: &mut Terminal, you: u8) -> io::Result<()> {
-        self.you = None;
-        for i in 0..=self.entries.len() {
-            let (name, score, score_color) =
-                if self.you.is_none() && (i == self.entries.len() || you > self.entries[i].1) {
-                    self.you = Some((i as u16, you));
-                    (YOU_NAME, you, 95)
-                } else {
-                    let offset = self.you.map(|_| 1).unwrap_or(0);
-                    let entry = &self.entries[i - offset];
-                    let name = std::str::from_utf8(&entry.0).unwrap();
-                    (name, entry.1, 39)
-                };
+    pub fn draw_values(&mut self, terminal: &mut Terminal) -> io::Result<()> {
+        self.you_row = None;
+        for i in 0..self.entries.len() {
+            let (name, score, score_color) = if let Some(you) = self.you
+                && self.you_row.is_none()
+                && (i + 1 == self.entries.len() || you > self.entries[i].1)
+            {
+                self.you_row = Some(i as u16);
+                (YOU_NAME, you, 95)
+            } else {
+                let offset = self.you_row.map(|_| 1).unwrap_or(0);
+                let entry = &self.entries[i - offset];
+                let name = std::str::from_utf8(&entry.0).unwrap();
+                (name, entry.1, 39)
+            };
 
             // quicker check to see if name isn't YOU_NAME
             let colored_name = if score_color == 39 {
@@ -121,15 +124,17 @@ impl Leaderboard {
     }
 
     pub fn update_you(&mut self, terminal: &mut Terminal, new_val: u8) -> io::Result<()> {
-        let you_row = self.you.unwrap().0;
-        if you_row > 0 && new_val > self.entries[you_row as usize - 1].1 {
-            self.draw_values(terminal, new_val)
-        } else {
+        if let Some(you_row) = self.you_row
+            && !(you_row > 0 && new_val > self.entries[you_row as usize - 1].1)
+        {
             terminal.draw_text(
                 self.rect.x + 14,
                 self.rect.y + 3 + you_row,
                 &format!("\x1B[1;95m{new_val:0>3}\x1B[0m",),
             )
+        } else {
+            self.you = Some(new_val);
+            self.draw_values(terminal)
         }
     }
 }

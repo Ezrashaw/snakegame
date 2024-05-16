@@ -20,6 +20,7 @@ fn main() -> io::Result<()> {
         writeln!(stream, "-bobby7-\x00")?;
         writeln!(stream, "-bobby8-\x00")?;
         writeln!(stream, "-bobby9-\x00")?;
+        writeln!(stream, "-bobby0-\x00")?;
 
         sleep(Duration::from_secs(10));
 
@@ -32,6 +33,7 @@ fn main() -> io::Result<()> {
         writeln!(stream, "-bobby7-\x11")?;
         writeln!(stream, "-bobby8-\x11")?;
         writeln!(stream, "-bobby9-\x08")?;
+        writeln!(stream, "-bobby0-\x06")?;
         sleep(Duration::from_secs(30));
     }
 

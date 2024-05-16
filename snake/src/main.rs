@@ -1,4 +1,4 @@
-#![feature(strict_overflow_ops, array_chunks, if_let_guard)]
+#![feature(strict_overflow_ops, array_chunks, if_let_guard, let_chains)]
 
 #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
 compile_error!("This program only runs on x86-64 Linux");
@@ -44,11 +44,15 @@ fn main() -> io::Result<()> {
 
     let mut leaderboard = Leaderboard::init(&mut terminal, canvas)?;
     if let Some(leaderboard) = &mut leaderboard {
-        leaderboard.draw_values(&mut terminal, 0)?;
+        leaderboard.draw_values(&mut terminal)?;
     }
 
     terminal.wait_key(Key::Enter)?;
     terminal.clear_rect(textbox)?;
+
+    if let Some(leaderboard) = &mut leaderboard {
+        leaderboard.update_you(&mut terminal, 0)?;
+    }
 
     let score = game_main(Canvas::new(&mut terminal, canvas), &mut leaderboard)?;
     if let Some(score) = score {
