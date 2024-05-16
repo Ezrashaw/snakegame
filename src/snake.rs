@@ -87,10 +87,7 @@ pub fn game_main(mut canvas: Canvas, leaderboard: &mut Leaderboard) -> io::Resul
             // map keys to directions, keeping in mind that the snake can't turn immediately back
             // on itself
             match key {
-                Key::Up if direction != Direction::Down => direction = Direction::Up,
-                Key::Down if direction != Direction::Up => direction = Direction::Down,
-                Key::Right if direction != Direction::Left => direction = Direction::Right,
-                Key::Left if direction != Direction::Right => direction = Direction::Left,
+                _ if let Some(dir) = direction.change_from_key(key) => direction = dir,
                 Key::CrtlC => return Ok(None),
                 _ => (),
             }
@@ -230,10 +227,23 @@ const fn get_bb(bitboard: &[u64], canvas: &Canvas, coord: Coord) -> bool {
 }
 
 /// Enumeration representing the four possible directions that the snake can be moving in.
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone, Copy)]
 enum Direction {
     Up,
     Down,
     Right,
     Left,
+}
+
+impl Direction {
+    // TODO: needs documentation
+    pub fn change_from_key(self, key: Key) -> Option<Self> {
+        Some(match key {
+            Key::Up | Key::Char(b'w') if self != Self::Down => Self::Up,
+            Key::Down | Key::Char(b's') if self != Self::Up => Self::Down,
+            Key::Right | Key::Char(b'd') if self != Self::Left => Self::Right,
+            Key::Left | Key::Char(b'a') if self != Self::Right => Self::Left,
+            _ => return None,
+        })
+    }
 }

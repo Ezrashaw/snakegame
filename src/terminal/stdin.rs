@@ -95,8 +95,9 @@ impl Terminal {
                     x => Key::Unknown(0x1B, x),
                 }
             }
+            ch @ (b'A'..=b'Z' | b'a'..=b'z') => Key::Char(ch),
             x => {
-                // println!("{x}");
+                // println!("\x1B[H{x}                 ");
                 Key::Unknown(x, 0x0)
             }
         })
@@ -127,6 +128,7 @@ pub(super) fn set_non_block(mut flags: i64, non_block: bool) -> i64 {
 pub enum Key {
     CrtlC,
     Enter,
+    Char(u8),
 
     Up,
     Down,
