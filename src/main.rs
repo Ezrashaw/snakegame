@@ -16,14 +16,14 @@ use terminal::{Color, Key, Rect, Terminal};
 const WELCOME_TEXT: &str =
     "Welcome to \x1B[1;32mSNAKE\x1B[0m!\n\n\x1B[2;37mPress \x1B[1m<ENTER>\x1B[22;2m to play!\x1B[0m";
 
-const HELP_TEXT: &str = "MOVE WITH \x1B[1;34mARROW KEYS\x1B[0m; EAT \x1B[1;93mFRUIT\x1B[0m; AVOID \x1B[1;32mTAIL\x1B[0m AND \x1B[1;2;37mWALLS\x1B[0m";
+const HELP_TEXT: &str = "MOVE WITH \x1B[1;34mARROW KEYS\x1B[0m/\x1B[1;34mWASD\x1B[0m; EAT \x1B[1;93mFRUIT\x1B[0m; AVOID \x1B[1;32mTAIL\x1B[0m AND \x1B[1;2;37mWALLS\x1B[0m";
 
 const GAME_OVER_TEXT: &str =
     "GAME OVER!\x1B[0m\nSCORE: \x1B[1;93m000\x1B[0m\n\n\x1B[2;37mPress \x1B[1m<ENTER>\x1B[22;2m to continue...\x1B[0m";
 
 const CREDITS_TEXT: &str = include_str!("../credits.txt");
 
-const CANVAS_W: u16 = 61;
+const CANVAS_W: u16 = 60;
 const CANVAS_H: u16 = 13;
 
 fn main() -> io::Result<()> {

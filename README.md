@@ -4,7 +4,6 @@ The classic game Snake, written in Rust. This program runs entirely in a termina
 
 ### TODO
 - WASD keys
-- Fixing extra column on the right edge of the play area.
 - Speeding up the snake over time (undecided).
 - Continuing work on the leaderboard.
 - Remove jitter (doesn't actually exist but could) from the 140ms step.
