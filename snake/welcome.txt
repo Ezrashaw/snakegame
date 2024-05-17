@@ -1,0 +1,3 @@
+Welcome to {GREEN;BOLD}SNAKE{RESET}!
+
+{DIM;WHITE}Press {BOLD}<ENTER>{NBOLD;DIM} to play!

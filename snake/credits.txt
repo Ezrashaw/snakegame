@@ -1,4 +1,4 @@
 ──────────────────────────────────┐
-       Created by [1;96mEzra Shaw[0m       │
+       Created by {BOLD;BCYAN}Ezra Shaw{RESET}       │
              for the              │
- 2024 [1;32mOnslow [31mCollege[0m Open Evening │
+ 2024 {BOLD;GREEN}Onslow {RED}College{RESET} Open Evening │

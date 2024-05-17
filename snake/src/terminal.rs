@@ -1,7 +1,9 @@
+mod ansi;
 mod stdin;
 mod stdout;
 mod termios;
 
+pub use ansi::from_pansi;
 pub use stdin::{Key, KeyEvent};
 pub use stdout::{Color, Rect};
 

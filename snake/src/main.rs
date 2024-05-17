@@ -1,4 +1,4 @@
-#![feature(strict_overflow_ops, array_chunks, let_chains)]
+#![feature(strict_overflow_ops, array_chunks, let_chains, iter_advance_by)]
 #![warn(clippy::pedantic, clippy::nursery)]
 #![allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 
@@ -15,14 +15,11 @@ use leaderboard::Leaderboard;
 use snake::game_main;
 use terminal::{Color, Key, KeyEvent, Rect, Terminal};
 
-const WELCOME_TEXT: &str =
-    "Welcome to \x1B[1;32mSNAKE\x1B[0m!\n\n\x1B[2;37mPress \x1B[1m<ENTER>\x1B[22;2m to play!\x1B[0m";
+use crate::terminal::from_pansi;
 
-const HELP_TEXT: &str = "MOVE WITH \x1B[1;34mARROW KEYS\x1B[0m OR \x1B[1;34mWASD\x1B[0m\nEAT \x1B[1;93mFRUIT\x1B[0m ; AVOID \x1B[1;32mTAIL\x1B[0m AND \x1B[1;2;37mWALLS\x1B[0m";
-
-const GAME_OVER_TEXT: &str =
-    "GAME OVER!\x1B[0m\nSCORE: \x1B[1;93m000\x1B[0m\n\n\x1B[2;37mPress \x1B[1m<ENTER>\x1B[22;2m to continue...\x1B[0m";
-
+const WELCOME_TEXT: &str = include_str!("../welcome.txt");
+const HELP_TEXT: &str = include_str!("../help.txt");
+const GAME_OVER_TEXT: &str = include_str!("../game-over.txt");
 const CREDITS_TEXT: &str = include_str!("../credits.txt");
 
 const CANVAS_W: u16 = 56;
@@ -33,14 +30,14 @@ fn main() -> io::Result<()> {
     let size = terminal::get_termsize();
     let screen_rect = Rect::new(1, 1, size.0 - 2, size.1 - 2);
 
-    terminal.draw_text(0, size.1 - 3, CREDITS_TEXT)?;
+    terminal.draw_text(0, size.1 - 3, &from_pansi(CREDITS_TEXT))?;
 
     let canvas = terminal.draw_rect_sep(screen_rect, CANVAS_W, CANVAS_H + 3, CANVAS_H)?;
     let canvas = canvas.change_size(0, -3);
 
     terminal.draw_text_centered(
         Rect::new(canvas.x + 1, canvas.y + CANVAS_H + 2, CANVAS_W, 2),
-        HELP_TEXT,
+        &from_pansi(HELP_TEXT),
     )?;
 
     let mut leaderboard = Leaderboard::init(&mut terminal, canvas)?;
@@ -49,7 +46,7 @@ fn main() -> io::Result<()> {
     }
 
     loop {
-        let textbox = terminal.draw_textbox_centered(canvas, WELCOME_TEXT)?;
+        let textbox = terminal.draw_textbox_centered(canvas, &from_pansi(WELCOME_TEXT))?;
         if terminal.wait_key(|k| k == Key::Enter, None, true)? == KeyEvent::Exit {
             break;
         }
@@ -64,7 +61,7 @@ fn main() -> io::Result<()> {
             terminal.write("\x1B[1;91m")?;
             terminal.draw_textbox_centered(
                 canvas,
-                &GAME_OVER_TEXT.replace("000", &format!("{score:0>3}")),
+                &from_pansi(GAME_OVER_TEXT).replace("000", &format!("{score:0>3}")),
             )?;
             if terminal.wait_key(|k| k == Key::Enter, Some(10_000), true)? == KeyEvent::Exit {
                 break;

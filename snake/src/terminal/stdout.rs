@@ -158,9 +158,12 @@ impl Rect {
 pub enum Color {
     Red,
     Green,
-    BrightYellow,
+    Blue,
+    White,
     BrightRed,
-    Lime,
+    BrightGreen,
+    BrightYellow,
+    BrightCyan,
 }
 
 impl Color {
@@ -168,9 +171,12 @@ impl Color {
         match self {
             Self::Red => "31",
             Self::Green => "32",
-            Self::BrightYellow => "93",
+            Self::Blue => "34",
+            Self::White => "37",
             Self::BrightRed => "91",
-            Self::Lime => "92",
+            Self::BrightGreen => "92",
+            Self::BrightYellow => "93",
+            Self::BrightCyan => "96",
         }
     }
 }

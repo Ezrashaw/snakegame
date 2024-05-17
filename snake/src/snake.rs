@@ -84,7 +84,7 @@ pub fn game_main(
         }
 
         // draw the snake's head onto the canvas
-        canvas.draw_pixel(head, Color::Lime)?;
+        canvas.draw_pixel(head, Color::BrightGreen)?;
 
         // sleep for 140ms, but wait for keys at the same time; we wait only for the directional
         // keys
