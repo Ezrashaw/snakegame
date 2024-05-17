@@ -38,7 +38,6 @@ fn main() -> io::Result<()> {
 
     let canvas = terminal.draw_rect_sep(screen_rect, CANVAS_W, CANVAS_H + 2, CANVAS_H)?;
     let canvas = canvas.change_size(0, -2);
-    let textbox = terminal.draw_textbox_centered(canvas, WELCOME_TEXT)?;
 
     terminal.draw_text_centered(
         Rect::new(canvas.x + 1, canvas.y + CANVAS_H + 2, CANVAS_W, 1),
@@ -50,21 +49,27 @@ fn main() -> io::Result<()> {
         leaderboard.draw_values(&mut terminal)?;
     }
 
-    terminal.wait_key(Key::Enter)?;
-    terminal.clear_rect(textbox)?;
-
-    if let Some(leaderboard) = &mut leaderboard {
-        leaderboard.update_you(&mut terminal, 0)?;
-    }
-
-    let score = game_main(Canvas::new(&mut terminal, canvas), &mut leaderboard)?;
-    if let Some(score) = score {
-        terminal.write("\x1B[1;91m")?;
-        terminal.draw_textbox_centered(
-            canvas,
-            &GAME_OVER_TEXT.replace("000", &format!("{score:0>3}")),
-        )?;
+    loop {
+        let textbox = terminal.draw_textbox_centered(canvas, WELCOME_TEXT)?;
         terminal.wait_key(Key::Enter)?;
+        terminal.clear_rect(textbox)?;
+
+        if let Some(leaderboard) = &mut leaderboard {
+            leaderboard.update_you(&mut terminal, 0)?;
+        }
+
+        let score = game_main(Canvas::new(&mut terminal, canvas), &mut leaderboard)?;
+        if let Some(score) = score {
+            terminal.write("\x1B[1;91m")?;
+            terminal.draw_textbox_centered(
+                canvas,
+                &GAME_OVER_TEXT.replace("000", &format!("{score:0>3}")),
+            )?;
+            terminal.wait_key(Key::Enter)?;
+            terminal.clear_rect(canvas.move_xy(1, 1).change_size(-2, -2))?;
+        } else {
+            break;
+        }
     }
 
     Ok(())
