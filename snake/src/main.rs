@@ -11,7 +11,7 @@ use std::io;
 
 use leaderboard::Leaderboard;
 use snake::game_main;
-use terminal::{Color, Key, Rect, Terminal};
+use terminal::{Color, Key, KeyEvent, Rect, Terminal};
 
 const WELCOME_TEXT: &str =
     "Welcome to \x1B[1;32mSNAKE\x1B[0m!\n\n\x1B[2;37mPress \x1B[1m<ENTER>\x1B[22;2m to play!\x1B[0m";
@@ -48,7 +48,7 @@ fn main() -> io::Result<()> {
 
     loop {
         let textbox = terminal.draw_textbox_centered(canvas, WELCOME_TEXT)?;
-        terminal.wait_key(Key::Enter)?;
+        terminal.wait_key(|k| k == Key::Enter, None)?;
         terminal.clear_rect(textbox)?;
 
         if let Some(leaderboard) = &mut leaderboard {
@@ -62,7 +62,7 @@ fn main() -> io::Result<()> {
                 canvas,
                 &GAME_OVER_TEXT.replace("000", &format!("{score:0>3}")),
             )?;
-            terminal.wait_key(Key::Enter)?;
+            terminal.wait_key(|k| k == Key::Enter, Some(10_000))?;
             terminal.clear_rect(canvas.move_xy(1, 1).change_size(-2, -2))?;
         } else {
             break;
@@ -100,8 +100,12 @@ impl<'a> Canvas<'a> {
         self.term.clear_pixel(x, y)
     }
 
-    pub fn poll_key(&mut self, timeout_ms: u64) -> io::Result<Option<Key>> {
-        self.term.poll_key(timeout_ms)
+    pub fn wait_key(
+        &mut self,
+        want_key: impl Fn(Key) -> bool,
+        timeout_ms: Option<u64>,
+    ) -> io::Result<KeyEvent> {
+        self.term.wait_key(want_key, timeout_ms)
     }
 
     const fn get_xy(&self, coord: Coord) -> (u16, u16) {

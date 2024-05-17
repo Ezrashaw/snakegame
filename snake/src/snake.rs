@@ -17,7 +17,7 @@ use std::{
 
 use crate::{
     leaderboard::Leaderboard,
-    terminal::{Color, Key},
+    terminal::{Color, Key, KeyEvent},
     Canvas, Coord,
 };
 
@@ -86,19 +86,33 @@ pub fn game_main(
         // draw the snake's head onto the canvas
         canvas.draw_pixel(head, Color::Lime)?;
 
-        // sleep for 140ms, but wait for keys at the same time
+        // sleep for 140ms, but wait for keys at the same time; we wait only for the directional
+        // keys
         let time = Instant::now();
-        if let Some(key) = canvas.poll_key(STEP_MS)? {
-            // map movement keys to their respective directions; exit on CRTL-C
-            match key {
-                _ if let Some(dir) = direction.change_from_key(key) => direction = dir,
-                Key::CrtlC => return Ok(None),
-                _ => (),
-            }
+        match canvas.wait_key(
+            |k| matches!(k, Key::Up | Key::Down | Key::Left | Key::Right),
+            Some(STEP_MS),
+        )? {
+            // if we didn't get a key, do nothing
+            KeyEvent::Timeout => (),
 
-            // poll interupted our sleep, so we have to sleep the rest of the 140ms
-            let t = STEP_MS - time.elapsed().as_millis() as u64;
-            sleep(Duration::from_millis(t));
+            // if CTRL-C is pushed, then exit
+            KeyEvent::Exit => return Ok(None),
+
+            // otherwise, handle a movement keypress
+            KeyEvent::Key(key) => {
+                // map movement keys to their respective directions
+                let Some(dir) = direction.change_from_key(key) else {
+                    unreachable!();
+                };
+
+                // set the new direction
+                direction = dir;
+
+                // our sleep was interrupted, so we have to sleep the rest of the time
+                let t = STEP_MS - time.elapsed().as_millis() as u64;
+                sleep(Duration::from_millis(t));
+            }
         }
 
         // actually move the snake's head position, checking to see if we have hit a wall

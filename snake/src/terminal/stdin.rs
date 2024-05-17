@@ -1,70 +1,71 @@
 use std::{
     io::{self, ErrorKind, Read},
     ptr,
+    time::{Duration, Instant},
 };
 
 use super::Terminal;
 
 impl Terminal {
-    pub fn poll_key(&mut self, timeout_ms: u64) -> io::Result<Option<Key>> {
+    pub fn wait_key(
+        &mut self,
+        want_key: impl Fn(Key) -> bool,
+        timeout_ms: Option<u64>,
+    ) -> io::Result<KeyEvent> {
+        let _ = self.get_last_key()?;
+
+        let end_time = timeout_ms.map(|t_ms| Instant::now() + Duration::from_millis(t_ms));
+        loop {
+            if !self.poll_key(end_time.map(|end| (end - Instant::now()).as_millis() as u64)) {
+                return Ok(KeyEvent::Timeout);
+            }
+
+            match self.read_key()? {
+                Key::CrtlC => return Ok(KeyEvent::Exit),
+                k if want_key(k) => return Ok(KeyEvent::Key(k)),
+                _ => (),
+            };
+        }
+    }
+
+    fn poll_key(&mut self, timeout_ms: Option<u64>) -> bool {
         let mut poll_fd = libc::pollfd {
             fd: libc::STDIN_FILENO,
             events: libc::POLLIN,
             revents: 0,
         };
 
-        let time_spec = libc::timespec {
-            tv_sec: (timeout_ms / 1000) as i64,
-            tv_nsec: ((timeout_ms % 1000) * 1_000_000) as i64,
-        };
+        let time_spec = timeout_ms.map(|t_ms| libc::timespec {
+            tv_sec: (t_ms / 1000) as i64,
+            tv_nsec: ((t_ms % 1000) * 1_000_000) as i64,
+        });
 
         let res = unsafe {
             libc::ppoll(
                 ptr::from_mut(&mut poll_fd),
                 1,
-                ptr::from_ref(&time_spec),
+                time_spec
+                    .map(|t| ptr::from_ref(&t))
+                    .unwrap_or(ptr::null::<libc::timespec>()),
                 ptr::null::<libc::sigset_t>(),
             )
         };
 
         match res {
             -1 => panic!("libc call failed"),
-            0 => Ok(None),
+            0 => false,
             1 => {
                 assert!(poll_fd.revents == libc::POLLIN);
-                Ok(self.get_last_key()?)
+                true
             }
             _ => unreachable!(),
         }
     }
 
-    pub fn wait_key(&mut self, key: Key) -> io::Result<()> {
-        // flush any keys currently in the buffer (we don't want prompts using
-        // this function to immediately close)
-        let _ = self.get_last_key()?;
-
-        self.flags = set_non_block(self.flags, false);
-        loop {
-            if self.get_key()? == key {
-                break;
-            }
-        }
-        self.flags = set_non_block(self.flags, true);
-        Ok(())
-    }
-
-    #[allow(unused)]
-    pub fn get_key_blocking(&mut self) -> io::Result<Key> {
-        self.flags = set_non_block(self.flags, false);
-        let key = self.get_key()?;
-        self.flags = set_non_block(self.flags, true);
-        Ok(key)
-    }
-
-    pub fn get_last_key(&mut self) -> io::Result<Option<Key>> {
+    fn get_last_key(&mut self) -> io::Result<Option<Key>> {
         let mut last_key = None;
         loop {
-            match self.get_key() {
+            match self.read_key() {
                 Ok(key) => last_key = Some(key),
                 Err(err) if matches!(err.kind(), ErrorKind::WouldBlock) => return Ok(last_key),
                 Err(err) => return Err(err),
@@ -72,7 +73,7 @@ impl Terminal {
         }
     }
 
-    pub fn get_key(&mut self) -> io::Result<Key> {
+    fn read_key(&mut self) -> io::Result<Key> {
         Ok(match self.readbyte()? {
             0x3 => Key::CrtlC,
             b'\n' => Key::Enter,
@@ -115,6 +116,13 @@ pub(super) fn set_non_block(mut flags: i32, non_block: bool) -> i32 {
     assert!(res != -1);
 
     flags
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum KeyEvent {
+    Timeout,
+    Exit,
+    Key(Key),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]

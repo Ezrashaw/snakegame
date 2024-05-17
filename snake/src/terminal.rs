@@ -2,7 +2,7 @@ mod stdin;
 mod stdout;
 mod termios;
 
-pub use stdin::Key;
+pub use stdin::{Key, KeyEvent};
 pub use stdout::{Color, Rect};
 
 use std::{
@@ -21,7 +21,9 @@ pub struct Terminal {
     in_: File,
 
     old_termios: Termios,
-    flags: i32,
+
+    #[allow(unused)]
+    stdin_flags: i32,
 }
 
 impl Terminal {
@@ -33,9 +35,9 @@ impl Terminal {
         });
 
         // set stdin to non-blocking mode using fcntl.
-        let flags = unsafe { libc::fcntl(libc::STDIN_FILENO, libc::F_GETFL) };
-        assert!(flags != -1);
-        let flags = stdin::set_non_block(flags, true);
+        let stdin_flags = unsafe { libc::fcntl(libc::STDIN_FILENO, libc::F_GETFL) };
+        assert!(stdin_flags != -1);
+        let stdin_flags = stdin::set_non_block(stdin_flags, true);
 
         // SAFETY: we can always wrap FD 1 (stdout).
         let mut out = unsafe { File::from_raw_fd(1) };
@@ -49,7 +51,7 @@ impl Terminal {
             out,
             in_,
             old_termios,
-            flags,
+            stdin_flags,
         })
     }
 }
