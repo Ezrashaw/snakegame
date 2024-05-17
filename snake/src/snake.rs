@@ -1,3 +1,12 @@
+//! Main game logic for Snake.
+//!
+//! This module contains the main game logic for the game. It uses the safe, high-level API exposed
+//! by the other modules in this crate. I have (and continue to) endeavour to keep this module well
+//! documented and easy to understand.
+//!
+//! The main entry point for this module is [`game_main`] which expects that the terminal UI has
+//! already been setup. This function runs the game through to completion.
+
 use std::{
     collections::VecDeque,
     fs::File,
@@ -80,8 +89,7 @@ pub fn game_main(
         // sleep for 140ms, but wait for keys at the same time
         let time = Instant::now();
         if let Some(key) = canvas.poll_key(STEP_MS)? {
-            // map keys to directions, keeping in mind that the snake can't turn immediately back
-            // on itself
+            // map movement keys to their respective directions; exit on CRTL-C
             match key {
                 _ if let Some(dir) = direction.change_from_key(key) => direction = dir,
                 Key::CrtlC => return Ok(None),
@@ -242,7 +250,8 @@ enum Direction {
 }
 
 impl Direction {
-    // TODO: needs documentation
+    /// Convert a keypress event into a direction for the snake, checking that the snake isn't
+    /// doubling back on itself.
     pub fn change_from_key(self, key: Key) -> Option<Self> {
         Some(match key {
             Key::Up | Key::Char(b'w') if self != Self::Down => Self::Up,
