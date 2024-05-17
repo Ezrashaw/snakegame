@@ -3,61 +3,35 @@ use std::{
     ptr,
 };
 
-use crate::terminal::{
-    syscall::{syscall3, syscall4, SYS_fcntl, SYS_ppoll},
-    termios::STDIN_FD,
-};
-
 use super::Terminal;
-
-// fcntl values
-pub(super) const F_GETFL: u64 = 3;
-pub(super) const F_SETFL: u64 = 4;
-pub(super) const O_NONBLOCK: i64 = 2048;
 
 impl Terminal {
     pub fn poll_key(&mut self, timeout_ms: u64) -> io::Result<Option<Key>> {
-        const POLLIN: u16 = 0x1;
-
-        #[repr(C)]
-        struct PollFD {
-            fd: i32,      /* file descriptor */
-            events: u16,  /* requested events */
-            revents: u16, /* returned events */
-        }
-
-        #[repr(C)]
-        struct TimeSpec {
-            secs: u64,
-            nano: u64,
-        }
-
-        let mut poll_fd = PollFD {
-            fd: 0,
-            events: POLLIN,
+        let mut poll_fd = libc::pollfd {
+            fd: libc::STDIN_FILENO,
+            events: libc::POLLIN,
             revents: 0,
         };
 
-        let time_spec = TimeSpec {
-            secs: timeout_ms / 1000,
-            nano: (timeout_ms % 1000) * 1_000_000,
+        let time_spec = libc::timespec {
+            tv_sec: (timeout_ms / 1000) as i64,
+            tv_nsec: ((timeout_ms % 1000) * 1_000_000) as i64,
         };
 
         let res = unsafe {
-            syscall4(
-                SYS_ppoll,
-                ptr::from_mut(&mut poll_fd) as u64,
+            libc::ppoll(
+                ptr::from_mut(&mut poll_fd),
                 1,
-                ptr::from_ref(&time_spec) as u64,
-                ptr::null::<u8>() as u64,
+                ptr::from_ref(&time_spec),
+                ptr::null::<libc::sigset_t>(),
             )
-        } as i64;
+        };
 
         match res {
-            -1 => panic!("syscall failed"),
+            -1 => panic!("libc call failed"),
             0 => Ok(None),
             1 => {
-                assert!(poll_fd.revents == POLLIN);
+                assert!(poll_fd.revents == libc::POLLIN);
                 Ok(self.get_last_key()?)
             }
             _ => unreachable!(),
@@ -130,14 +104,14 @@ impl Terminal {
     }
 }
 
-pub(super) fn set_non_block(mut flags: i64, non_block: bool) -> i64 {
+pub(super) fn set_non_block(mut flags: i32, non_block: bool) -> i32 {
     if non_block {
-        flags |= O_NONBLOCK;
+        flags |= libc::O_NONBLOCK;
     } else {
-        flags &= !O_NONBLOCK;
+        flags &= !libc::O_NONBLOCK;
     }
 
-    let res = unsafe { syscall3(SYS_fcntl, STDIN_FD, F_SETFL, flags as u64) } as i64;
+    let res = unsafe { libc::fcntl(libc::STDIN_FILENO, libc::F_SETFL, flags) };
     assert!(res != -1);
 
     flags

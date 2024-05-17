@@ -1,10 +1,7 @@
 #![feature(strict_overflow_ops, array_chunks, if_let_guard, let_chains)]
 
-#[cfg(not(all(
-    target_os = "linux",
-    any(target_arch = "x86_64", target_arch = "aarch64")
-)))]
-compile_error!("This program only runs on x86-64 Linux or arm64 Linux");
+#[cfg(not(all(target_os = "linux",)))]
+compile_error!("This program only runs on Linux");
 
 mod leaderboard;
 mod snake;

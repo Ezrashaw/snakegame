@@ -1,6 +1,5 @@
 mod stdin;
 mod stdout;
-mod syscall;
 mod termios;
 
 pub use stdin::Key;
@@ -13,12 +12,6 @@ use std::{
     ptr,
 };
 
-use crate::terminal::{
-    stdin::F_GETFL,
-    syscall::{syscall2, syscall3, SYS_fcntl, SYS_ioctl},
-    termios::{STDIN_FD, STDOUT_FD},
-};
-
 use self::termios::Termios;
 
 // remember that coordinates begin at one, not zero.
@@ -28,7 +21,7 @@ pub struct Terminal {
     in_: File,
 
     old_termios: Termios,
-    flags: i64,
+    flags: i32,
 }
 
 impl Terminal {
@@ -40,7 +33,7 @@ impl Terminal {
         });
 
         // set stdin to non-blocking mode using fcntl.
-        let flags = unsafe { syscall2(SYS_fcntl, STDIN_FD, F_GETFL) } as i64;
+        let flags = unsafe { libc::fcntl(libc::STDIN_FILENO, libc::F_GETFL) };
         assert!(flags != -1);
         let flags = stdin::set_non_block(flags, true);
 
@@ -70,22 +63,17 @@ impl Drop for Terminal {
 }
 
 pub fn get_termsize() -> (u16, u16) {
-    #[derive(Default)]
-    #[repr(C)]
-    struct WinSize {
-        ws_row: u16,
-        ws_col: u16,
-        ws_xpixel: u16, /* unused */
-        ws_ypixel: u16, /* unused */
-    }
-
-    let mut win_size = WinSize::default();
+    let mut win_size = libc::winsize {
+        ws_row: 0,
+        ws_col: 0,
+        ws_xpixel: 0,
+        ws_ypixel: 0,
+    };
     let res = unsafe {
-        syscall3(
-            SYS_ioctl,
-            STDOUT_FD,
-            0x5413, // TIOCGWINSZ
-            ptr::from_mut(&mut win_size) as u64,
+        libc::ioctl(
+            libc::STDOUT_FILENO,
+            libc::TIOCGWINSZ,
+            ptr::from_mut(&mut win_size),
         )
     };
     assert_eq!(res, 0);
