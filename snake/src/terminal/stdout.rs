@@ -19,14 +19,24 @@ impl Terminal {
         write!(self.out, "\x1B[{y};{x}H  ")
     }
 
-    /// single line only
     pub fn draw_text_centered(&mut self, rect: Rect, s: &str) -> io::Result<()> {
-        assert!(rect.w >= ansi_str_len(s));
-        assert!(s.lines().count() == 1 && rect.h == 1);
+        assert!(rect.h >= s.lines().count() as u16);
 
-        let x_diff = rect.w - ansi_str_len(s);
-        let x_pad = x_diff / 2;
-        write!(self.out, "\x1B[{};{}H{}", rect.y, rect.x + x_pad, s)
+        for (idx, line) in s.lines().enumerate() {
+            assert!(rect.w >= ansi_str_len(line));
+
+            let x_diff = rect.w - ansi_str_len(line);
+            let x_pad = x_diff / 2;
+            write!(
+                self.out,
+                "\x1B[{};{}H{}",
+                rect.y + idx as u16,
+                rect.x + x_pad,
+                line
+            )?;
+        }
+
+        Ok(())
     }
 
     pub fn draw_rect_sep(&mut self, rect: Rect, w: u16, h: u16, sep: u16) -> io::Result<Rect> {

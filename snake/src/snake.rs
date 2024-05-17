@@ -32,7 +32,7 @@ const STARTING_LENGTH: usize = 7;
 /// Defines the starting locations for the fruits. At the beginning of the game, we do not choose
 /// random locations for the fruits, instead we create an 'X' pattern (from this constant).
 /// Throughout the game, the number of fruits is _always_ equal to the length of this array.
-const FOOD_LOCATIONS: [(u16, u16); 5] = [(20, 3), (20, 9), (26, 3), (26, 9), (23, 6)];
+const FOOD_LOCATIONS: [(u16, u16); 5] = [(18, 5), (18, 11), (24, 5), (24, 11), (21, 8)];
 
 /// Main entry point for the game logic.
 ///

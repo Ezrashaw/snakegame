@@ -19,15 +19,15 @@ use terminal::{Color, Key, Rect, Terminal};
 const WELCOME_TEXT: &str =
     "Welcome to \x1B[1;32mSNAKE\x1B[0m!\n\n\x1B[2;37mPress \x1B[1m<ENTER>\x1B[22;2m to play!\x1B[0m";
 
-const HELP_TEXT: &str = "MOVE WITH \x1B[1;34mARROW KEYS\x1B[0m/\x1B[1;34mWASD\x1B[0m; EAT \x1B[1;93mFRUIT\x1B[0m; AVOID \x1B[1;32mTAIL\x1B[0m AND \x1B[1;2;37mWALLS\x1B[0m";
+const HELP_TEXT: &str = "MOVE WITH \x1B[1;34mARROW KEYS\x1B[0m OR \x1B[1;34mWASD\x1B[0m\nEAT \x1B[1;93mFRUIT\x1B[0m ; AVOID \x1B[1;32mTAIL\x1B[0m AND \x1B[1;2;37mWALLS\x1B[0m";
 
 const GAME_OVER_TEXT: &str =
     "GAME OVER!\x1B[0m\nSCORE: \x1B[1;93m000\x1B[0m\n\n\x1B[2;37mPress \x1B[1m<ENTER>\x1B[22;2m to continue...\x1B[0m";
 
 const CREDITS_TEXT: &str = include_str!("../credits.txt");
 
-const CANVAS_W: u16 = 60;
-const CANVAS_H: u16 = 13;
+const CANVAS_W: u16 = 56;
+const CANVAS_H: u16 = 17;
 
 fn main() -> io::Result<()> {
     let mut terminal = Terminal::new()?;
@@ -36,11 +36,11 @@ fn main() -> io::Result<()> {
 
     terminal.draw_text(0, size.1 - 3, CREDITS_TEXT)?;
 
-    let canvas = terminal.draw_rect_sep(screen_rect, CANVAS_W, CANVAS_H + 2, CANVAS_H)?;
-    let canvas = canvas.change_size(0, -2);
+    let canvas = terminal.draw_rect_sep(screen_rect, CANVAS_W, CANVAS_H + 3, CANVAS_H)?;
+    let canvas = canvas.change_size(0, -3);
 
     terminal.draw_text_centered(
-        Rect::new(canvas.x + 1, canvas.y + CANVAS_H + 2, CANVAS_W, 1),
+        Rect::new(canvas.x + 1, canvas.y + CANVAS_H + 2, CANVAS_W, 2),
         HELP_TEXT,
     )?;
 
