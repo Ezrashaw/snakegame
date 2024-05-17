@@ -11,8 +11,11 @@ impl Terminal {
         &mut self,
         want_key: impl Fn(Key) -> bool,
         timeout_ms: Option<u64>,
+        only_new: bool,
     ) -> io::Result<KeyEvent> {
-        let _ = self.get_last_key()?;
+        if only_new && self.get_last_key()? == Some(Key::CrtlC) {
+            return Ok(KeyEvent::Exit);
+        }
 
         let end_time = timeout_ms.map(|t_ms| Instant::now() + Duration::from_millis(t_ms));
         loop {
@@ -20,7 +23,7 @@ impl Terminal {
                 return Ok(KeyEvent::Timeout);
             }
 
-            match self.read_key()? {
+            match self.get_last_key()?.unwrap() {
                 Key::CrtlC => return Ok(KeyEvent::Exit),
                 k if want_key(k) => return Ok(KeyEvent::Key(k)),
                 _ => (),
@@ -66,6 +69,7 @@ impl Terminal {
         let mut last_key = None;
         loop {
             match self.read_key() {
+                Ok(Key::CrtlC) => return Ok(Some(Key::CrtlC)),
                 Ok(key) => last_key = Some(key),
                 Err(err) if matches!(err.kind(), ErrorKind::WouldBlock) => return Ok(last_key),
                 Err(err) => return Err(err),

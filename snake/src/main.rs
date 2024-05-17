@@ -48,7 +48,9 @@ fn main() -> io::Result<()> {
 
     loop {
         let textbox = terminal.draw_textbox_centered(canvas, WELCOME_TEXT)?;
-        terminal.wait_key(|k| k == Key::Enter, None)?;
+        if terminal.wait_key(|k| k == Key::Enter, None, true)? == KeyEvent::Exit {
+            break;
+        }
         terminal.clear_rect(textbox)?;
 
         if let Some(leaderboard) = &mut leaderboard {
@@ -62,7 +64,9 @@ fn main() -> io::Result<()> {
                 canvas,
                 &GAME_OVER_TEXT.replace("000", &format!("{score:0>3}")),
             )?;
-            terminal.wait_key(|k| k == Key::Enter, Some(10_000))?;
+            if terminal.wait_key(|k| k == Key::Enter, Some(10_000), true)? == KeyEvent::Exit {
+                break;
+            }
             terminal.clear_rect(canvas.move_xy(1, 1).change_size(-2, -2))?;
         } else {
             break;
@@ -105,7 +109,7 @@ impl<'a> Canvas<'a> {
         want_key: impl Fn(Key) -> bool,
         timeout_ms: Option<u64>,
     ) -> io::Result<KeyEvent> {
-        self.term.wait_key(want_key, timeout_ms)
+        self.term.wait_key(want_key, timeout_ms, false)
     }
 
     const fn get_xy(&self, coord: Coord) -> (u16, u16) {

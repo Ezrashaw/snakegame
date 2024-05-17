@@ -89,10 +89,7 @@ pub fn game_main(
         // sleep for 140ms, but wait for keys at the same time; we wait only for the directional
         // keys
         let time = Instant::now();
-        match canvas.wait_key(
-            |k| matches!(k, Key::Up | Key::Down | Key::Left | Key::Right),
-            Some(STEP_MS),
-        )? {
+        match canvas.wait_key(|k| direction.change_from_key(k).is_some(), Some(STEP_MS))? {
             // if we didn't get a key, do nothing
             KeyEvent::Timeout => (),
 
