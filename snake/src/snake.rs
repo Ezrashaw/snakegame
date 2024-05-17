@@ -137,7 +137,7 @@ pub fn game_main(
 
             // update the local player position on the leaderboard
             if let Some(leaderboard) = leaderboard {
-                leaderboard.update_you(canvas.term, (len - STARTING_LENGTH) as u8)?;
+                leaderboard.update_you(canvas.term, (len - STARTING_LENGTH) as u8, false)?;
             }
 
             // needn't remove fruit from bitboard because we ate it and will "digest" it (normal

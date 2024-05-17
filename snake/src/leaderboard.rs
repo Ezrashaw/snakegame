@@ -31,7 +31,7 @@ impl Leaderboard {
             return Ok(None);
         };
 
-        let rect = Rect::new(canvas.x + canvas.w + 5, canvas.y, 17, 12);
+        let rect = Rect::new(canvas.x + canvas.w + 3, canvas.y, 17, 12);
         terminal.draw_rect_sep(rect, rect.w, rect.h, 1)?;
         terminal.draw_text_centered(
             rect.move_xy(1, 1).change_size(0, -11),
@@ -123,8 +123,14 @@ impl Leaderboard {
         Ok(())
     }
 
-    pub fn update_you(&mut self, terminal: &mut Terminal, new_val: u8) -> io::Result<()> {
+    pub fn update_you(
+        &mut self,
+        terminal: &mut Terminal,
+        new_val: u8,
+        force_redraw: bool,
+    ) -> io::Result<()> {
         if let Some(you_row) = self.you_row
+            && !force_redraw
             && !(you_row > 0 && new_val > self.entries[you_row as usize - 1].1)
         {
             terminal.draw_text(

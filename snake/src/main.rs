@@ -53,7 +53,7 @@ fn main() -> io::Result<()> {
         terminal.clear_rect(textbox)?;
 
         if let Some(leaderboard) = &mut leaderboard {
-            leaderboard.update_you(&mut terminal, 0)?;
+            leaderboard.update_you(&mut terminal, 0, true)?;
         }
 
         let score = game_main(Canvas::new(&mut terminal, canvas), &mut leaderboard)?;
