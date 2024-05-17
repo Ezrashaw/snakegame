@@ -1,4 +1,6 @@
-#![feature(strict_overflow_ops, array_chunks, if_let_guard, let_chains)]
+#![feature(strict_overflow_ops, array_chunks, let_chains)]
+#![warn(clippy::pedantic, clippy::nursery)]
+#![allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 
 #[cfg(not(all(target_os = "linux",)))]
 compile_error!("This program only runs on Linux");

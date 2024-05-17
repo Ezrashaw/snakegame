@@ -19,7 +19,7 @@ impl Terminal {
 
         let end_time = timeout_ms.map(|t_ms| Instant::now() + Duration::from_millis(t_ms));
         loop {
-            if !self.poll_key(end_time.map(|end| (end - Instant::now()).as_millis() as u64)) {
+            if !poll_key(end_time.map(|end| (end - Instant::now()).as_millis() as u64)) {
                 return Ok(KeyEvent::Timeout);
             }
 
@@ -28,40 +28,6 @@ impl Terminal {
                 k if want_key(k) => return Ok(KeyEvent::Key(k)),
                 _ => (),
             };
-        }
-    }
-
-    fn poll_key(&mut self, timeout_ms: Option<u64>) -> bool {
-        let mut poll_fd = libc::pollfd {
-            fd: libc::STDIN_FILENO,
-            events: libc::POLLIN,
-            revents: 0,
-        };
-
-        let time_spec = timeout_ms.map(|t_ms| libc::timespec {
-            tv_sec: (t_ms / 1000) as i64,
-            tv_nsec: ((t_ms % 1000) * 1_000_000) as i64,
-        });
-
-        let res = unsafe {
-            libc::ppoll(
-                ptr::from_mut(&mut poll_fd),
-                1,
-                time_spec
-                    .map(|t| ptr::from_ref(&t))
-                    .unwrap_or(ptr::null::<libc::timespec>()),
-                ptr::null::<libc::sigset_t>(),
-            )
-        };
-
-        match res {
-            -1 => panic!("libc call failed"),
-            0 => false,
-            1 => {
-                assert!(poll_fd.revents == libc::POLLIN);
-                true
-            }
-            _ => unreachable!(),
         }
     }
 
@@ -120,6 +86,38 @@ pub(super) fn set_non_block(mut flags: i32, non_block: bool) -> i32 {
     assert!(res != -1);
 
     flags
+}
+
+fn poll_key(timeout_ms: Option<u64>) -> bool {
+    let mut poll_fd = libc::pollfd {
+        fd: libc::STDIN_FILENO,
+        events: libc::POLLIN,
+        revents: 0,
+    };
+
+    let time_spec = timeout_ms.map(|t_ms| libc::timespec {
+        tv_sec: (t_ms / 1000) as i64,
+        tv_nsec: ((t_ms % 1000) * 1_000_000) as i64,
+    });
+
+    let res = unsafe {
+        libc::ppoll(
+            ptr::from_mut(&mut poll_fd),
+            1,
+            time_spec.map_or(ptr::null::<libc::timespec>(), |t| ptr::from_ref(&t)),
+            ptr::null::<libc::sigset_t>(),
+        )
+    };
+
+    match res {
+        -1 => panic!("libc call failed"),
+        0 => false,
+        1 => {
+            assert!(poll_fd.revents == libc::POLLIN);
+            true
+        }
+        _ => unreachable!(),
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]

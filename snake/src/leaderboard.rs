@@ -87,7 +87,7 @@ impl Leaderboard {
                 self.you_row = Some(i as u16);
                 (YOU_NAME, you, 95)
             } else {
-                let offset = self.you_row.map(|_| 1).unwrap_or(0);
+                let offset = self.you_row.map_or(0, |_| 1);
                 let entry = &self.entries[i - offset];
                 let name = std::str::from_utf8(&entry.0).unwrap();
                 (name, entry.1, 39)
