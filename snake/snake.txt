@@ -1,4 +1,4 @@
 {BGREEN}▄▄▄▄                    
-{BGREEN}█   {GREEN}  █▙ █  ▗█▖  █▗▛ █▀▀
-{BGREEN}▀▀▀█{GREEN}  █▝▙█ ▗█▃█▖ █▚▖ █▀ 
-{BGREEN}▄▄▄█{GREEN}  ▀ ▝▀ ▀▘ ▝▀ ▀ ▀ ▀▀▀
+{BGREEN}█   {RESET;GREEN}  █▙ █  ▗█▖  █▗▛ █▀▀
+{BGREEN}▀▀▀█{RESET;GREEN}  █▝▙█ ▗█▃█▖ █▚▖ █▀ 
+{BGREEN}▄▄▄█{RESET;GREEN}  ▀ ▝▀ ▀▘ ▝▀ ▀ ▀ ▀▀▀
