@@ -2,7 +2,7 @@
 #![warn(clippy::pedantic, clippy::nursery)]
 #![allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 
-#[cfg(not(all(target_os = "linux",)))]
+#[cfg(not(all(target_os = "linux")))]
 compile_error!("This program only runs on Linux");
 
 mod leaderboard;
@@ -21,6 +21,7 @@ const WELCOME_TEXT: &str = include_str!("../welcome.txt");
 const HELP_TEXT: &str = include_str!("../help.txt");
 const GAME_OVER_TEXT: &str = include_str!("../game-over.txt");
 const CREDITS_TEXT: &str = include_str!("../credits.txt");
+const SNAKE_TEXT: &str = include_str!("../snake.txt");
 
 const CANVAS_W: u16 = 56;
 const CANVAS_H: u16 = 17;
@@ -34,6 +35,11 @@ fn main() -> io::Result<()> {
 
     let canvas = terminal.draw_rect_sep(screen_rect, CANVAS_W, CANVAS_H + 3, CANVAS_H)?;
     let canvas = canvas.change_size(0, -3);
+
+    terminal.draw_text_centered(
+        Rect::new(canvas.x, 1, CANVAS_W + 2, 5),
+        &from_pansi(SNAKE_TEXT),
+    )?;
 
     terminal.draw_text_centered(
         Rect::new(canvas.x + 1, canvas.y + CANVAS_H + 2, CANVAS_W, 2),

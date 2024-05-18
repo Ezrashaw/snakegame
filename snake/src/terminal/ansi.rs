@@ -22,6 +22,7 @@ pub fn from_pansi(s: &str) -> String {
                     "BLUE" => new.push_str(Color::Blue.as_ansi()),
                     "WHITE" => new.push_str(Color::White.as_ansi()),
                     "BYELLOW" => new.push_str(Color::BrightYellow.as_ansi()),
+                    "BGREEN" => new.push_str(Color::BrightGreen.as_ansi()),
                     "BCYAN" => new.push_str(Color::BrightCyan.as_ansi()),
 
                     // formats

@@ -1,6 +1,5 @@
-use std::io::{self, Write};
-
 use super::Terminal;
+use std::io::{self, Write};
 
 impl Terminal {
     pub fn write(&mut self, s: &str) -> io::Result<()> {
@@ -181,23 +180,19 @@ impl Color {
     }
 }
 
-const fn ansi_str_len(s: &str) -> u16 {
+fn ansi_str_len(s: &str) -> u16 {
     let mut len = 0;
-    let mut i = 0;
+    let mut chars = s.chars();
 
-    while i < s.len() {
-        let mut ch = s.as_bytes()[i];
-
-        if ch == 0x1B {
-            while ch != b'm' {
-                i += 1;
-                ch = s.as_bytes()[i];
+    while let Some(ch) = chars.next() {
+        if ch == '\x1B' {
+            let mut ch = ch;
+            while ch != 'm' {
+                ch = chars.next().unwrap();
             }
         } else {
             len += 1;
         }
-
-        i += 1;
     }
     len
 }
