@@ -97,15 +97,19 @@ fn poll_key(timeout_ms: Option<u64>) -> bool {
     };
 
     let time_spec = timeout_ms.map(|t_ms| libc::timespec {
-        tv_sec: (t_ms / 1000) as i64,
-        tv_nsec: ((t_ms % 1000) * 1_000_000) as i64,
+        tv_sec: (t_ms / 1000).try_into().unwrap(),
+        tv_nsec: ((t_ms % 1000) * 1_000_000).try_into().unwrap(),
     });
 
     let res = unsafe {
         libc::ppoll(
             ptr::from_mut(&mut poll_fd),
             1,
-            time_spec.map_or(ptr::null::<libc::timespec>(), |t| ptr::from_ref(&t)),
+            // VERY IMPORTANT: take the reference with `as_ref`, not in a closure with
+            // ptr::from_ref because the reference's (represented as a raw pointer) lifetime is
+            // bound to the closure, not the libc call. Otherwise this is UB... oops. This was okay
+            // in debug mode, but release mode optimized it into UB.
+            time_spec.as_ref().map_or(ptr::null(), ptr::from_ref),
             ptr::null::<libc::sigset_t>(),
         )
     };
