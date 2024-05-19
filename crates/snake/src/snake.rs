@@ -255,10 +255,10 @@ impl Direction {
     /// "feel").
     pub const fn change_from_key(self, key: Key) -> Option<Self> {
         Some(match (self, key) {
-            (Self::Left | Self::Right, Key::Up | Key::Char(b'w')) => Self::Up,
-            (Self::Left | Self::Right, Key::Down | Key::Char(b's')) => Self::Down,
-            (Self::Up | Self::Down, Key::Right | Key::Char(b'd')) => Self::Right,
-            (Self::Up | Self::Down, Key::Left | Key::Char(b'a')) => Self::Left,
+            (Self::Left | Self::Right, Key::Char(b'w')) => Self::Up,
+            (Self::Left | Self::Right, Key::Char(b's')) => Self::Down,
+            (Self::Up | Self::Down, Key::Right)=> Self::Right,
+            (Self::Up | Self::Down, Key::Left) => Self::Left,
             _ => return None,
         })
     }
