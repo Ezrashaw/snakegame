@@ -33,8 +33,33 @@ fn main() -> io::Result<()> {
 
     terminal.draw_text(0, size.1 - 3, &from_pansi(CREDITS_TEXT))?;
 
-    let canvas = terminal.draw_rect_sep(screen_rect, CANVAS_W, CANVAS_H + 3, CANVAS_H)?;
+    let canvas = terminal.draw_rect_sep(
+        screen_rect,
+        CANVAS_W,
+        CANVAS_H + 3,
+        CANVAS_H,
+        Terminal::DEFAULT_CORNERS,
+    )?;
     let canvas = canvas.change_size(0, -3);
+
+    let stats_rect = terminal.draw_rect_sep(
+        Rect::new(canvas.x - 16, canvas.y + 2, 16, 5),
+        15,
+        4,
+        1,
+        ['┌', '┤', '└', '┤'],
+    )?;
+    terminal.draw_text_centered(stats_rect.move_xy(1, 1), "\x1B[1;33mSTATS\x1B[0m")?;
+    terminal.draw_text(
+        stats_rect.x + 2,
+        stats_rect.y + 3,
+        "\x1B[1mScore \x1B[2m---\x1B[22m 000\x1B[0m",
+    )?;
+    terminal.draw_text(
+        stats_rect.x + 2,
+        stats_rect.y + 4,
+        "\x1B[1mTime \x1B[2m--\x1B[22m 00:00\x1B[0m",
+    )?;
 
     terminal.draw_text_centered(
         Rect::new(canvas.x, 1, CANVAS_W + 2, 5),

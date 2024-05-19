@@ -32,7 +32,7 @@ impl Leaderboard {
         };
 
         let rect = Rect::new(canvas.x + canvas.w + 3, canvas.y, 17, 12);
-        terminal.draw_rect_sep(rect, rect.w, rect.h, 1)?;
+        terminal.draw_rect_sep(rect, rect.w, rect.h, 1, Terminal::DEFAULT_CORNERS)?;
         terminal.draw_text_centered(
             rect.move_xy(1, 1).change_size(0, -11),
             "\x1B[1mLEADERBOARD\x1B[0m",

@@ -2,6 +2,8 @@ use super::Terminal;
 use std::io::{self, Write};
 
 impl Terminal {
+    pub const DEFAULT_CORNERS: [char; 4] = ['┌', '┐', '└', '┘'];
+
     pub fn write(&mut self, s: &str) -> io::Result<()> {
         write!(self.out, "{s}")
     }
@@ -38,14 +40,25 @@ impl Terminal {
         Ok(())
     }
 
-    pub fn draw_rect_sep(&mut self, rect: Rect, w: u16, h: u16, sep: u16) -> io::Result<Rect> {
+    pub fn draw_rect_sep(
+        &mut self,
+        rect: Rect,
+        w: u16,
+        h: u16,
+        sep: u16,
+        corners: [char; 4],
+    ) -> io::Result<Rect> {
         let height_padding = (rect.h - h) / 2;
         let width_padding = (rect.w - w) / 2;
         let x = rect.x + width_padding;
         let y = rect.y + height_padding;
         let w = w as usize;
 
-        writeln!(&mut self.out, "\x1B[{y};{x}H┌{:─<w$}┐", "")?;
+        writeln!(
+            &mut self.out,
+            "\x1B[{y};{x}H{}{:─<w$}{}",
+            corners[0], "", corners[1]
+        )?;
         for i in 0..h {
             if i == sep {
                 writeln!(&mut self.out, "\x1B[{x}G├{:─<w$}┤", "")?;
@@ -53,7 +66,11 @@ impl Terminal {
                 writeln!(&mut self.out, "\x1B[{x}G│{:w$}│", "")?;
             }
         }
-        write!(&mut self.out, "\x1B[{x}G└{:─<w$}┘", "")?;
+        write!(
+            &mut self.out,
+            "\x1B[{x}G{}{:─<w$}{}",
+            corners[2], "", corners[3]
+        )?;
 
         Ok(Rect::new(x, y, w as u16, h))
     }
