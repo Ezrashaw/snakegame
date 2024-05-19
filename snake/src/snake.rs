@@ -262,13 +262,14 @@ enum Direction {
 
 impl Direction {
     /// Convert a keypress event into a direction for the snake, checking that the snake isn't
-    /// doubling back on itself.
-    pub fn change_from_key(self, key: Key) -> Option<Self> {
-        Some(match key {
-            Key::Up | Key::Char(b'w') if self != Self::Down => Self::Up,
-            Key::Down | Key::Char(b's') if self != Self::Up => Self::Down,
-            Key::Right | Key::Char(b'd') if self != Self::Left => Self::Right,
-            Key::Left | Key::Char(b'a') if self != Self::Right => Self::Left,
+    /// doubling back on itself or continuing in the same direction (the latter improves input
+    /// "feel")
+    pub const fn change_from_key(self, key: Key) -> Option<Self> {
+        Some(match (self, key) {
+            (Self::Left | Self::Right, Key::Up | Key::Char(b'w')) => Self::Up,
+            (Self::Left | Self::Right, Key::Down | Key::Char(b's')) => Self::Down,
+            (Self::Up | Self::Down, Key::Right | Key::Char(b'd')) => Self::Right,
+            (Self::Up | Self::Down, Key::Left | Key::Char(b'a')) => Self::Left,
             _ => return None,
         })
     }
