@@ -11,8 +11,8 @@ use std::{
     collections::VecDeque,
     fs::File,
     io::{self, Read},
-    thread::sleep,
-    time::{Duration, Instant},
+    thread,
+    time::Duration,
 };
 
 use crate::{
@@ -21,9 +21,9 @@ use crate::{
     Canvas, Coord,
 };
 
-/// Defines the time (in milliseconds) between each movement of the snake. During this time, if a
-/// key is pressed, then we process the key event, and wait for the remainer of the time
-const STEP_MS: u64 = 140;
+/// Defines the time between each movement of the snake. During this time, if a key is pressed,
+/// then we process the key event, and wait for the remainer of the time.
+const STEP_TIME: Duration = Duration::from_millis(140);
 
 /// Defines the starting length of the snake. Note that the snake does not actualy start at this
 /// length, but slowly expands out of a single point.
@@ -86,10 +86,11 @@ pub fn game_main(
         // draw the snake's head onto the canvas
         canvas.draw_pixel(head, Color::BrightGreen)?;
 
-        // sleep for 140ms, but wait for keys at the same time; we wait only for the directional
-        // keys
-        let time = Instant::now();
-        match canvas.wait_key(|k| direction.change_from_key(k).is_some(), Some(STEP_MS))? {
+        // sleep for 140ms, so that the snake doesn't move instantly
+        thread::sleep(STEP_TIME);
+
+        // check for keys, but don't wait for anything (we've already waited)
+        match canvas.wait_key(|k| direction.change_from_key(k).is_some(), Some(0))? {
             // if we didn't get a key, do nothing
             KeyEvent::Timeout => (),
 
@@ -99,16 +100,7 @@ pub fn game_main(
             // otherwise, handle a movement keypress
             KeyEvent::Key(key) => {
                 // map movement keys to their respective directions
-                let Some(dir) = direction.change_from_key(key) else {
-                    unreachable!();
-                };
-
-                // set the new direction
-                direction = dir;
-
-                // our sleep was interrupted, so we have to sleep the rest of the time
-                let t = STEP_MS - time.elapsed().as_millis() as u64;
-                sleep(Duration::from_millis(t));
+                direction = direction.change_from_key(key).unwrap();
             }
         }
 
@@ -158,11 +150,11 @@ pub fn game_main(
     // do a fun little death animation
     for coord in tail.iter().rev().skip(1) {
         canvas.draw_pixel(*coord, Color::Red)?;
-        sleep(Duration::from_millis(50));
+        thread::sleep(Duration::from_millis(50));
     }
-    sleep(Duration::from_millis(150));
+    thread::sleep(Duration::from_millis(150));
     canvas.draw_pixel(head, Color::BrightRed)?;
-    sleep(Duration::from_millis(500));
+    thread::sleep(Duration::from_millis(500));
 
     // return the score, calculated as the difference between the initial and current length
     Ok(Some(len - STARTING_LENGTH))
