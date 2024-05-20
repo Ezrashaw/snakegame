@@ -21,6 +21,7 @@ const WELCOME_TEXT: &str = include_str!("../welcome.txt");
 const HELP_TEXT: &str = include_str!("../help.txt");
 const GAME_OVER_TEXT: &str = include_str!("../game-over.txt");
 const CREDITS_TEXT: &str = include_str!("../credits.txt");
+const STATS_TEXT: &str = include_str!("../stats.txt");
 const SNAKE_TEXT: &str = include_str!("../snake.txt");
 
 const CANVAS_W: u16 = 56;
@@ -50,15 +51,9 @@ fn main() -> io::Result<()> {
         ['┌', '┤', '└', '┤'],
     )?;
     terminal.draw_text_centered(stats_rect.move_xy(1, 1), "\x1B[1;33mSTATS\x1B[0m")?;
-    terminal.draw_text(
-        stats_rect.x + 2,
-        stats_rect.y + 3,
-        "\x1B[1mScore \x1B[2m---\x1B[22m 000\x1B[0m",
-    )?;
-    terminal.draw_text(
-        stats_rect.x + 2,
-        stats_rect.y + 4,
-        "\x1B[1mTime \x1B[2m--\x1B[22m 00:00\x1B[0m",
+    terminal.draw_text_centered(
+        stats_rect.move_xy(1, 3).change_size(0, 1),
+        &from_pansi(STATS_TEXT),
     )?;
 
     terminal.draw_text_centered(
