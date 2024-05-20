@@ -17,7 +17,7 @@ use std::{
 
 use term::{Color, Key, KeyEvent};
 
-use crate::{leaderboard::Leaderboard, Canvas, Coord};
+use crate::{leaderboard::Leaderboard, Canvas, Coord, Stats};
 
 /// Defines the time between each movement of the snake. During this time, if a key is pressed,
 /// then we process the key event, and wait for the remainer of the time.
@@ -39,6 +39,7 @@ const FOOD_LOCATIONS: [(u16, u16); 5] = [(18, 5), (18, 11), (24, 5), (24, 11), (
 pub fn game_main(
     mut canvas: Canvas,
     leaderboard: &mut Option<Leaderboard>,
+    stats: &Stats,
 ) -> io::Result<Option<usize>> {
     // open /dev/urandom, a fast source of entropy on Linux systems.
     let mut rng = File::open("/dev/urandom")?;
@@ -143,6 +144,9 @@ pub fn game_main(
         if let Some(leaderboard) = leaderboard {
             leaderboard.check_update(canvas.term)?;
         }
+
+        // update the statistics panel
+        stats.update(&mut canvas, len - STARTING_LENGTH)?;
     }
 
     // do a fun little death animation

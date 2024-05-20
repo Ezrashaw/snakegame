@@ -5,7 +5,7 @@
 mod leaderboard;
 mod snake;
 
-use std::io;
+use std::{io, time::Instant};
 
 use leaderboard::Leaderboard;
 use snake::game_main;
@@ -76,7 +76,11 @@ fn main() -> io::Result<()> {
             leaderboard.update_you(&mut terminal, 0, true)?;
         }
 
-        let score = game_main(Canvas::new(&mut terminal, canvas), &mut leaderboard)?;
+        let stats = Stats {
+            time: Instant::now(),
+        };
+
+        let score = game_main(Canvas::new(&mut terminal, canvas), &mut leaderboard, &stats)?;
         if let Some(score) = score {
             terminal.write("\x1B[1;91m")?;
             terminal.draw_textbox_centered(
@@ -87,6 +91,11 @@ fn main() -> io::Result<()> {
                 break;
             }
             terminal.clear_rect(canvas.move_xy(1, 1).change_size(-2, -2))?;
+
+            terminal.draw_text_centered(
+                stats_rect.move_xy(1, 3).change_size(0, 1),
+                &from_pansi(STATS_TEXT),
+            )?;
         } else {
             break;
         }
@@ -145,5 +154,29 @@ struct Coord {
 impl Coord {
     pub const fn as_idx(self, canvas: &Canvas) -> usize {
         self.y as usize * canvas.w() as usize + self.x as usize
+    }
+}
+
+struct Stats {
+    time: Instant,
+}
+
+impl Stats {
+    pub fn update(&self, canvas: &mut Canvas, score: usize) -> io::Result<()> {
+        let t = self.time.elapsed();
+        let mins = t.as_secs() / 60;
+        let secs = t.as_secs() % 60;
+
+        canvas.term.write(&format!(
+            "\x1B[{};{}H{:0>3}\n\x1B[{}G{:0>2}:{:0>2}",
+            canvas.rect.y + 5,
+            canvas.rect.x - 4,
+            score,
+            canvas.rect.x - 6,
+            mins,
+            secs,
+        ))?;
+
+        Ok(())
     }
 }
