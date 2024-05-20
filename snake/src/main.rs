@@ -17,6 +17,7 @@ const GAME_OVER_TEXT: &str = include_str!("../game-over.txt");
 const CREDITS_TEXT: &str = include_str!("../credits.txt");
 const STATS_TEXT: &str = include_str!("../stats.txt");
 const SNAKE_TEXT: &str = include_str!("../snake.txt");
+const GIT_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/git.txt"));
 
 const CANVAS_W: u16 = 56;
 const CANVAS_H: u16 = 17;
@@ -27,6 +28,14 @@ fn main() -> io::Result<()> {
     let screen_rect = Rect::new(1, 1, size.0 - 2, size.1 - 2);
 
     terminal.draw_text(0, size.1 - 3, &from_pansi(CREDITS_TEXT))?;
+
+    let half_git = GIT_TEXT.len() / 2;
+    let half_git = GIT_TEXT[half_git..].find(' ').unwrap() + half_git;
+    let (fh, sh) = GIT_TEXT.split_at(half_git);
+    terminal.write("\x1B[2m")?;
+    terminal.draw_text(size.0 - fh.len() as u16, size.1 - 1, fh)?;
+    terminal.draw_text(size.0 - fh.len() as u16, size.1, &sh[1..])?;
+    terminal.write("\x1B[0m")?;
 
     let canvas = terminal.draw_rect_sep(
         screen_rect,
