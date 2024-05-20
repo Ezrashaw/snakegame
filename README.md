@@ -6,5 +6,8 @@ The classic game Snake, written in Rust. This program runs entirely in a termina
 - Speeding up the snake over time (undecided).
 - Continuing work on the leaderboard.
 - Documenting the remainder of the code (everything except `src/snake.rs`).
-- Porting the program to MacOS.
 - Leaderboard: when "You!" is being put on leaderboard to show the user's score, change the position to an actual number, don't keep it on 10
+- Fixing terminal resize issues :(
+- Second colour of fruit (that speeds)
+- Some kind of audio feedback.
+- Get rid of `O_NONBLOCK` on stdin
