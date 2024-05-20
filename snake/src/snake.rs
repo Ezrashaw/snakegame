@@ -34,47 +34,47 @@ const FOOD_LOCATIONS: [(u16, u16); 5] = [(18, 5), (18, 11), (24, 5), (24, 11), (
 
 /// Main entry point for the game logic.
 ///
-/// Returns [`None`] if the game exits because of a user action (Crtl-C). Otherwise, returns
+/// Returns [`None`] if the game exits because of a user action (Ctrl-C). Otherwise, returns
 /// `Some(score)`.
 pub fn game_main(
     mut canvas: Canvas,
     leaderboard: &mut Option<Leaderboard>,
     stats: &Stats,
 ) -> io::Result<Option<usize>> {
-    // open /dev/urandom, a fast source of entropy on Linux systems.
+    // Open /dev/urandom, a fast source of entropy on Linux systems.
     let mut rng = File::open("/dev/urandom")?;
 
     // -- snake state --
-    // the snake begins in the vertical center of the screen and x = 3
+    // The snake begins in the vertical center of the screen and x = 3.
     let mut head = Coord {
         x: 3,
         y: canvas.h() / 2,
     };
-    // we face towards the rest of the canvas, that is, rightwards
+    // We face towards the rest of the canvas, that is, rightwards.
     let mut direction = Direction::Right;
-    // the tail starts out being
+    // The tail starts out being empty, we add to it and trim it to keep it less than `len`.
     let mut tail = VecDeque::new();
-    // initialize the bitboard that we use to determine valid locations for placing fruits. we take
-    // the number of game cells, divided by size of each value (64 bits). note also that division
+    // Initialize the bitboard that we use to determine valid locations for placing fruits. We take
+    // the number of game cells, divided by size of each value (64 bits). Note also that division
     // rounds down, so we have to add another u64 (which will only be partly filled).
     let mut bitboard = vec![0u64; canvas.w() as usize * canvas.h() as usize / 64 + 1];
-    // initialize the snake's length to the starting length
+    // Initialize the snake's length to the starting length.
     let mut len = STARTING_LENGTH;
-    // initialize the fruits from the locations in FOOD_LOCATIONS
+    // Initialize the fruits from the locations in FOOD_LOCATIONS.
     for (x, y) in FOOD_LOCATIONS {
         let coord = Coord { x, y };
 
-        // plot the fruit on the canvas
+        // Plot the fruit on the canvas.
         set_bb(&mut bitboard, &canvas, coord, true);
         canvas.draw_pixel(coord, Color::BrightYellow)?;
     }
 
     loop {
-        // put the head into the tail, and mark it as occupied on the bitboard
+        // Put the head into the tail, and mark it as occupied on the bitboard.
         tail.push_back(head);
         set_bb(&mut bitboard, &canvas, head, true);
 
-        // if the tail is longer than the snake's length, trim it
+        // If the tail is longer than the snake's length, trim it.
         if tail.len() > len {
             let coord = tail.pop_front().unwrap();
 
@@ -82,28 +82,28 @@ pub fn game_main(
             set_bb(&mut bitboard, &canvas, coord, false);
         }
 
-        // draw the snake's head onto the canvas
+        // Draw the snake's head onto the canvas.
         canvas.draw_pixel(head, Color::BrightGreen)?;
 
-        // sleep for 140ms, so that the snake doesn't move instantly
+        // Sleep for 140ms, so that the snake doesn't move instantly.
         thread::sleep(STEP_TIME);
 
-        // check for keys, but don't wait for anything (we've already waited)
+        // Check for keys, but don't wait for anything (we've already waited).
         match canvas.wait_key(|k| direction.change_from_key(k).is_some(), Some(0))? {
-            // if we didn't get a key, do nothing
+            // If we didn't get a key, do nothing.
             KeyEvent::Timeout => (),
 
-            // if CTRL-C is pushed, then exit
+            // If CTRL-C is pushed, then exit.
             KeyEvent::Exit => return Ok(None),
 
-            // otherwise, handle a movement keypress
+            // Otherwise, handle a movement keypress.
             KeyEvent::Key(key) => {
-                // map movement keys to their respective directions
+                // Map movement keys to their respective directions.
                 direction = direction.change_from_key(key).unwrap();
             }
         }
 
-        // actually move the snake's head position, checking to see if we have hit a wall
+        // Actually move the snake's head position, checking to see if we have hit a wall.
         let old_pos = head;
         match direction {
             Direction::Up if head.y > 0 => head.y -= 1,
@@ -113,43 +113,43 @@ pub fn game_main(
             _ => break,
         }
 
-        // check if we have encountered *something*, we'll find out what it is below
+        // Check if we have encountered *something*, we'll find out what it is below.
         if get_bb(&bitboard, &canvas, head) {
-            // if we have hit our own tail, then we die...
+            // If we have hit our own tail, then we die...
             if tail.contains(&head) {
-                // make sure to reset the head position back to where it was, otherwise the animation
-                // mucks up
+                // Make sure to reset the head position back to where it was, otherwise the animation
+                // mucks up.
                 head = old_pos;
                 break;
             }
 
-            // ...otherwise, we have eaten a fruit
+            // ...otherwise, we have eaten a fruit.
             len += 1;
 
-            // update the local player position on the leaderboard
+            // Update the local player position on the leaderboard.
             if let Some(leaderboard) = leaderboard {
                 leaderboard.update_you(canvas.term, (len - STARTING_LENGTH) as u8, false)?;
             }
 
-            // needn't remove fruit from bitboard because we ate it and will "digest" it (normal
-            // snake code will remove it)
+            // Needn't remove fruit from bitboard because we ate it and will "digest" it (normal
+            // snake code will remove it).
             gen_fruit(&mut rng, &mut canvas, &mut bitboard)?;
         }
 
-        // draw the previous head position as the tail colour
+        // Draw the previous head position as the tail colour.
         canvas.draw_pixel(old_pos, Color::Green)?;
 
-        // give the leaderboard a chance to update, if we have received a new leaderboard from the
-        // server
+        // Give the leaderboard a chance to update, if we have received a new leaderboard from the
+        // server.
         if let Some(leaderboard) = leaderboard {
             leaderboard.check_update(canvas.term)?;
         }
 
-        // update the statistics panel
+        // Update the statistics panel.
         stats.update(&mut canvas, len - STARTING_LENGTH)?;
     }
 
-    // do a fun little death animation
+    // Do a fun little death animation.
     for coord in tail.iter().rev().skip(1) {
         canvas.draw_pixel(*coord, Color::Red)?;
         thread::sleep(Duration::from_millis(50));
@@ -158,7 +158,7 @@ pub fn game_main(
     canvas.draw_pixel(head, Color::BrightRed)?;
     thread::sleep(Duration::from_millis(500));
 
-    // return the score, calculated as the difference between the initial and current length
+    // Return the score, calculated as the difference between the initial and current length.
     Ok(Some(len - STARTING_LENGTH))
 }
 
@@ -180,28 +180,28 @@ pub fn game_main(
 /// increment on free squares).
 /// 4. Place the fruit on the canvas.
 fn gen_fruit(rng: &mut File, canvas: &mut Canvas, bitboard: &mut [u64]) -> io::Result<()> {
-    // read eight bytes (a u64) into a buffer
+    // Read eight bytes (a u64) into a buffer.
     let mut rand = [0u8; 8];
     rng.read_exact(&mut rand)?;
     let rand = usize::from_le_bytes(rand);
 
-    // calculate how many filled and free squares there are
+    // Calculate how many filled and free squares there are.
     let filled = bitboard.iter().map(|x| x.count_ones()).sum::<u32>() as usize;
     let free = (canvas.w() as usize * canvas.h() as usize) - filled + 1;
-    // calculate our target square based on the number of free squares and our random number
+    // Calculate our target square based on the number of free squares and our random number.
     let target_idx = rand % free;
 
     let mut idx = 0;
     let (mut fx, mut fy) = (u16::MAX, u16::MAX);
-    // for each xy point on the canvas...
+    // For each xy point on the canvas...
     'outer: for y in 0..canvas.h() {
         for x in 0..canvas.w() {
-            // we only increment our index on free squares
+            // We only increment our index on free squares.
             if !get_bb(bitboard, canvas, Coord { x, y }) {
                 idx += 1;
             }
 
-            // if we have made it to the target index, then exit
+            // If we have made it to the target index, then exit.
             if idx >= target_idx {
                 fx = x;
                 fy = y;
@@ -210,12 +210,12 @@ fn gen_fruit(rng: &mut File, canvas: &mut Canvas, bitboard: &mut [u64]) -> io::R
         }
     }
 
-    // sanity check to that we did manage to find a position for the fruit. note that this is
+    // Sanity check to that we did manage to find a position for the fruit. Note that this is
     // reached when the player "wins" (fills up whole canvas with the snake).
     // TODO: gracefully handle the win condition
     assert_ne!(fx, u16::MAX);
 
-    // mark our new fruit's location on the bitboard and draw it to the screen
+    // Mark our new fruit's location on the bitboard and draw it to the screen.
     let coord = Coord { x: fx, y: fy };
     set_bb(bitboard, canvas, coord, true);
     canvas.draw_pixel(coord, Color::BrightYellow)?;
@@ -225,10 +225,10 @@ fn gen_fruit(rng: &mut File, canvas: &mut Canvas, bitboard: &mut [u64]) -> io::R
 
 /// Mark a coordinate on the bitboard as either occupied or unoccupied.
 fn set_bb(bitboard: &mut [u64], canvas: &Canvas, coord: Coord, value: bool) {
-    // turn the 2d coordinate into a flat index
+    // Turn the 2d coordinate into a flat index.
     // TODO: inline `as_idx`
     let idx = coord.as_idx(canvas);
-    // use magic bitwise operators to set/unset
+    // Use magic bitwise operators to set/unset.
     if value {
         bitboard[idx / 64] |= 0b1 << (idx % 64);
     } else {
@@ -238,10 +238,10 @@ fn set_bb(bitboard: &mut [u64], canvas: &Canvas, coord: Coord, value: bool) {
 
 /// Check whether a coordinate on the bitboard is occupied or unoccupied.
 const fn get_bb(bitboard: &[u64], canvas: &Canvas, coord: Coord) -> bool {
-    // turn the 2d coordinate into a flat index
+    // Turn the 2d coordinate into a flat index.
     // TODO: inline `as_idx`
     let idx = coord.as_idx(canvas);
-    // use magic bitwise operators to check if the bit is marked as occupied
+    // Use magic bitwise operators to check if the bit is marked as occupied.
     bitboard[idx / 64] & (0b1 << (idx % 64)) != 0
 }
 
