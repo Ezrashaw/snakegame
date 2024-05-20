@@ -153,16 +153,19 @@ pub struct Rect {
 
 impl Rect {
     /// Creates a new [`Rect`] with the given coordinates and size.
+    #[must_use]
     pub const fn new(x: u16, y: u16, w: u16, h: u16) -> Self {
         Self { x, y, w, h }
     }
 
+    #[must_use]
     pub fn move_xy(mut self, x: i16, y: i16) -> Self {
         self.x = self.x.strict_add_signed(x);
         self.y = self.y.strict_add_signed(y);
         self
     }
 
+    #[must_use]
     pub fn change_size(mut self, w: i16, h: i16) -> Self {
         self.w = self.w.strict_add_signed(w);
         self.h = self.h.strict_add_signed(h);
@@ -183,6 +186,7 @@ pub enum Color {
 }
 
 impl Color {
+    #[must_use]
     pub const fn as_ansi(self) -> &'static str {
         match self {
             Self::Red => "31",

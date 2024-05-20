@@ -76,7 +76,7 @@ impl Terminal {
     }
 }
 
-pub(super) fn set_non_block(mut flags: i32, non_block: bool) -> i32 {
+pub fn set_non_block(mut flags: i32, non_block: bool) -> i32 {
     if non_block {
         flags |= libc::O_NONBLOCK;
     } else {

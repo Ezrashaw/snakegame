@@ -1,7 +1,19 @@
+#![feature(strict_overflow_ops)]
+#![warn(clippy::pedantic, clippy::nursery)]
+#![allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::missing_errors_doc,
+    clippy::missing_panics_doc
+)]
+
 mod ansi;
 mod stdin;
 mod stdout;
 mod termios;
+
+#[cfg(not(all(target_os = "linux")))]
+compile_error!("This program only runs on Linux");
 
 pub use ansi::from_pansi;
 pub use stdin::{Key, KeyEvent};
@@ -66,6 +78,7 @@ impl Drop for Terminal {
     }
 }
 
+#[must_use]
 pub fn get_termsize() -> (u16, u16) {
     let mut win_size = libc::winsize {
         ws_row: 0,

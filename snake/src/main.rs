@@ -1,21 +1,15 @@
-#![feature(strict_overflow_ops, array_chunks, let_chains, iter_advance_by)]
+#![feature(array_chunks, let_chains, iter_advance_by)]
 #![warn(clippy::pedantic, clippy::nursery)]
 #![allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 
-#[cfg(not(all(target_os = "linux")))]
-compile_error!("This program only runs on Linux");
-
 mod leaderboard;
 mod snake;
-mod terminal;
 
 use std::io;
 
 use leaderboard::Leaderboard;
 use snake::game_main;
-use terminal::{Color, Key, KeyEvent, Rect, Terminal};
-
-use crate::terminal::from_pansi;
+use term::{from_pansi, Color, Key, KeyEvent, Rect, Terminal};
 
 const WELCOME_TEXT: &str = include_str!("../welcome.txt");
 const HELP_TEXT: &str = include_str!("../help.txt");
@@ -29,7 +23,7 @@ const CANVAS_H: u16 = 17;
 
 fn main() -> io::Result<()> {
     let mut terminal = Terminal::new()?;
-    let size = terminal::get_termsize();
+    let size = term::get_termsize();
     let screen_rect = Rect::new(1, 1, size.0 - 2, size.1 - 2);
 
     terminal.draw_text(0, size.1 - 3, &from_pansi(CREDITS_TEXT))?;

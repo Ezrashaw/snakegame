@@ -3,7 +3,7 @@ use std::{
     net::{Ipv4Addr, TcpStream},
 };
 
-use crate::{terminal::Terminal, Rect};
+use term::{Rect, Terminal};
 
 type Entries = [([u8; 8], u8); 10];
 

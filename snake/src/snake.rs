@@ -15,11 +15,9 @@ use std::{
     time::Duration,
 };
 
-use crate::{
-    leaderboard::Leaderboard,
-    terminal::{Color, Key, KeyEvent},
-    Canvas, Coord,
-};
+use term::{Color, Key, KeyEvent};
+
+use crate::{leaderboard::Leaderboard, Canvas, Coord};
 
 /// Defines the time between each movement of the snake. During this time, if a key is pressed,
 /// then we process the key event, and wait for the remainer of the time.
