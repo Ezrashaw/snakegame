@@ -13,7 +13,7 @@ impl Terminal {
         timeout_ms: Option<u64>,
         only_new: bool,
     ) -> io::Result<KeyEvent> {
-        if only_new && self.get_last_key(|_| true)? == Some(Key::CrtlC) {
+        if only_new && self.get_last_key()? == Some(Key::CrtlC) {
             return Ok(KeyEvent::Exit);
         }
 
@@ -23,21 +23,20 @@ impl Terminal {
                 return Ok(KeyEvent::Timeout);
             }
 
-            match self.get_last_key(&want_key)? {
-                Some(Key::CrtlC) => return Ok(KeyEvent::Exit),
-                Some(k) if want_key(k) => return Ok(KeyEvent::Key(k)),
+            match self.read_key()? {
+                Key::CrtlC => return Ok(KeyEvent::Exit),
+                k if want_key(k) => return Ok(KeyEvent::Key(k)),
                 _ => (),
             };
         }
     }
 
-    fn get_last_key(&mut self, want_key: impl Fn(Key) -> bool) -> io::Result<Option<Key>> {
+    fn get_last_key(&mut self) -> io::Result<Option<Key>> {
         let mut last_key = None;
         loop {
             match self.read_key() {
                 Ok(Key::CrtlC) => return Ok(Some(Key::CrtlC)),
-                Ok(key) if want_key(key) => last_key = Some(key),
-                Ok(_) => (),
+                Ok(key) => last_key = Some(key),
                 Err(err) if matches!(err.kind(), ErrorKind::WouldBlock) => return Ok(last_key),
                 Err(err) => return Err(err),
             }
