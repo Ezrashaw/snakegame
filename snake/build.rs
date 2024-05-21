@@ -10,9 +10,13 @@ fn main() {
         .unwrap()
         .stdout;
 
+    let cmd_output = String::from_utf8(cmd_output).unwrap();
+
     let out_dir = env::var_os("OUT_DIR").unwrap();
     let dest_path = Path::new(&out_dir).join("git.txt");
-    fs::write(dest_path, cmd_output).unwrap();
+    // note that we have to remove the trailing newline so that we only print two lines, otherwise
+    // we start scrolling and other things move up a line.
+    fs::write(dest_path, cmd_output.trim_matches('\n')).unwrap();
 
     println!("cargo::rerun-if-changed=.git/HEAD");
 }
