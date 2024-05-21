@@ -27,6 +27,19 @@ fn main() -> io::Result<()> {
     let size = term::get_termsize();
     let screen_rect = Rect::new(1, 1, size.0 - 2, size.1 - 2);
 
+    #[cfg(feature = "term_debug")]
+    for i in (1..size.1).step_by(2) {
+        print!("\x1B[{i};0H{i:0>2}--+");
+        for x in (1..(size.0 - 15)).step_by(5) {
+            if x % 10 == 1 {
+                print!("--{:0>2}+", x + 9);
+            } else {
+                print!("----+");
+            }
+        }
+        println!("\x1B[{}G{i:0>2}", size.0 - 1);
+    }
+
     terminal.draw_text(0, size.1 - 3, &from_pansi(CREDITS_TEXT))?;
 
     let half_git = GIT_TEXT.len() / 2;
