@@ -1,4 +1,4 @@
-#![feature(strict_overflow_ops)]
+#![feature(strict_overflow_ops, associated_type_defaults, let_chains)]
 #![warn(clippy::pedantic, clippy::nursery)]
 #![allow(
     clippy::cast_possible_truncation,
@@ -8,6 +8,7 @@
 )]
 
 mod ansi;
+mod draw;
 mod stdin;
 mod stdout;
 mod termios;
@@ -16,6 +17,7 @@ mod termios;
 compile_error!("This program only runs on Linux");
 
 pub use ansi::from_pansi;
+pub use draw::{draw, Box, Draw, DrawCtx};
 pub use stdin::{Key, KeyEvent};
 pub use stdout::{Color, Rect};
 

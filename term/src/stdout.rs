@@ -8,6 +8,10 @@ impl Terminal {
         write!(self.out, "{s}")
     }
 
+    pub fn draw(&mut self, x: u16, y: u16, object: impl crate::Draw) -> io::Result<()> {
+        crate::draw(&mut self.out, object, x, y)
+    }
+
     pub fn draw_text(&mut self, x: u16, y: u16, s: &str) -> io::Result<()> {
         write!(self.out, "\x1B[{y};{x}H{s}")
     }
@@ -205,7 +209,7 @@ impl Color {
     }
 }
 
-fn ansi_str_len(s: &str) -> u16 {
+pub fn ansi_str_len(s: &str) -> u16 {
     let mut len = 0;
     let mut chars = s.chars();
 
