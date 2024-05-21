@@ -11,12 +11,12 @@ use leaderboard::Leaderboard;
 use snake::game_main;
 use term::{from_pansi, Color, Key, KeyEvent, Rect, Terminal};
 
-const WELCOME_TEXT: &str = include_str!("../welcome.txt");
-const HELP_TEXT: &str = include_str!("../help.txt");
-const GAME_OVER_TEXT: &str = include_str!("../game-over.txt");
-const CREDITS_TEXT: &str = include_str!("../credits.txt");
-const STATS_TEXT: &str = include_str!("../stats.txt");
-const SNAKE_TEXT: &str = include_str!("../snake.txt");
+const WELCOME_TEXT: &str = include_str!("../pansi/welcome.txt");
+const HELP_TEXT: &str = include_str!("../pansi/help.txt");
+const GAME_OVER_TEXT: &str = include_str!("../pansi/game-over.txt");
+const CREDITS_TEXT: &str = include_str!("../pansi/credits.txt");
+const STATS_TEXT: &str = include_str!("../pansi/stats.txt");
+const SNAKE_TEXT: &str = include_str!("../pansi/snake.txt");
 const GIT_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/git.txt"));
 
 const CANVAS_W: u16 = 56;
