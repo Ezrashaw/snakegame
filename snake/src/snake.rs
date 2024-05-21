@@ -58,6 +58,11 @@ pub fn game_main(
     // the number of game cells, divided by size of each value (64 bits). Note also that division
     // rounds down, so we have to add another u64 (which will only be partly filled).
     let mut bitboard = vec![0u64; canvas.w() as usize * canvas.h() as usize / 64 + 1];
+    // Initalize another bitboard that describes where the special (pink) fruits are.
+    let mut special_fruits = vec![0u64; canvas.w() as usize * canvas.h() as usize / 64 + 1];
+    // Keep track of how much "special time" is remaining. We don't start out with any special
+    // time.
+    let mut special_time = 0;
     // Initialize the snake's length to the starting length.
     let mut len = STARTING_LENGTH;
     // Initialize the fruits from the locations in FOOD_LOCATIONS.
@@ -83,7 +88,17 @@ pub fn game_main(
         }
 
         // Draw the snake's head onto the canvas.
-        canvas.draw_pixel(head, Color::BrightGreen)?;
+        let head_color = if special_time > 0 {
+            // If we have eaten a special fruit, then decrement the "special time" counter...
+            special_time -= 1;
+
+            // ...and use the pink color.
+            Color::Magenta
+        } else {
+            // Otherwise, use the normal bright green color.
+            Color::BrightGreen
+        };
+        canvas.draw_pixel(head, head_color)?;
 
         // Sleep for 140ms, so that the snake doesn't move instantly.
         thread::sleep(STEP_TIME);
@@ -123,6 +138,15 @@ pub fn game_main(
                 break;
             }
 
+            // If we have hit a special fruit, then do something special...
+            if get_bb(&special_fruits, &canvas, head) {
+                // Remove the special fruit from the bitboard.
+                set_bb(&mut special_fruits, &canvas, head, false);
+
+                // We'll update the "special time" counter to turn the head pink for a bit.
+                special_time += 15;
+            }
+
             // ...otherwise, we have eaten a fruit.
             len += 1;
 
@@ -133,7 +157,7 @@ pub fn game_main(
 
             // Needn't remove fruit from bitboard because we ate it and will "digest" it (normal
             // snake code will remove it).
-            gen_fruit(&mut rng, &mut canvas, &mut bitboard)?;
+            gen_fruit(&mut rng, &mut canvas, &mut bitboard, &mut special_fruits)?;
         }
 
         // Draw the previous head position as the tail colour.
@@ -179,7 +203,12 @@ pub fn game_main(
 /// 3. Map the generated index onto the canvas (we iterate over the whole canvas, and only
 /// increment on free squares).
 /// 4. Place the fruit on the canvas.
-fn gen_fruit(rng: &mut File, canvas: &mut Canvas, bitboard: &mut [u64]) -> io::Result<()> {
+fn gen_fruit(
+    rng: &mut File,
+    canvas: &mut Canvas,
+    bitboard: &mut [u64],
+    special_fruits: &mut [u64],
+) -> io::Result<()> {
     // Read eight bytes (a u64) into a buffer.
     let mut rand = [0u8; 8];
     rng.read_exact(&mut rand)?;
@@ -215,10 +244,29 @@ fn gen_fruit(rng: &mut File, canvas: &mut Canvas, bitboard: &mut [u64]) -> io::R
     // TODO: gracefully handle the win condition
     assert_ne!(fx, u16::MAX);
 
-    // Mark our new fruit's location on the bitboard and draw it to the screen.
+    // Mark our new fruit's location on the bitboard.
     let coord = Coord { x: fx, y: fy };
     set_bb(bitboard, canvas, coord, true);
-    canvas.draw_pixel(coord, Color::BrightYellow)?;
+
+    // Generate another random number.
+    let mut rand = [0u8; 2];
+    rng.read_exact(&mut rand)?;
+    let rand = u16::from_le_bytes(rand);
+
+    // There is a one in ten chance of generating a special fruit.
+    let color = if rand % 10 == 0 {
+        // For special fruits, add them to the special bitboard...
+        set_bb(special_fruits, canvas, coord, true);
+
+        // ...and color them pink.
+        Color::BrightMagenta
+    } else {
+        // For normal fruits, color them yellow.
+        Color::BrightYellow
+    };
+
+    // Finally, draw the fruit to the screen.
+    canvas.draw_pixel(coord, color)?;
 
     Ok(())
 }

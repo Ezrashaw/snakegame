@@ -178,10 +178,12 @@ pub enum Color {
     Red,
     Green,
     Blue,
+    Magenta,
     White,
     BrightRed,
     BrightGreen,
     BrightYellow,
+    BrightMagenta,
     BrightCyan,
 }
 
@@ -192,10 +194,12 @@ impl Color {
             Self::Red => "31",
             Self::Green => "32",
             Self::Blue => "34",
+            Self::Magenta => "35",
             Self::White => "37",
             Self::BrightRed => "91",
             Self::BrightGreen => "92",
             Self::BrightYellow => "93",
+            Self::BrightMagenta => "95",
             Self::BrightCyan => "96",
         }
     }
