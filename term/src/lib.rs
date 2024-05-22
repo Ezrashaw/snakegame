@@ -25,7 +25,7 @@ use std::{
     fs::File,
     io::{self, Write},
     os::fd::FromRawFd,
-    ptr,
+    ptr, thread,
 };
 
 use self::termios::Termios;
@@ -74,9 +74,12 @@ impl Terminal {
 
 impl Drop for Terminal {
     fn drop(&mut self) {
-        write!(&mut self.out, "\x1B[2J\x1B[H").unwrap();
-        write!(&mut self.out, "\x1B[?1049l\x1B[?25h").unwrap();
-        termios::restore(self.old_termios);
+        // Don't reset terminal if panicking so that we can see the error message.
+        if !thread::panicking() {
+            write!(&mut self.out, "\x1B[2J\x1B[H").unwrap();
+            write!(&mut self.out, "\x1B[?1049l\x1B[?25h").unwrap();
+            termios::restore(self.old_termios);
+        }
     }
 }
 
