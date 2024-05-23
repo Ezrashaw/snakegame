@@ -19,9 +19,10 @@ use term::{Color, Key, KeyEvent};
 
 use crate::{leaderboard::Leaderboard, Canvas, Coord, Stats};
 
-/// Defines the time between each movement of the snake. During this time, if a key is pressed,
-/// then we process the key event, and wait for the remainer of the time.
-const STEP_TIME: Duration = Duration::from_millis(140);
+/// Defines the time between each movement of the snake. Over the couse of the game, this value
+/// will decrease. During this time, if a key is pressed, then we process the key event, and wait
+/// for the remainer of the time.
+const STARTING_STEP_TIME: Duration = Duration::from_millis(140);
 
 /// Defines the starting length of the snake. Note that the snake does not actualy start at this
 /// length, but slowly expands out of a single point.
@@ -63,6 +64,8 @@ pub fn game_main(
     // Keep track of how much "special time" is remaining. We don't start out with any special
     // time.
     let mut special_time = 0;
+    // Initialize the current step time to `STARTING_STEP_TIME`.
+    let mut step_time = STARTING_STEP_TIME;
     // Initialize the snake's length to the starting length.
     let mut len = STARTING_LENGTH;
     // Initialize the fruits from the locations in FOOD_LOCATIONS.
@@ -100,8 +103,8 @@ pub fn game_main(
         };
         canvas.draw_pixel(head, head_color)?;
 
-        // Sleep for 140ms, so that the snake doesn't move instantly.
-        thread::sleep(STEP_TIME);
+        // Sleep for the current step time, so that the snake doesn't move instantly.
+        thread::sleep(step_time);
 
         // Check for keys, but don't wait for anything (we've already waited).
         match canvas.wait_key(|k| direction.change_from_key(k).is_some(), Some(0))? {
@@ -149,6 +152,11 @@ pub fn game_main(
 
             // ...otherwise, we have eaten a fruit.
             len += 1;
+
+            // Every 10 fruits, speed up a little.
+            if len % 10 == 0 {
+                step_time -= Duration::from_millis(5);
+            }
 
             // Update the local player position on the leaderboard.
             if let Some(leaderboard) = leaderboard {
