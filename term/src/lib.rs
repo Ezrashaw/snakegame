@@ -19,7 +19,7 @@ compile_error!("This program only runs on Linux");
 pub use ansi::from_pansi;
 pub use draw::{draw, Box, Draw, DrawCtx};
 pub use stdin::{Key, KeyEvent};
-pub use stdout::{Color, Rect};
+pub use stdout::{ansi_str_len, Color, Rect};
 
 use std::{
     fs::File,

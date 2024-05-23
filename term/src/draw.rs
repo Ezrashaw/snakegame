@@ -56,10 +56,13 @@ impl Draw for &str {
 
     fn draw(&self, ctx: &mut DrawCtx) -> io::Result<()> {
         let o = ctx.o();
-        for line in self.lines() {
+        for (idx, line) in self.lines().enumerate() {
             assert!(!line.trim().is_empty());
 
-            writeln!(o, "{line}")?;
+            if idx != 0 {
+                writeln!(o)?;
+            }
+            write!(o, "{line}")?;
         }
 
         Ok(())

@@ -9,7 +9,7 @@ use std::{io, time::Instant};
 
 use leaderboard::Leaderboard;
 use snake::game_main;
-use term::{from_pansi, Color, Key, KeyEvent, Rect, Terminal};
+use term::{ansi_str_len, from_pansi, Color, Key, KeyEvent, Rect, Terminal};
 
 const WELCOME_TEXT: &str = include_str!("../pansi/welcome.txt");
 const HELP_TEXT: &str = include_str!("../pansi/help.txt");
@@ -42,13 +42,10 @@ fn main() -> io::Result<()> {
 
     terminal.draw_text(0, size.1 - 3, &from_pansi(CREDITS_TEXT))?;
 
-    let half_git = GIT_TEXT.len() / 2;
-    let half_git = GIT_TEXT[half_git..].find(' ').unwrap() + half_git;
-    let (fh, sh) = GIT_TEXT.split_at(half_git);
-    terminal.write("\x1B[2m")?;
-    terminal.draw_text(size.0 - fh.len() as u16, size.1 - 1, fh)?;
-    terminal.draw_text(size.0 - fh.len() as u16, size.1, &sh[1..])?;
-    terminal.write("\x1B[0m")?;
+    let git_text = from_pansi(GIT_TEXT);
+    let git_width = git_text.find('\n').unwrap();
+    let git_width = ansi_str_len(std::str::from_utf8(&git_text.as_bytes()[0..git_width]).unwrap());
+    terminal.draw(size.0 - git_width as u16, size.1 - 1, &*git_text)?;
 
     let canvas = terminal.draw_rect_sep(
         screen_rect,
