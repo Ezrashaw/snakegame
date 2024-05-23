@@ -5,9 +5,9 @@ use std::{
 
 use term::{Rect, Terminal};
 
-type Entries = [([u8; 8], u8); 10];
+type Entries = [([u8; 3], u8); 10];
 
-const YOU_NAME: &str = "--\x1B[95mYOU!\x1B[90m--";
+const YOU_NAME: &str = "\x1B[95mYOU\x1B[90m";
 
 pub struct Leaderboard {
     rect: Rect,
@@ -31,14 +31,14 @@ impl Leaderboard {
             return Ok(None);
         };
 
-        let rect = Rect::new(canvas.x + canvas.w + 3, canvas.y, 17, 12);
+        let rect = Rect::new(canvas.x + canvas.w + 3, canvas.y, 13, 12);
         terminal.draw_rect_sep(rect, rect.w, rect.h, 1, Terminal::DEFAULT_CORNERS)?;
         terminal.draw_text_centered(
             rect.move_xy(1, 1).change_size(0, -11),
             "\x1B[1mLEADERBOARD\x1B[0m",
         )?;
         for i in 1..=10 {
-            terminal.draw_text(rect.x + 2, rect.y + 2 + i, &format!("{i}."))?;
+            terminal.draw_text(rect.x + 2, rect.y + 2 + i, &format!("{i:0>2}."))?;
         }
 
         Ok(Some(Self {
@@ -64,14 +64,14 @@ impl Leaderboard {
     }
 
     fn entries_from_stream(conn: &mut TcpStream) -> io::Result<Entries> {
-        let mut buf: [u8; 100] = [0u8; 10 * 10];
+        let mut buf: [u8; 50] = [0u8; 5 * 10];
         conn.read_exact(&mut buf)?;
 
-        let mut entries = [([0u8; 8], 0u8); 10];
-        for (idx, entry) in buf.array_chunks::<10>().enumerate() {
-            assert_eq!(entry[9], b'\n');
-            entries[idx].0 = entry[0..8].try_into().unwrap();
-            entries[idx].1 = entry[8];
+        let mut entries = [([0u8; 3], 0u8); 10];
+        for (idx, entry) in buf.array_chunks::<5>().enumerate() {
+            assert_eq!(entry[4], b'\n');
+            entries[idx].0 = entry[0..3].try_into().unwrap();
+            entries[idx].1 = entry[3];
         }
 
         Ok(entries)
@@ -114,7 +114,7 @@ impl Leaderboard {
             };
 
             terminal.draw_text(
-                self.rect.x + 5,
+                self.rect.x + 6,
                 self.rect.y + 3 + i as u16,
                 &format!("\x1B[1;90m{colored_name} \x1B[1;{score_color}m{score:0>3}\x1B[0m\n",),
             )?;
@@ -129,17 +129,17 @@ impl Leaderboard {
         new_val: u8,
         force_redraw: bool,
     ) -> io::Result<()> {
+        self.you = Some(new_val);
         if let Some(you_row) = self.you_row
             && !force_redraw
             && !(you_row > 0 && new_val > self.entries[you_row as usize - 1].1)
         {
             terminal.draw_text(
-                self.rect.x + 14,
+                self.rect.x + 10,
                 self.rect.y + 3 + you_row,
                 &format!("\x1B[1;95m{new_val:0>3}\x1B[0m",),
             )
         } else {
-            self.you = Some(new_val);
             self.draw_values(terminal)
         }
     }

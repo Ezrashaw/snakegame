@@ -11,29 +11,29 @@ fn main() -> io::Result<()> {
         let mut stream = incoming?;
         println!("got incoming {:?}", stream.peer_addr());
 
-        writeln!(stream, "-bobby1-\x00")?;
-        writeln!(stream, "-bobby2-\x00")?;
-        writeln!(stream, "-bobby3-\x00")?;
-        writeln!(stream, "-bobby4-\x00")?;
-        writeln!(stream, "-bobby5-\x00")?;
-        writeln!(stream, "-bobby6-\x00")?;
-        writeln!(stream, "-bobby7-\x00")?;
-        writeln!(stream, "-bobby8-\x00")?;
-        writeln!(stream, "-bobby9-\x00")?;
-        writeln!(stream, "-bobby0-\x00")?;
+        writeln!(stream, "-1-\x00")?;
+        writeln!(stream, "-2-\x00")?;
+        writeln!(stream, "-3-\x00")?;
+        writeln!(stream, "-4-\x00")?;
+        writeln!(stream, "-5-\x00")?;
+        writeln!(stream, "-6-\x00")?;
+        writeln!(stream, "-7-\x00")?;
+        writeln!(stream, "-8-\x00")?;
+        writeln!(stream, "-9-\x00")?;
+        writeln!(stream, "-0-\x00")?;
 
         sleep(Duration::from_secs(10));
 
-        writeln!(stream, "-bobby1-\x28")?;
-        writeln!(stream, "-bobby2-\x23")?;
-        writeln!(stream, "-bobby3-\x22")?;
-        writeln!(stream, "-bobby4-\x21")?;
-        writeln!(stream, "-bobby5-\x19")?;
-        writeln!(stream, "-bobby6-\x17")?;
-        writeln!(stream, "-bobby7-\x11")?;
-        writeln!(stream, "-bobby8-\x11")?;
-        writeln!(stream, "-bobby9-\x08")?;
-        writeln!(stream, "-bobby0-\x06")?;
+        writeln!(stream, "-1-\x28")?;
+        writeln!(stream, "-2-\x23")?;
+        writeln!(stream, "-3-\x22")?;
+        writeln!(stream, "-4-\x21")?;
+        writeln!(stream, "-5-\x19")?;
+        writeln!(stream, "-6-\x17")?;
+        writeln!(stream, "-7-\x11")?;
+        writeln!(stream, "-8-\x11")?;
+        writeln!(stream, "-9-\x08")?;
+        writeln!(stream, "-0-\x06")?;
         sleep(Duration::from_secs(30));
     }
 
