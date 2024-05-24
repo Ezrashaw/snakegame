@@ -48,9 +48,16 @@ impl Terminal {
             0x3 => Key::CrtlC,
             b'\n' => Key::Enter,
             0x1B => {
-                if self.readbyte()? != b'[' {
-                    unreachable!(); // ANSI code formatted wrong; missing '[' after ESC
+                let openbracket = self.readbyte();
+                match openbracket {
+                    Ok(b'[') => (),
+                    Ok(val) => return Ok(Key::Unknown(0x1B, val)),
+                    Err(err) if matches!(err.kind(), ErrorKind::WouldBlock) => {
+                        return Ok(Key::Unknown(0x1B, 0xFF))
+                    }
+                    Err(err) => return Err(err),
                 }
+
                 match self.readbyte()? {
                     b'A' => Key::Up,
                     b'B' => Key::Down,
