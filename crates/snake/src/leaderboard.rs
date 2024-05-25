@@ -32,14 +32,14 @@ impl Leaderboard {
         };
 
         let rect = Rect::new(canvas.x + canvas.w + 3, canvas.y, 13, 12);
-        terminal.draw_rect_sep(rect, rect.w, rect.h, 1, Terminal::DEFAULT_CORNERS)?;
-        terminal.draw_text_centered(
-            rect.move_xy(1, 1).change_size(0, -11),
-            "\x1B[1mLEADERBOARD\x1B[0m",
-        )?;
-        for i in 1..=10 {
-            terminal.draw_text(rect.x + 2, rect.y + 2 + i, &format!("{i:0>2}."))?;
-        }
+        // terminal.draw_rect_sep(rect, rect.w, rect.h, 1, Terminal::DEFAULT_CORNERS)?;
+        // terminal.draw_text_centered(
+        //     rect.move_xy(1, 1).change_size(0, -11),
+        //     "\x1B[1mLEADERBOARD\x1B[0m",
+        // )?;
+        // for i in 1..=10 {
+        //     terminal.draw(rect.x + 2, rect.y + 2 + i, &*format!("{i:0>2}."))?;
+        // }
 
         Ok(Some(Self {
             rect,
@@ -113,10 +113,10 @@ impl Leaderboard {
                 YOU_NAME.to_owned()
             };
 
-            terminal.draw_text(
+            terminal.draw(
                 self.rect.x + 6,
                 self.rect.y + 3 + i as u16,
-                &format!("\x1B[1;90m{colored_name} \x1B[1;{score_color}m{score:0>3}\x1B[0m\n",),
+                &*format!("\x1B[1;90m{colored_name} \x1B[1;{score_color}m{score:0>3}\x1B[0m\n",),
             )?;
         }
 
@@ -134,10 +134,10 @@ impl Leaderboard {
             && !force_redraw
             && !(you_row > 0 && new_val > self.entries[you_row as usize - 1].1)
         {
-            terminal.draw_text(
+            terminal.draw(
                 self.rect.x + 10,
                 self.rect.y + 3 + you_row,
-                &format!("\x1B[1;95m{new_val:0>3}\x1B[0m",),
+                &*format!("\x1B[1;95m{new_val:0>3}\x1B[0m",),
             )
         } else {
             self.draw_values(terminal)

@@ -4,8 +4,8 @@ use term::*;
 
 fn main() -> io::Result<()> {
     let mut term = Terminal::new().unwrap();
+    let size = term.size();
 
-    let size = term::get_termsize();
     for i in (1..size.1).step_by(2) {
         print!("\x1B[{i};0H{i:0>2}--+");
         for x in (1..(size.0 - 20)).step_by(5) {

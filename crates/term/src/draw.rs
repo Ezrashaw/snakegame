@@ -1,14 +1,15 @@
-use crate::Rect;
+use crate::{ansi_str_len, Rect};
 use std::io::{self, Write};
 
-pub trait Draw {
+pub trait Draw: Sized {
     type Update = ();
-    fn update(&self, ctx: &mut DrawCtx, update: Self::Update) -> io::Result<()> {
-        unreachable!()
+    #[allow(unused)]
+    fn update(self, ctx: &mut DrawCtx, update: Self::Update) -> io::Result<()> {
+        unimplemented!()
     }
 
     fn size(&self) -> (u16, u16);
-    fn draw(&self, ctx: &mut DrawCtx) -> io::Result<()>;
+    fn draw(self, ctx: &mut DrawCtx) -> io::Result<()>;
 }
 
 pub struct DrawCtx {
@@ -22,6 +23,14 @@ pub struct DrawCtx {
 impl DrawCtx {
     pub fn o(&mut self) -> &mut impl Write {
         &mut self.out
+    }
+
+    pub fn goto(&mut self, x: u16, y: u16) -> io::Result<()> {
+        write!(self.out, "\x1B[{};{}H", self.y + y, self.x + x)
+    }
+
+    pub fn draw(&mut self, x: u16, y: u16, object: impl Draw) -> io::Result<()> {
+        draw(&mut self.out, object, self.x + x, self.y + y)
     }
 }
 
@@ -39,43 +48,94 @@ pub fn draw(out: &mut impl Write, object: impl Draw, x: u16, y: u16) -> io::Resu
 
     object.draw(&mut ctx)?;
 
-    let string = String::from_utf8(ctx.out).unwrap();
+    let string: String = String::from_utf8(ctx.out).unwrap();
     let string = string.replace('\n', &format!("\n\x1B[{x}G"));
 
     write!(out, "\x1B[{y};{x}H{string}")
 }
 
-pub fn draw_centered(out: &mut impl Write, object: impl Draw, rect: Rect) -> io::Result<()> {
+pub fn draw_centered(
+    out: &mut impl Write,
+    object: impl Draw,
+    rect: Rect,
+    allow_hoff: bool,
+) -> io::Result<(u16, u16)> {
     let (w, h) = object.size();
     assert!(w <= rect.w && h <= rect.h);
-    assert!((rect.w - w) % 2 == 0);
-    assert!((rect.h - h) % 2 == 0);
 
-    let xdiff = (rect.w - w) / 2;
-    let ydiff = (rect.h - h) / 2;
+    if cfg!(feature = "term_debug") {
+        write!(out, "\x1B[32m")?;
+        draw(out, Box::new(rect.w - 2, rect.h - 2), rect.x, rect.y)?;
+        write!(out, "\x1B[0m")?;
+    }
 
-    draw(out, object, rect.x + xdiff, rect.y + ydiff)
+    let hoff = (rect.h - h) % 2 != 0;
+    if (rect.w - w) % 2 != 0 || (allow_hoff ^ hoff) {
+        if cfg!(all(debug_assertions, not(feature = "term_debug"))) {
+            let w = crate::get_termsize().0;
+            draw(out, "\x1B[33;1mWARNING: \x1B[0mfailed to center", w - 25, 1)?;
+        } else {
+            panic!("failed to center");
+        }
+    }
+
+    let x = rect.x + ((rect.w - w) / 2);
+    let y = rect.y + ((rect.h - h) / 2);
+
+    draw(out, object, x, y)?;
+    Ok((x, y))
 }
 
-impl Draw for &str {
-    type Update = ();
-
+impl<T: AsRef<str>> Draw for T {
     fn size(&self) -> (u16, u16) {
         let (mut max_width, mut lines) = (0, 0);
-        for line in self.lines() {
+        for line in self.as_ref().lines() {
             lines += 1;
-            max_width = max_width.max(crate::stdout::ansi_str_len(line));
+            max_width = max_width.max(ansi_str_len(line));
         }
         (max_width, lines)
     }
 
-    fn draw(&self, ctx: &mut DrawCtx) -> io::Result<()> {
-        let o = ctx.o();
-        for (idx, line) in self.lines().enumerate() {
-            assert!(!line.trim().is_empty());
+    fn draw(self, ctx: &mut DrawCtx) -> io::Result<()> {
+        let str = self.as_ref();
+        assert_eq!(str, str.trim_end());
 
+        let o = ctx.o();
+        for (idx, line) in str.lines().enumerate() {
             if idx != 0 {
                 writeln!(o)?;
+            }
+            write!(o, "{line}")?;
+        }
+
+        Ok(())
+    }
+}
+pub struct CenteredStr<T: AsRef<str>>(pub T);
+
+impl<T: AsRef<str>> Draw for CenteredStr<T> {
+    fn size(&self) -> (u16, u16) {
+        self.0.size()
+    }
+
+    fn draw(self, ctx: &mut DrawCtx) -> io::Result<()> {
+        let str = self.0.as_ref();
+        assert_eq!(str, str.trim_end());
+
+        let w = self.size().0;
+        let o = ctx.o();
+
+        for (idx, line) in str.lines().enumerate() {
+            if idx != 0 {
+                writeln!(o)?;
+            }
+
+            let line_w = ansi_str_len(line);
+            let x = (w - line_w) / 2;
+            assert!((w - line_w) % 2 == 0);
+
+            if x > 0 {
+                write!(o, "\x1B[{x}C")?;
             }
             write!(o, "{line}")?;
         }
@@ -133,13 +193,11 @@ impl Box {
 }
 
 impl Draw for Box {
-    type Update = ();
-
     fn size(&self) -> (u16, u16) {
-        (self.w, self.h)
+        (self.w + 2, self.h + 2)
     }
 
-    fn draw(&self, ctx: &mut DrawCtx) -> io::Result<()> {
+    fn draw(self, ctx: &mut DrawCtx) -> io::Result<()> {
         let (w, h) = (self.w as usize, self.h);
         let corners = self.corners.unwrap_or(Self::DEFAULT_CORNERS);
         let sep = self

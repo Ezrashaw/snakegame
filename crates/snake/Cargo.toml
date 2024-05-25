@@ -5,6 +5,3 @@ edition = "2021"
 
 [dependencies]
 term = { path = "../term" }
-
-[features]
-term_debug = []

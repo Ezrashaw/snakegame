@@ -4,7 +4,8 @@
     clippy::cast_possible_truncation,
     clippy::cast_possible_wrap,
     clippy::missing_errors_doc,
-    clippy::missing_panics_doc
+    clippy::missing_panics_doc,
+    clippy::module_name_repetitions
 )]
 
 mod ansi;
@@ -16,10 +17,10 @@ mod termios;
 #[cfg(not(all(target_os = "linux")))]
 compile_error!("This program only runs on Linux");
 
-pub use ansi::from_pansi;
-pub use draw::{draw, draw_centered, Box, Draw, DrawCtx};
+pub use ansi::{ansi_str_len, from_pansi};
+pub use draw::{draw, draw_centered, Box, CenteredStr, Draw, DrawCtx};
 pub use stdin::{Key, KeyEvent};
-pub use stdout::{ansi_str_len, Color, Rect};
+pub use stdout::{Color, Rect};
 
 use std::{
     fs::File,
@@ -37,6 +38,7 @@ pub struct Terminal {
     in_: File,
 
     old_termios: Termios,
+    term_size: (u16, u16),
 
     #[allow(unused)]
     stdin_flags: i32,
@@ -63,12 +65,23 @@ impl Terminal {
         write!(out, "\x1B[?1049h\x1B[?25l")?;
         write!(out, "\x1B[2J\x1B[H")?;
 
+        let term_size = get_termsize();
+
+        #[cfg(feature = "term_debug")]
+        draw_debug_lines(term_size.0, term_size.1);
+
         Ok(Self {
             out,
             in_,
             old_termios,
+            term_size,
             stdin_flags,
         })
+    }
+
+    #[must_use]
+    pub const fn size(&self) -> (u16, u16) {
+        self.term_size
     }
 }
 
@@ -84,7 +97,7 @@ impl Drop for Terminal {
 }
 
 #[must_use]
-pub fn get_termsize() -> (u16, u16) {
+fn get_termsize() -> (u16, u16) {
     let mut win_size = libc::winsize {
         ws_row: 0,
         ws_col: 0,
@@ -100,4 +113,19 @@ pub fn get_termsize() -> (u16, u16) {
     };
     assert_eq!(res, 0);
     (win_size.ws_col, win_size.ws_row)
+}
+
+#[cfg(feature = "term_debug")]
+fn draw_debug_lines(w: u16, h: u16) {
+    for i in (1..h).step_by(2) {
+        print!("\x1B[{i};0H{i:0>2}--+");
+        for x in (1..(w - 15)).step_by(5) {
+            if x % 10 == 1 {
+                print!("--{:0>2}+", x + 9);
+            } else {
+                print!("----+");
+            }
+        }
+        println!("\x1B[{}G{i:0>2}", w - 1);
+    }
 }

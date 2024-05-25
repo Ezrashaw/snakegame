@@ -10,14 +10,14 @@ impl Terminal {
     pub fn wait_key(
         &mut self,
         want_key: impl Fn(Key) -> bool,
-        timeout_ms: Option<u64>,
+        timeout: Option<Duration>,
         only_new: bool,
     ) -> io::Result<KeyEvent> {
         if only_new && self.get_last_key()? == Some(Key::CrtlC) {
             return Ok(KeyEvent::Exit);
         }
 
-        let end_time = timeout_ms.map(|t_ms| Instant::now() + Duration::from_millis(t_ms));
+        let end_time = timeout.map(|t| Instant::now() + t);
         loop {
             if !poll_key(end_time.map(|end| (end - Instant::now()).as_millis() as u64)) {
                 return Ok(KeyEvent::Timeout);

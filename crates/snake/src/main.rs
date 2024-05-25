@@ -6,172 +6,51 @@ mod leaderboard;
 mod snake;
 mod ui;
 
-use std::{io, time::Instant};
+use std::{io, time::Duration};
 
-use leaderboard::Leaderboard;
 use snake::game_main;
-use term::{from_pansi, Box, Color, Key, KeyEvent, Rect, Terminal};
+use term::{from_pansi, KeyEvent};
 use ui::GameUi;
 
-const WELCOME_TEXT: &str = include_str!("../pansi/welcome.txt");
-const HELP_TEXT: &str = include_str!("../pansi/help.txt");
 const GAME_OVER_TEXT: &str = include_str!("../pansi/game-over.txt");
-const STATS_TEXT: &str = include_str!("../pansi/stats.txt");
-const SNAKE_TEXT: &str = include_str!("../pansi/snake.txt");
-
-const CANVAS_W: u16 = 56;
-const CANVAS_H: u16 = 17;
+const WELCOME_TEXT: &str = include_str!("../pansi/welcome.txt");
 
 fn main() -> io::Result<()> {
-    let mut terminal = Terminal::new()?;
-    let size = term::get_termsize();
-    let screen_rect = Rect::new(1, 1, size.0 - 2, size.1 - 2);
+    let mut ui = GameUi::init()?;
 
-    let game_ui = GameUi::init(&mut terminal)?;
-
-    let canvas = terminal.draw_rect_sep(
-        screen_rect,
-        CANVAS_W,
-        CANVAS_H + 3,
-        CANVAS_H,
-        Terminal::DEFAULT_CORNERS,
-    )?;
-    let canvas = canvas.change_size(0, -3);
-
-    terminal.draw(
-        canvas.x - 16,
-        canvas.y + 2,
-        Box::new(15, 4)
-            .with_separator(1)
-            .with_corners(['┌', '┤', '└', '┤']),
-    )?;
-    terminal.draw(canvas.x - 14, canvas.y + 3, &*from_pansi(STATS_TEXT))?;
-
-    terminal.draw_centered(
-        &*from_pansi(SNAKE_TEXT),
-        Rect::new(canvas.x + 1, 1, CANVAS_W, 4),
-    )?;
-
-    terminal.draw_text_centered(
-        Rect::new(canvas.x + 1, canvas.y + CANVAS_H + 2, CANVAS_W, 2),
-        &from_pansi(HELP_TEXT),
-    )?;
-
-    let mut leaderboard = Leaderboard::init(&mut terminal, canvas)?;
-    if let Some(leaderboard) = &mut leaderboard {
-        leaderboard.draw_values(&mut terminal)?;
-    }
+    // let mut leaderboard = Leaderboard::init(&mut terminal, canvas)?;
+    // if let Some(leaderboard) = &mut leaderboard {
+    //     leaderboard.draw_values(&mut terminal)?;
+    // }
 
     loop {
-        let textbox = terminal.draw_textbox_centered(canvas, &from_pansi(WELCOME_TEXT))?;
-        if terminal.wait_key(|k| k == Key::Enter, None, true)? == KeyEvent::Exit {
+        if ui.popup(from_pansi(WELCOME_TEXT), None, true)? {
             break;
         }
-        terminal.clear_rect(textbox)?;
 
-        if let Some(leaderboard) = &mut leaderboard {
-            leaderboard.update_you(&mut terminal, 0, true)?;
-        }
+        // if let Some(leaderboard) = &mut leaderboard {
+        //     leaderboard.update_you(&mut terminal, 0, true)?;
+        // }
 
-        let mut stats = Stats {
-            time: Instant::now(),
-        };
-
-        let score = game_main(Canvas::new(&mut terminal, canvas), &mut leaderboard, &stats)?;
+        let score = game_main(&mut ui)?;
         if let Some(score) = score {
-            terminal.write("\x1B[1;91m")?;
-            terminal.draw_textbox_centered(
-                canvas,
-                &from_pansi(GAME_OVER_TEXT).replace("000", &format!("{score:0>3}")),
-            )?;
-            if terminal.wait_key(|k| k == Key::Enter, Some(10_000), true)? == KeyEvent::Exit {
+            ui.term().write("\x1B[1;91m")?;
+            if ui.popup(
+                from_pansi(GAME_OVER_TEXT).replace("000", &format!("{score:0>3}")),
+                Some(Duration::from_secs(10)),
+                false,
+            )? {
                 break;
             }
-            terminal.clear_rect(canvas.move_xy(1, 1).change_size(-2, -2))?;
 
-            stats.time = Instant::now();
-            stats.update(&mut Canvas::new(&mut terminal, canvas), 0)?;
+            ui.reset_game()?;
+
+            // stats.time = Instant::now();
+            // stats.update(&mut Canvas::new(&mut terminal, canvas), 0)?;
         } else {
             break;
         }
     }
 
     Ok(())
-}
-
-struct Canvas<'a> {
-    term: &'a mut Terminal,
-    rect: Rect,
-}
-
-impl<'a> Canvas<'a> {
-    pub fn new(term: &'a mut Terminal, rect: Rect) -> Self {
-        Self { term, rect }
-    }
-
-    pub const fn w(&self) -> u16 {
-        self.rect.w / 2
-    }
-
-    pub const fn h(&self) -> u16 {
-        self.rect.h
-    }
-
-    pub fn draw_pixel(&mut self, coord: Coord, color: Color) -> io::Result<()> {
-        let (x, y) = self.get_xy(coord);
-        self.term.draw_pixel(x, y, color)
-    }
-
-    pub fn clear_pixel(&mut self, coord: Coord) -> io::Result<()> {
-        let (x, y) = self.get_xy(coord);
-        self.term.clear_pixel(x, y)
-    }
-
-    pub fn wait_key(
-        &mut self,
-        want_key: impl Fn(Key) -> bool,
-        timeout_ms: Option<u64>,
-    ) -> io::Result<KeyEvent> {
-        self.term.wait_key(want_key, timeout_ms, false)
-    }
-
-    const fn get_xy(&self, coord: Coord) -> (u16, u16) {
-        (self.rect.x + 1 + (coord.x * 2), self.rect.y + 1 + coord.y)
-    }
-}
-
-#[derive(PartialEq, Eq, Clone, Copy)]
-struct Coord {
-    x: u16,
-    y: u16,
-}
-
-impl Coord {
-    pub const fn as_idx(self, canvas: &Canvas) -> usize {
-        self.y as usize * canvas.w() as usize + self.x as usize
-    }
-}
-
-struct Stats {
-    time: Instant,
-}
-
-impl Stats {
-    pub fn update(&self, canvas: &mut Canvas, score: usize) -> io::Result<()> {
-        let t = self.time.elapsed();
-        let mins = t.as_secs() / 60;
-        let secs = t.as_secs() % 60;
-
-        canvas.term.write(&format!(
-            "\x1B[{};{}H{:0>3}\n\x1B[{}G{:0>2}:{:0>2}",
-            canvas.rect.y + 5,
-            canvas.rect.x - 4,
-            score,
-            canvas.rect.x - 6,
-            mins,
-            secs,
-        ))?;
-
-        Ok(())
-    }
 }
