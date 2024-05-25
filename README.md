@@ -17,3 +17,13 @@ score, change the position to an actual number, don't keep it on 10
 - Second colour of fruit (that speeds)
 - Some kind of audio feedback.
 - Get rid of `O_NONBLOCK` on stdin
+
+
+## Instructions for running on bare metal linux
+
+1. Tell the kernel not to write `prink` messages to the console:
+   `echo 1 > /proc/sys/kernel/printk`
+2. Disable the shift and capslock keys (both break WASD, and we don't need them anyway):
+   `loadkeys contrib/keymap.map`
+3. Load the patched console font:
+   `setfont contrib/default16x32-patched.psfu`
