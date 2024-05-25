@@ -1,5 +1,5 @@
 [package]
-name = "lb-server"
+name = "snake-server"
 version = "0.1.0"
 edition = "2021"
 

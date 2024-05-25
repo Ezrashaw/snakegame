@@ -8,16 +8,13 @@ Additionally, this program depends only on Rust's `libstd` and `libc` (the
 latter itself a dependency of the former).
 
 ### TODO
-- Speeding up the snake over time (undecided).
 - Continuing work on the leaderboard.
 - Documenting the remainder of the code (everything except `src/snake.rs`).
 - Leaderboard: when "You!" is being put on leaderboard to show the user's
-score, change the position to an actual number, don't keep it on 10
+  score, change the position to an actual number, don't keep it on 10
 - Fixing terminal resize issues :(
-- Second colour of fruit (that speeds)
 - Some kind of audio feedback.
 - Get rid of `O_NONBLOCK` on stdin
-
 
 ## Instructions for running on bare metal linux
 

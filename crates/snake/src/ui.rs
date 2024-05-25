@@ -55,7 +55,7 @@ impl GameUi {
     ) -> io::Result<T> {
         let (w, h) = text.size();
 
-        let popup = Box::new(w + 2, h);
+        let popup = Box::new(w + 2, h).with_clear();
         let (px, py) = self.term.draw_centered_hoff(
             popup,
             Rect::new(self.cx, self.cy, (CANVAS_W * 2) + 2, CANVAS_H + 2),

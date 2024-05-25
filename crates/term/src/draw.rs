@@ -26,6 +26,7 @@ impl DrawCtx {
     }
 
     pub fn goto(&mut self, x: u16, y: u16) -> io::Result<()> {
+        assert!(x <= self.w && y <= self.h);
         write!(self.out, "\x1B[{};{}H", self.y + y, self.x + x)
     }
 
@@ -91,12 +92,8 @@ pub fn draw_centered(
 
     let hoff = (rect.h - h) % 2 != 0;
     if (rect.w - w) % 2 != 0 || (allow_hoff ^ hoff) {
-        if cfg!(all(debug_assertions, not(feature = "term_debug"))) {
-            let w = crate::get_termsize().0;
-            draw(out, "\x1B[33;1mWARNING: \x1B[0mfailed to center", w - 25, 1)?;
-        } else {
-            panic!("failed to center");
-        }
+        let w = crate::get_termsize().0;
+        draw(out, "\x1B[33;1mWARNING: \x1B[0mfailed to center", w - 25, 1)?;
     }
 
     let x = rect.x + ((rect.w - w) / 2);
@@ -169,6 +166,7 @@ pub struct Box {
     h: u16,
     sep: Option<i16>,
     corners: Option<[char; 4]>,
+    clear: bool,
 }
 
 impl Box {
@@ -181,6 +179,7 @@ impl Box {
             h,
             sep: None,
             corners: None,
+            clear: false,
         }
     }
 
@@ -210,6 +209,13 @@ impl Box {
         self.corners = Some(corners);
         self
     }
+
+    #[must_use]
+    pub const fn with_clear(mut self) -> Self {
+        assert!(!self.clear);
+        self.clear = true;
+        self
+    }
 }
 
 impl Draw for Box {
@@ -230,8 +236,10 @@ impl Draw for Box {
                 && i == sep
             {
                 writeln!(ctx.o(), "├{:─<w$}┤", "")?;
-            } else {
+            } else if self.clear {
                 writeln!(ctx.o(), "│{:w$}│", "")?;
+            } else {
+                writeln!(ctx.o(), "│\x1B[{w}C│")?;
             }
         }
         write!(ctx.o(), "{}{:─<w$}{}", corners[2], "", corners[3])?;

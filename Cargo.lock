@@ -3,10 +3,6 @@
 version = 3
 
 [[package]]
-name = "lb-server"
-version = "0.1.0"
-
-[[package]]
 name = "libc"
 version = "0.2.153"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -18,6 +14,10 @@ version = "0.1.0"
 dependencies = [
  "term",
 ]
+
+[[package]]
+name = "snake-server"
+version = "0.1.0"
 
 [[package]]
 name = "term"
