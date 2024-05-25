@@ -20,6 +20,7 @@ pub fn from_pansi(s: &str) -> String {
                     // colors
                     "RED" => new.push_str(Color::Red.as_ansi()),
                     "GREEN" => new.push_str(Color::Green.as_ansi()),
+                    "YELLOW" => new.push_str(Color::Yellow.as_ansi()),
                     "BLUE" => new.push_str(Color::Blue.as_ansi()),
                     "WHITE" => new.push_str(Color::White.as_ansi()),
                     "BYELLOW" => new.push_str(Color::BrightYellow.as_ansi()),

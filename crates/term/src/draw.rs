@@ -48,6 +48,8 @@ pub fn draw(out: &mut impl Write, object: impl Draw, x: u16, y: u16) -> io::Resu
 pub fn draw_centered(out: &mut impl Write, object: impl Draw, rect: Rect) -> io::Result<()> {
     let (w, h) = object.size();
     assert!(w <= rect.w && h <= rect.h);
+    assert!((rect.w - w) % 2 == 0);
+    assert!((rect.h - h) % 2 == 0);
 
     let xdiff = (rect.w - w) / 2;
     let ydiff = (rect.h - h) / 2;

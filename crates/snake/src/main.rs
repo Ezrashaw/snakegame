@@ -4,20 +4,20 @@
 
 mod leaderboard;
 mod snake;
+mod ui;
 
-use std::{io, process::exit, time::Instant};
+use std::{io, time::Instant};
 
 use leaderboard::Leaderboard;
 use snake::game_main;
-use term::{ansi_str_len, draw_centered, from_pansi, Color, Key, KeyEvent, Rect, Terminal};
+use term::{from_pansi, Box, Color, Key, KeyEvent, Rect, Terminal};
+use ui::GameUi;
 
 const WELCOME_TEXT: &str = include_str!("../pansi/welcome.txt");
 const HELP_TEXT: &str = include_str!("../pansi/help.txt");
 const GAME_OVER_TEXT: &str = include_str!("../pansi/game-over.txt");
-const CREDITS_TEXT: &str = include_str!("../pansi/credits.txt");
 const STATS_TEXT: &str = include_str!("../pansi/stats.txt");
 const SNAKE_TEXT: &str = include_str!("../pansi/snake.txt");
-const GIT_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/git.txt"));
 
 const CANVAS_W: u16 = 56;
 const CANVAS_H: u16 = 17;
@@ -27,25 +27,7 @@ fn main() -> io::Result<()> {
     let size = term::get_termsize();
     let screen_rect = Rect::new(1, 1, size.0 - 2, size.1 - 2);
 
-    #[cfg(feature = "term_debug")]
-    for i in (1..size.1).step_by(2) {
-        print!("\x1B[{i};0H{i:0>2}--+");
-        for x in (1..(size.0 - 15)).step_by(5) {
-            if x % 10 == 1 {
-                print!("--{:0>2}+", x + 9);
-            } else {
-                print!("----+");
-            }
-        }
-        println!("\x1B[{}G{i:0>2}", size.0 - 1);
-    }
-
-    terminal.draw_text(0, size.1 - 3, &from_pansi(CREDITS_TEXT))?;
-
-    let git_text = from_pansi(GIT_TEXT);
-    let git_width = git_text.find('\n').unwrap();
-    let git_width = ansi_str_len(std::str::from_utf8(&git_text.as_bytes()[0..git_width]).unwrap());
-    terminal.draw(size.0 - git_width as u16, size.1 - 1, &*git_text)?;
+    let game_ui = GameUi::init(&mut terminal)?;
 
     let canvas = terminal.draw_rect_sep(
         screen_rect,
@@ -56,18 +38,14 @@ fn main() -> io::Result<()> {
     )?;
     let canvas = canvas.change_size(0, -3);
 
-    let stats_rect = terminal.draw_rect_sep(
-        Rect::new(canvas.x - 16, canvas.y + 2, 16, 5),
-        15,
-        4,
-        1,
-        ['┌', '┤', '└', '┤'],
+    terminal.draw(
+        canvas.x - 16,
+        canvas.y + 2,
+        Box::new(15, 4)
+            .with_separator(1)
+            .with_corners(['┌', '┤', '└', '┤']),
     )?;
-    terminal.draw_text_centered(stats_rect.move_xy(1, 1), "\x1B[1;33mSTATS\x1B[0m")?;
-    terminal.draw_text_centered(
-        stats_rect.move_xy(1, 3).change_size(0, 1),
-        &from_pansi(STATS_TEXT),
-    )?;
+    terminal.draw(canvas.x - 14, canvas.y + 3, &*from_pansi(STATS_TEXT))?;
 
     terminal.draw_centered(
         &*from_pansi(SNAKE_TEXT),
@@ -95,7 +73,7 @@ fn main() -> io::Result<()> {
             leaderboard.update_you(&mut terminal, 0, true)?;
         }
 
-        let stats = Stats {
+        let mut stats = Stats {
             time: Instant::now(),
         };
 
@@ -111,10 +89,8 @@ fn main() -> io::Result<()> {
             }
             terminal.clear_rect(canvas.move_xy(1, 1).change_size(-2, -2))?;
 
-            terminal.draw_text_centered(
-                stats_rect.move_xy(1, 3).change_size(0, 1),
-                &from_pansi(STATS_TEXT),
-            )?;
+            stats.time = Instant::now();
+            stats.update(&mut Canvas::new(&mut terminal, canvas), 0)?;
         } else {
             break;
         }
