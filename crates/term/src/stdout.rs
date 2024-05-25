@@ -14,6 +14,10 @@ impl Terminal {
         crate::draw(&mut self.out, object, x, y)
     }
 
+    pub fn update<T: Draw>(&mut self, x: u16, y: u16, object: T, u: T::Update) -> io::Result<()> {
+        crate::update(&mut self.out, object, x, y, u)
+    }
+
     pub fn draw_centered(&mut self, object: impl Draw, rect: Rect) -> io::Result<(u16, u16)> {
         crate::draw_centered(&mut self.out, object, rect, false)
     }

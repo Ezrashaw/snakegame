@@ -3,89 +3,35 @@ use std::{
     net::{Ipv4Addr, TcpStream},
 };
 
-use term::{Rect, Terminal};
+use term::{Box, Draw, DrawCtx};
 
 type Entries = [([u8; 3], u8); 10];
 
 const YOU_NAME: &str = "\x1B[95mYOU\x1B[90m";
 
 pub struct Leaderboard {
-    rect: Rect,
     you_row: Option<u16>,
-    you: Option<u8>,
     entries: Entries,
     conn: TcpStream,
 }
 
 impl Leaderboard {
-    pub fn init(terminal: &mut Terminal, canvas: Rect) -> io::Result<Option<Self>> {
-        fn init_tcp() -> io::Result<(Entries, TcpStream)> {
-            let mut conn = TcpStream::connect((Ipv4Addr::LOCALHOST, 1234))?;
-            let entries = Leaderboard::entries_from_stream(&mut conn)?;
-            conn.set_nonblocking(true)?;
-
-            Ok((entries, conn))
-        }
-
-        let Ok((entries, conn)) = init_tcp() else {
-            return Ok(None);
-        };
-
-        let rect = Rect::new(canvas.x + canvas.w + 3, canvas.y, 13, 12);
-        // terminal.draw_rect_sep(rect, rect.w, rect.h, 1, Terminal::DEFAULT_CORNERS)?;
-        // terminal.draw_text_centered(
-        //     rect.move_xy(1, 1).change_size(0, -11),
-        //     "\x1B[1mLEADERBOARD\x1B[0m",
-        // )?;
-        // for i in 1..=10 {
-        //     terminal.draw(rect.x + 2, rect.y + 2 + i, &*format!("{i:0>2}."))?;
-        // }
-
-        Ok(Some(Self {
-            rect,
+    pub fn init() -> Option<Self> {
+        try_tcp().ok().map(|(entries, conn)| Self {
             you_row: None,
-            you: None,
             entries,
             conn,
-        }))
+        })
     }
 
-    pub fn check_update(&mut self, terminal: &mut Terminal) -> io::Result<()> {
-        let entries = Self::entries_from_stream(&mut self.conn);
-        self.entries = match entries {
-            Ok(e) => e,
-            Err(err) if matches!(err.kind(), io::ErrorKind::WouldBlock) => return Ok(()),
-            Err(err) => return Err(err),
-        };
-
-        self.draw_values(terminal)?;
-
-        Ok(())
-    }
-
-    fn entries_from_stream(conn: &mut TcpStream) -> io::Result<Entries> {
-        let mut buf: [u8; 50] = [0u8; 5 * 10];
-        conn.read_exact(&mut buf)?;
-
-        let mut entries = [([0u8; 3], 0u8); 10];
-        for (idx, entry) in buf.array_chunks::<5>().enumerate() {
-            assert_eq!(entry[4], b'\n');
-            entries[idx].0 = entry[0..3].try_into().unwrap();
-            entries[idx].1 = entry[3];
-        }
-
-        Ok(entries)
-    }
-
-    pub fn draw_values(&mut self, terminal: &mut Terminal) -> io::Result<()> {
+    fn draw_entries(&mut self, ctx: &mut DrawCtx, score: u8) -> io::Result<()> {
         self.you_row = None;
         for i in 0..self.entries.len() {
-            let (name, score, score_color) = if let Some(you) = self.you
-                && self.you_row.is_none()
-                && (i + 1 == self.entries.len() || you > self.entries[i].1)
+            let (name, score, score_color) = if self.you_row.is_none()
+                && (i + 1 == self.entries.len() || score > self.entries[i].1)
             {
                 self.you_row = Some(i as u16);
-                (YOU_NAME, you, 95)
+                (YOU_NAME, score, 95)
             } else {
                 let offset = self.you_row.map_or(0, |_| 1);
                 let entry = &self.entries[i - offset];
@@ -113,34 +59,78 @@ impl Leaderboard {
                 YOU_NAME.to_owned()
             };
 
-            terminal.draw(
-                self.rect.x + 6,
-                self.rect.y + 3 + i as u16,
-                &*format!("\x1B[1;90m{colored_name} \x1B[1;{score_color}m{score:0>3}\x1B[0m\n",),
+            ctx.draw(
+                6,
+                3 + i as u16,
+                &*format!("\x1B[1;90m{colored_name} \x1B[1;{score_color}m{score:0>3}\x1B[0m",),
             )?;
         }
 
         Ok(())
     }
+}
 
-    pub fn update_you(
-        &mut self,
-        terminal: &mut Terminal,
-        new_val: u8,
-        force_redraw: bool,
-    ) -> io::Result<()> {
-        self.you = Some(new_val);
+impl Draw for &mut Leaderboard {
+    fn size(&self) -> (u16, u16) {
+        (15, 14)
+    }
+
+    fn draw(self, ctx: &mut term::DrawCtx) -> io::Result<()> {
+        ctx.draw(0, 0, Box::new(13, 12).with_separator(1))?;
+        ctx.draw(2, 1, "\x1B[1mLEADERBOARD\x1B[0m")?;
+        for i in 1..=10 {
+            ctx.draw(2, 2 + i, format!("{i:0>2}."))?;
+        }
+
+        self.draw_entries(ctx, 0)?;
+
+        Ok(())
+    }
+
+    type Update = (u8, bool);
+    fn update(self, ctx: &mut DrawCtx, (score, force_redraw): Self::Update) -> io::Result<()> {
+        let entries = entries_from_stream(&mut self.conn);
+        match entries {
+            Ok(e) => {
+                self.entries = e;
+                self.draw_entries(ctx, score)?;
+                return Ok(());
+            }
+            Err(err) if matches!(err.kind(), io::ErrorKind::WouldBlock) => (),
+            Err(err) => return Err(err),
+        };
+
         if let Some(you_row) = self.you_row
             && !force_redraw
-            && !(you_row > 0 && new_val > self.entries[you_row as usize - 1].1)
+            && !(you_row > 0 && score > self.entries[you_row as usize - 1].1)
         {
-            terminal.draw(
-                self.rect.x + 10,
-                self.rect.y + 3 + you_row,
-                &*format!("\x1B[1;95m{new_val:0>3}\x1B[0m",),
-            )
+            ctx.draw(10, 3 + you_row, &*format!("\x1B[1;95m{score:0>3}\x1B[0m",))?;
         } else {
-            self.draw_values(terminal)
+            self.draw_entries(ctx, score)?;
         }
+
+        Ok(())
     }
+}
+
+fn try_tcp() -> io::Result<(Entries, TcpStream)> {
+    let mut conn = TcpStream::connect((Ipv4Addr::LOCALHOST, 1234))?;
+    let entries = entries_from_stream(&mut conn)?;
+    conn.set_nonblocking(true)?;
+
+    Ok((entries, conn))
+}
+
+fn entries_from_stream(stream: &mut TcpStream) -> io::Result<Entries> {
+    let mut buf: [u8; 50] = [0u8; 5 * 10];
+    stream.read_exact(&mut buf)?;
+
+    let mut entries = [([0u8; 3], 0u8); 10];
+    for (idx, entry) in buf.array_chunks::<5>().enumerate() {
+        assert_eq!(entry[4], b'\n');
+        entries[idx].0 = entry[0..3].try_into().unwrap();
+        entries[idx].1 = entry[3];
+    }
+
+    Ok(entries)
 }

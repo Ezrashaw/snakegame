@@ -158,11 +158,6 @@ pub fn game_main(ui: &mut GameUi) -> io::Result<Option<usize>> {
                 step_time -= Duration::from_millis(5);
             }
 
-            // Update the local player position on the leaderboard.
-            // if let Some(leaderboard) = leaderboard {
-            //     leaderboard.update_you(canvas.term, (len - STARTING_LENGTH) as u8, false)?;
-            // }
-
             // Needn't remove fruit from bitboard because we ate it and will "digest" it (normal
             // snake code will remove it).
             gen_fruit(&mut rng, ui, &mut bitboard, &mut special_fruits)?;
@@ -171,14 +166,8 @@ pub fn game_main(ui: &mut GameUi) -> io::Result<Option<usize>> {
         // Draw the previous head position as the tail colour.
         ui.draw_pixel(old_pos, Color::Green)?;
 
-        // Give the leaderboard a chance to update, if we have received a new leaderboard from the
-        // server.
-        // if let Some(leaderboard) = leaderboard {
-        //     leaderboard.check_update(canvas.term)?;
-        // }
-
-        // Update the statistics panel.
-        // stats.update(&mut canvas, len - STARTING_LENGTH)?;
+        // Update the game's UI, including the statistics panel and leaderboard.
+        ui.update(len - STARTING_LENGTH)?;
     }
 
     // Do a fun little death animation.

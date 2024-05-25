@@ -34,7 +34,13 @@ impl DrawCtx {
     }
 }
 
-pub fn draw(out: &mut impl Write, object: impl Draw, x: u16, y: u16) -> io::Result<()> {
+fn with_ctx<D: Draw>(
+    out: &mut impl Write,
+    object: D,
+    x: u16,
+    y: u16,
+    cb: impl FnOnce(&mut DrawCtx, D) -> io::Result<()>,
+) -> io::Result<()> {
     assert!(x >= 1 && y >= 1);
 
     let (w, h) = object.size();
@@ -46,12 +52,26 @@ pub fn draw(out: &mut impl Write, object: impl Draw, x: u16, y: u16) -> io::Resu
         h,
     };
 
-    object.draw(&mut ctx)?;
+    cb(&mut ctx, object)?;
 
     let string: String = String::from_utf8(ctx.out).unwrap();
     let string = string.replace('\n', &format!("\n\x1B[{x}G"));
 
     write!(out, "\x1B[{y};{x}H{string}")
+}
+
+pub fn draw(out: &mut impl Write, object: impl Draw, x: u16, y: u16) -> io::Result<()> {
+    with_ctx(out, object, x, y, |ctx, object| object.draw(ctx))
+}
+
+pub fn update<T: Draw>(
+    out: &mut impl Write,
+    object: T,
+    x: u16,
+    y: u16,
+    update: T::Update,
+) -> io::Result<()> {
+    with_ctx(out, object, x, y, |ctx, object| object.update(ctx, update))
 }
 
 pub fn draw_centered(

@@ -18,7 +18,7 @@ mod termios;
 compile_error!("This program only runs on Linux");
 
 pub use ansi::{ansi_str_len, from_pansi};
-pub use draw::{draw, draw_centered, Box, CenteredStr, Draw, DrawCtx};
+pub use draw::{draw, draw_centered, update, Box, CenteredStr, Draw, DrawCtx};
 pub use stdin::{Key, KeyEvent};
 pub use stdout::{Color, Rect};
 

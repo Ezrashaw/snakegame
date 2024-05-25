@@ -7,6 +7,8 @@ use term::{
     ansi_str_len, from_pansi, Box, CenteredStr, Color, Draw, DrawCtx, Key, KeyEvent, Rect, Terminal,
 };
 
+use crate::leaderboard::Leaderboard;
+
 const CREDITS_TEXT: &str = include_str!("../pansi/credits.txt");
 const STATS_TEXT: &str = include_str!("../pansi/stats.txt");
 const SNAKE_TEXT: &str = include_str!("../pansi/snake.txt");
@@ -19,6 +21,7 @@ pub const CANVAS_H: u16 = 18;
 pub struct GameUi {
     term: Terminal,
     stats: Stats,
+    lb: Option<Leaderboard>,
     cx: u16,
     cy: u16,
 }
@@ -32,9 +35,15 @@ impl GameUi {
         let stats = Stats(Instant::now());
         term.draw(cx - 16, cy + 2, &stats)?;
 
+        let mut lb = Leaderboard::init();
+        if let Some(lb) = &mut lb {
+            term.draw(cx + (CANVAS_W * 2) + 4, cy, lb)?;
+        }
+
         Ok(Self {
             term,
             stats,
+            lb,
             cx,
             cy,
         })
@@ -72,9 +81,34 @@ impl GameUi {
             .clear_pixel(self.cx + (coord.x * 2) + 1, self.cy + coord.y + 1)
     }
 
+    pub fn update(&mut self, score: usize) -> io::Result<()> {
+        self.term
+            .update(self.cx - 16, self.cy + 2, &self.stats, score)?;
+
+        if let Some(lb) = &mut self.lb {
+            self.term.update(
+                self.cx + (CANVAS_W * 2) + 4,
+                self.cy,
+                lb,
+                (score.try_into().unwrap(), false),
+            )?;
+        }
+
+        Ok(())
+    }
+
     pub fn reset_game(&mut self) -> io::Result<()> {
         self.term
             .clear_rect(Rect::new(self.cx + 1, self.cy + 1, CANVAS_W * 2, CANVAS_H))?;
+
+        self.stats.0 = Instant::now();
+        self.term
+            .update(self.cx - 16, self.cy + 2, &self.stats, 0)?;
+
+        if let Some(lb) = &mut self.lb {
+            self.term
+                .update(self.cx + (CANVAS_W * 2) + 4, self.cy, lb, (0, true))?;
+        }
 
         Ok(())
     }
@@ -161,9 +195,9 @@ impl Draw for &Stats {
         let mins = t.as_secs() / 60;
         let secs = t.as_secs() % 60;
 
-        ctx.goto(6, 3)?;
+        ctx.goto(12, 3)?;
         write!(ctx.o(), "{update:0>3}")?;
-        ctx.goto(5, 4)?;
+        ctx.goto(10, 4)?;
         write!(ctx.o(), "{mins:0>2}:{secs:0>2}")?;
 
         Ok(())
