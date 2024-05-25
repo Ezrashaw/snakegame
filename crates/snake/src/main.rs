@@ -5,11 +5,11 @@
 mod leaderboard;
 mod snake;
 
-use std::{io, time::Instant};
+use std::{io, process::exit, time::Instant};
 
 use leaderboard::Leaderboard;
 use snake::game_main;
-use term::{ansi_str_len, from_pansi, Color, Key, KeyEvent, Rect, Terminal};
+use term::{ansi_str_len, draw_centered, from_pansi, Color, Key, KeyEvent, Rect, Terminal};
 
 const WELCOME_TEXT: &str = include_str!("../pansi/welcome.txt");
 const HELP_TEXT: &str = include_str!("../pansi/help.txt");
@@ -69,9 +69,9 @@ fn main() -> io::Result<()> {
         &from_pansi(STATS_TEXT),
     )?;
 
-    terminal.draw_text_centered(
-        Rect::new(canvas.x, 1, CANVAS_W + 2, 5),
-        &from_pansi(SNAKE_TEXT),
+    terminal.draw_centered(
+        &*from_pansi(SNAKE_TEXT),
+        Rect::new(canvas.x + 1, 1, CANVAS_W, 4),
     )?;
 
     terminal.draw_text_centered(

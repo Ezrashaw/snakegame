@@ -1,3 +1,4 @@
+use crate::Rect;
 use std::io::{self, Write};
 
 pub trait Draw {
@@ -25,6 +26,8 @@ impl DrawCtx {
 }
 
 pub fn draw(out: &mut impl Write, object: impl Draw, x: u16, y: u16) -> io::Result<()> {
+    assert!(x >= 1 && y >= 1);
+
     let (w, h) = object.size();
     let mut ctx = DrawCtx {
         out: Vec::with_capacity(2048),
@@ -40,6 +43,16 @@ pub fn draw(out: &mut impl Write, object: impl Draw, x: u16, y: u16) -> io::Resu
     let string = string.replace('\n', &format!("\n\x1B[{x}G"));
 
     write!(out, "\x1B[{y};{x}H{string}")
+}
+
+pub fn draw_centered(out: &mut impl Write, object: impl Draw, rect: Rect) -> io::Result<()> {
+    let (w, h) = object.size();
+    assert!(w <= rect.w && h <= rect.h);
+
+    let xdiff = (rect.w - w) / 2;
+    let ydiff = (rect.h - h) / 2;
+
+    draw(out, object, rect.x + xdiff, rect.y + ydiff)
 }
 
 impl Draw for &str {

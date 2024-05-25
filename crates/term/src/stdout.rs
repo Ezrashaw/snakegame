@@ -12,6 +12,14 @@ impl Terminal {
         crate::draw(&mut self.out, object, x, y)
     }
 
+    pub fn draw_centered(&mut self, object: impl crate::Draw, rect: Rect) -> io::Result<()> {
+        // write!(self.out, "\x1B[32m")?;
+        // self.draw_rect(Rect::new(rect.x, rect.y, rect.w - 2, rect.h - 2))?;
+        // write!(self.out, "\x1B[0m")?;
+
+        crate::draw_centered(&mut self.out, object, rect)
+    }
+
     pub fn draw_text(&mut self, x: u16, y: u16, s: &str) -> io::Result<()> {
         write!(self.out, "\x1B[{y};{x}H{s}")
     }
