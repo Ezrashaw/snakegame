@@ -22,16 +22,24 @@ use crate::ui::{Coord, GameUi, CANVAS_H, CANVAS_W};
 /// Defines the time between each movement of the snake. Over the couse of the game, this value
 /// will decrease. During this time, if a key is pressed, then we process the key event, and wait
 /// for the remainer of the time.
-const STARTING_STEP_TIME: Duration = Duration::from_millis(140);
+pub const STARTING_STEP_TIME: Duration = Duration::from_millis(140);
 
 /// Defines the starting length of the snake. Note that the snake does not actualy start at this
 /// length, but slowly expands out of a single point.
-const STARTING_LENGTH: usize = 7;
+pub const STARTING_LENGTH: usize = 7;
 
 /// Defines the starting locations for the fruits. At the beginning of the game, we do not choose
 /// random locations for the fruits, instead we create an 'X' pattern (from this constant).
 /// Throughout the game, the number of fruits is _always_ equal to the length of this array.
-const FOOD_LOCATIONS: [(u16, u16); 5] = [(18, 5), (18, 11), (24, 5), (24, 11), (21, 8)];
+pub const FOOD_LOCATIONS: [(u16, u16); 5] = [(18, 5), (18, 11), (24, 5), (24, 11), (21, 8)];
+
+/// Defines where the snake begins on the canvas. This is defined in terms of [`CANVAS_H`], as we
+/// calculate from the vertical center of the screen. Note that the snake starts here as a single
+/// point and "grows" outwards from this point.
+pub const STARTING_POS: Coord = Coord {
+    x: 3,
+    y: CANVAS_H / 2 - 1,
+};
 
 /// Main entry point for the game logic.
 ///
@@ -42,11 +50,8 @@ pub fn game_main(ui: &mut GameUi) -> io::Result<Option<usize>> {
     let mut rng = File::open("/dev/urandom")?;
 
     // -- snake state --
-    // The snake begins in the vertical center of the screen and x = 3.
-    let mut head = Coord {
-        x: 3,
-        y: CANVAS_H / 2 - 1,
-    };
+    // Initialize the snake's initial head position.
+    let mut head = STARTING_POS;
     // We face towards the rest of the canvas, that is, rightwards.
     let mut direction = Direction::Right;
     // The tail starts out being empty, we add to it and trim it to keep it less than `len`.
@@ -290,7 +295,7 @@ const fn get_bb(bitboard: &[u64], coord: Coord) -> bool {
 
 /// Enumeration representing the four possible directions that the snake can be moving in.
 #[derive(PartialEq, Eq, Clone, Copy)]
-enum Direction {
+pub enum Direction {
     Up,
     Down,
     Right,

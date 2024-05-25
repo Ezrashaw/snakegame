@@ -1,11 +1,9 @@
 use std::{
     io::{self, Write},
-    time::{Duration, Instant},
+    time::Instant,
 };
 
-use term::{
-    ansi_str_len, from_pansi, Box, CenteredStr, Color, Draw, DrawCtx, Key, KeyEvent, Rect, Terminal,
-};
+use term::{ansi_str_len, from_pansi, Box, CenteredStr, Color, Draw, DrawCtx, Rect, Terminal};
 
 use crate::leaderboard::Leaderboard;
 
@@ -49,12 +47,12 @@ impl GameUi {
         })
     }
 
-    pub fn popup(
+    pub fn popup<T>(
         &mut self,
         text: impl AsRef<str>,
-        timeout: Option<Duration>,
         hoff: bool,
-    ) -> io::Result<bool> {
+        f: impl FnOnce(&mut Self) -> io::Result<T>,
+    ) -> io::Result<T> {
         let (w, h) = text.size();
 
         let popup = Box::new(w + 2, h);
@@ -65,10 +63,11 @@ impl GameUi {
         )?;
         self.term.draw(px + 2, py + 1, CenteredStr(text))?;
 
-        let event = self.term.wait_key(|k| k == Key::Enter, timeout, true)?;
+        let ret = f(self)?;
+
         self.term.clear_rect(Rect::new(px, py, w + 4, h + 2))?;
 
-        Ok(matches!(event, KeyEvent::Exit))
+        Ok(ret)
     }
 
     pub fn draw_pixel(&mut self, coord: Coord, color: Color) -> io::Result<()> {
