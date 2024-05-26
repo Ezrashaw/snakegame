@@ -1,6 +1,6 @@
 use std::{collections::VecDeque, io, thread};
 
-use term::{Color, Key};
+use term::{Color, Key, Pixel};
 
 use crate::{
     snake::{self, Direction},
@@ -13,26 +13,29 @@ pub fn run(ui: &mut GameUi) -> io::Result<bool> {
     let (mut dir, mut left) = get_dir(0, &mut head).unwrap();
     let mut move_segment = 0;
 
-    ui.draw_pixel(Coord { x: 24, y: 7 }, Color::BrightYellow)?;
+    ui.draw_canvas(Coord { x: 24, y: 7 }, Pixel::new(Color::Yellow, true))?;
 
     loop {
-        ui.draw_pixel(head, Color::BrightGreen)?;
+        ui.draw_canvas(head, Pixel::new(Color::Green, true))?;
         tail.push_back(head);
 
         if tail.len() > snake::STARTING_LENGTH * 2 {
-            ui.clear_pixel(tail.pop_front().unwrap())?;
+            ui.draw_canvas(tail.pop_front().unwrap(), Pixel::Clear)?;
         }
 
-        match head {
-            Coord { x: 24, y: 7 } => ui.draw_pixel(Coord { x: 17, y: 3 }, Color::BrightYellow)?,
-            Coord { x: 17, y: 3 } => ui.draw_pixel(Coord { x: 6, y: 14 }, Color::BrightYellow)?,
-            Coord { x: 6, y: 14 } => ui.draw_pixel(Coord { x: 24, y: 7 }, Color::BrightYellow)?,
-            _ => (),
+        let fruit_coord = match head {
+            Coord { x: 24, y: 7 } => Some(Coord { x: 17, y: 3 }),
+            Coord { x: 17, y: 3 } => Some(Coord { x: 6, y: 14 }),
+            Coord { x: 6, y: 14 } => Some(Coord { x: 24, y: 7 }),
+            _ => None,
+        };
+        if let Some(fruit) = fruit_coord {
+            ui.draw_canvas(fruit, Pixel::new(Color::Yellow, true))?;
         }
 
         thread::sleep(snake::STARTING_STEP_TIME);
 
-        ui.draw_pixel(head, Color::Green)?;
+        ui.draw_canvas(head, Pixel::new(Color::Green, false))?;
 
         left -= 1;
         match dir {

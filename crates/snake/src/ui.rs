@@ -3,7 +3,7 @@ use std::{
     time::Instant,
 };
 
-use term::{ansi_str_len, from_pansi, Box, CenteredStr, Color, Draw, DrawCtx, Rect, Terminal};
+use term::{ansi_str_len, from_pansi, Box, CenteredStr, Draw, DrawCtx, Rect, Terminal};
 
 use crate::leaderboard::Leaderboard;
 
@@ -70,14 +70,9 @@ impl GameUi {
         Ok(ret)
     }
 
-    pub fn draw_pixel(&mut self, coord: Coord, color: Color) -> io::Result<()> {
+    pub fn draw_canvas(&mut self, coord: Coord, object: impl Draw) -> io::Result<()> {
         self.term
-            .draw_pixel(self.cx + (coord.x * 2) + 1, self.cy + coord.y + 1, color)
-    }
-
-    pub fn clear_pixel(&mut self, coord: Coord) -> io::Result<()> {
-        self.term
-            .clear_pixel(self.cx + (coord.x * 2) + 1, self.cy + coord.y + 1)
+            .draw(self.cx + (coord.x * 2) + 1, self.cy + coord.y + 1, object)
     }
 
     pub fn update(&mut self, score: usize) -> io::Result<()> {

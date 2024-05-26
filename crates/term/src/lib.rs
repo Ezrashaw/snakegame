@@ -20,7 +20,7 @@ compile_error!("This program only runs on Linux");
 
 pub use ansi::{ansi_str_len, from_pansi};
 use cbuf::CircularBuffer;
-pub use draw::{draw, draw_centered, update, Box, CenteredStr, Draw, DrawCtx};
+pub use draw::{draw, draw_centered, update, Box, CenteredStr, Draw, DrawCtx, Pixel};
 pub use stdin::{Key, KeyEvent};
 pub use stdout::{Color, Rect};
 

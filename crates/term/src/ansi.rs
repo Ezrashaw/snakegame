@@ -18,14 +18,15 @@ pub fn from_pansi(s: &str) -> String {
                 }
                 match part {
                     // colors
-                    "RED" => new.push_str(Color::Red.as_ansi()),
-                    "GREEN" => new.push_str(Color::Green.as_ansi()),
-                    "YELLOW" => new.push_str(Color::Yellow.as_ansi()),
-                    "BLUE" => new.push_str(Color::Blue.as_ansi()),
-                    "WHITE" => new.push_str(Color::White.as_ansi()),
-                    "BYELLOW" => new.push_str(Color::BrightYellow.as_ansi()),
-                    "BGREEN" => new.push_str(Color::BrightGreen.as_ansi()),
-                    "BCYAN" => new.push_str(Color::BrightCyan.as_ansi()),
+                    "RED" => new.push_str(Color::to_str(&Color::Red.fg())),
+                    "GREEN" => new.push_str(Color::to_str(&Color::Green.fg())),
+                    "YELLOW" => new.push_str(Color::to_str(&Color::Yellow.fg())),
+                    "BLUE" => new.push_str(Color::to_str(&Color::Blue.fg())),
+                    "WHITE" => new.push_str(Color::to_str(&Color::White.fg())),
+
+                    "BYELLOW" => new.push_str(Color::to_str(&Color::Yellow.fg_bright())),
+                    "BGREEN" => new.push_str(Color::to_str(&Color::Green.fg_bright())),
+                    "BCYAN" => new.push_str(Color::to_str(&Color::Cyan.fg_bright())),
 
                     // formats
                     "RESET" => new.push('0'),

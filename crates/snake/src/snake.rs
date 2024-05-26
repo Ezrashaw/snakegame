@@ -15,7 +15,7 @@ use std::{
     time::Duration,
 };
 
-use term::{Color, Key};
+use term::{Color, Key, Pixel};
 
 use crate::ui::{Coord, GameUi, CANVAS_H, CANVAS_W};
 
@@ -70,7 +70,7 @@ pub fn game_main(ui: &mut GameUi) -> io::Result<Option<usize>> {
 
         // Plot the fruit on the canvas.
         set_bb(&mut bitboard, coord, true);
-        ui.draw_pixel(coord, Color::BrightYellow)?;
+        ui.draw_canvas(coord, Pixel::new(Color::Yellow, true))?;
     }
 
     loop {
@@ -82,12 +82,12 @@ pub fn game_main(ui: &mut GameUi) -> io::Result<Option<usize>> {
         if tail.len() > len {
             let coord = tail.pop_front().unwrap();
 
-            ui.clear_pixel(coord)?;
+            ui.draw_canvas(coord, Pixel::Clear)?;
             set_bb(&mut bitboard, coord, false);
         }
 
         // Draw the snake's head onto the screen.
-        ui.draw_pixel(head, Color::BrightGreen)?;
+        ui.draw_canvas(head, Pixel::new(Color::Green, true))?;
 
         // Sleep for the current step time, so that the snake doesn't move instantly.
         thread::sleep(step_time);
@@ -144,19 +144,19 @@ pub fn game_main(ui: &mut GameUi) -> io::Result<Option<usize>> {
         }
 
         // Draw the previous head position as the tail colour.
-        ui.draw_pixel(old_pos, Color::Green)?;
+        ui.draw_canvas(old_pos, Pixel::new(Color::Green, false))?;
 
         // Update the game's UI, including the statistics panel and leaderboard.
         ui.update(len - STARTING_LENGTH)?;
     }
 
     // Do a fun little death animation.
-    for coord in tail.iter().rev().skip(1) {
-        ui.draw_pixel(*coord, Color::Red)?;
+    for &coord in tail.iter().rev().skip(1) {
+        ui.draw_canvas(coord, Pixel::new(Color::Red, false))?;
         thread::sleep(Duration::from_millis(50));
     }
     thread::sleep(Duration::from_millis(150));
-    ui.draw_pixel(head, Color::BrightRed)?;
+    ui.draw_canvas(head, Pixel::new(Color::Red, true))?;
     thread::sleep(Duration::from_millis(500));
 
     // Return the score, calculated as the difference between the initial and current length.
@@ -219,7 +219,7 @@ fn gen_fruit(rng: &mut File, ui: &mut GameUi, bitboard: &mut [u64]) -> io::Resul
     // Mark our new fruit's location on the bitboard and draw the fruit to the screen.
     let coord = Coord { x: fx, y: fy };
     set_bb(bitboard, coord, true);
-    ui.draw_pixel(coord, Color::BrightYellow)?;
+    ui.draw_canvas(coord, Pixel::new(Color::Yellow, true))?;
 
     Ok(())
 }

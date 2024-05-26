@@ -4,8 +4,6 @@ use super::Terminal;
 use std::io::{self, Write};
 
 impl Terminal {
-    pub const DEFAULT_CORNERS: [char; 4] = ['┌', '┐', '└', '┘'];
-
     pub fn write(&mut self, s: &str) -> io::Result<()> {
         write!(self.out, "{s}")
     }
@@ -31,14 +29,6 @@ impl Terminal {
         crate::draw_centered(&mut self.out, object, rect, hoff)
     }
 
-    pub fn draw_pixel(&mut self, x: u16, y: u16, color: Color) -> io::Result<()> {
-        write!(self.out, "\x1B[{y};{x}H\x1B[{}m██\x1B[0m", color.as_ansi())
-    }
-
-    pub fn clear_pixel(&mut self, x: u16, y: u16) -> io::Result<()> {
-        write!(self.out, "\x1B[{y};{x}H  ")
-    }
-
     pub fn clear_rect(&mut self, rect: Rect) -> io::Result<()> {
         let (x, y, w, h) = (rect.x, rect.y, rect.w as usize, rect.h);
         for i in 0..h {
@@ -62,52 +52,32 @@ impl Rect {
     pub const fn new(x: u16, y: u16, w: u16, h: u16) -> Self {
         Self { x, y, w, h }
     }
-
-    #[must_use]
-    pub fn move_xy(mut self, x: i16, y: i16) -> Self {
-        self.x = self.x.strict_add_signed(x);
-        self.y = self.y.strict_add_signed(y);
-        self
-    }
-
-    #[must_use]
-    pub fn change_size(mut self, w: i16, h: i16) -> Self {
-        self.w = self.w.strict_add_signed(w);
-        self.h = self.h.strict_add_signed(h);
-        self
-    }
 }
 
 #[derive(Clone, Copy)]
+#[repr(u8)]
 pub enum Color {
-    Red,
-    Green,
-    Yellow,
-    Blue,
-    Magenta,
-    White,
-    BrightRed,
-    BrightGreen,
-    BrightYellow,
-    BrightMagenta,
-    BrightCyan,
+    Red = 1,
+    Green = 2,
+    Yellow = 3,
+    Blue = 4,
+    Magenta = 5,
+    Cyan = 6,
+    White = 7,
 }
 
 impl Color {
     #[must_use]
-    pub const fn as_ansi(self) -> &'static str {
-        match self {
-            Self::Red => "31",
-            Self::Green => "32",
-            Self::Yellow => "33",
-            Self::Blue => "34",
-            Self::Magenta => "35",
-            Self::White => "37",
-            Self::BrightRed => "91",
-            Self::BrightGreen => "92",
-            Self::BrightYellow => "93",
-            Self::BrightMagenta => "95",
-            Self::BrightCyan => "96",
-        }
+    pub(crate) const fn fg(self) -> [u8; 2] {
+        [b'3', b'0' + self as u8]
+    }
+
+    #[must_use]
+    pub(crate) const fn fg_bright(self) -> [u8; 2] {
+        [b'9', b'0' + self as u8]
+    }
+
+    pub(crate) fn to_str(x: &[u8]) -> &str {
+        std::str::from_utf8(x).unwrap()
     }
 }

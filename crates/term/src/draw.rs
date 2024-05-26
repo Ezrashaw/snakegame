@@ -1,4 +1,4 @@
-use crate::{ansi_str_len, Rect};
+use crate::{ansi_str_len, Color, Rect};
 use std::io::{self, Write};
 
 pub trait Draw: Sized {
@@ -115,7 +115,7 @@ impl<T: AsRef<str>> Draw for T {
 
     fn draw(self, ctx: &mut DrawCtx) -> io::Result<()> {
         let str = self.as_ref();
-        assert_eq!(str, str.trim_end());
+        assert_eq!(str, str.trim_end_matches('\n'));
 
         let o = ctx.o();
         for (idx, line) in str.lines().enumerate() {
@@ -137,7 +137,7 @@ impl<T: AsRef<str>> Draw for CenteredStr<T> {
 
     fn draw(self, ctx: &mut DrawCtx) -> io::Result<()> {
         let str = self.0.as_ref();
-        assert_eq!(str, str.trim_end());
+        assert_eq!(str, str.trim_end_matches('\n'));
 
         let w = self.size().0;
         let o = ctx.o();
@@ -243,5 +243,38 @@ impl Draw for Box {
         write!(ctx.o(), "{}{:─<w$}{}", corners[2], "", corners[3])?;
 
         Ok(())
+    }
+}
+
+pub enum Pixel {
+    Draw { color: Color, bright: bool },
+    Clear,
+}
+
+impl Pixel {
+    #[must_use]
+    pub const fn new(color: Color, bright: bool) -> Self {
+        Self::Draw { color, bright }
+    }
+}
+
+impl Draw for Pixel {
+    fn size(&self) -> (u16, u16) {
+        (2, 1)
+    }
+
+    fn draw(self, ctx: &mut DrawCtx) -> io::Result<()> {
+        match self {
+            Self::Draw { color, bright } => {
+                let color = if bright {
+                    color.fg_bright()
+                } else {
+                    color.fg()
+                };
+                let color = Color::to_str(&color);
+                ctx.draw(0, 0, format!("\x1B[{color}m██\x1B[0m"))
+            }
+            Self::Clear => ctx.draw(0, 0, "  "),
+        }
     }
 }
