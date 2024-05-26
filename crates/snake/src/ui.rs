@@ -1,5 +1,6 @@
 use std::{
     io::{self, Write},
+    process::exit,
     time::Instant,
 };
 
@@ -27,6 +28,12 @@ pub struct GameUi {
 impl GameUi {
     pub fn init() -> io::Result<Self> {
         let mut term = Terminal::new()?;
+        let size = term.size();
+        if size.0 < 95 || size.1 < 33 {
+            drop(term);
+            eprintln!("\x1B[1;31merror\x1B[0m: terminal is too small; (95, 33) required");
+            exit(1);
+        }
 
         let (cx, cy) = Self::draw_static(&mut term)?;
 
