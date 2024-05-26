@@ -1,6 +1,6 @@
-use std::{collections::VecDeque, io, thread, time::Duration};
+use std::{collections::VecDeque, io, thread};
 
-use term::{Color, Key, KeyEvent};
+use term::{Color, Key};
 
 use crate::{
     snake::{self, Direction},
@@ -52,13 +52,10 @@ pub fn run(ui: &mut GameUi) -> io::Result<bool> {
             }
         }
 
-        match ui
-            .term()
-            .wait_key(|k| matches!(k, Key::Enter), Some(Duration::ZERO), false)?
-        {
-            KeyEvent::Timeout => (),
-            KeyEvent::Exit => return Ok(true),
-            KeyEvent::Key(_) => return Ok(false),
+        match ui.term().get_key(|k| k == Key::Enter)? {
+            None => (),
+            Some(Key::CrtlC) => return Ok(true),
+            Some(_) => return Ok(false),
         }
     }
 }

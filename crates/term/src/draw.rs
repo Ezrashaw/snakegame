@@ -232,9 +232,7 @@ impl Draw for Box {
 
         writeln!(ctx.o(), "{}{:─<w$}{}", corners[0], "", corners[1])?;
         for i in 0..h {
-            if let Some(sep) = sep
-                && i == sep
-            {
+            if sep.is_some_and(|sep| i == sep) {
                 writeln!(ctx.o(), "├{:─<w$}┤", "")?;
             } else if self.clear {
                 writeln!(ctx.o(), "│{:w$}│", "")?;

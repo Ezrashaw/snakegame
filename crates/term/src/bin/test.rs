@@ -18,7 +18,7 @@ fn main() -> io::Result<()> {
         println!("\x1B[{}G{i:0>2}", size.0 - 1);
     }
 
-    term.wait_key(|k| matches!(k, Key::Enter), None, true)?;
+    term.wait_enter(None)?;
 
     Ok(())
 }

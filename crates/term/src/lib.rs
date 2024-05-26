@@ -1,4 +1,4 @@
-#![feature(strict_overflow_ops, associated_type_defaults, let_chains)]
+#![feature(strict_overflow_ops, associated_type_defaults, if_let_guard)]
 #![warn(clippy::pedantic, clippy::nursery)]
 #![allow(
     clippy::cast_possible_truncation,
@@ -9,6 +9,7 @@
 )]
 
 mod ansi;
+mod cbuf;
 mod draw;
 mod stdin;
 mod stdout;
@@ -18,6 +19,7 @@ mod termios;
 compile_error!("This program only runs on Linux");
 
 pub use ansi::{ansi_str_len, from_pansi};
+use cbuf::CircularBuffer;
 pub use draw::{draw, draw_centered, update, Box, CenteredStr, Draw, DrawCtx};
 pub use stdin::{Key, KeyEvent};
 pub use stdout::{Color, Rect};
@@ -36,12 +38,10 @@ use self::termios::Termios;
 pub struct Terminal {
     out: File,
     in_: File,
+    kbd_buf: CircularBuffer<Key, 64>,
 
     old_termios: Termios,
     term_size: (u16, u16),
-
-    #[allow(unused)]
-    stdin_flags: i32,
 }
 
 impl Terminal {
@@ -51,11 +51,6 @@ impl Terminal {
             t.set_canonical(false);
             t.set_echo(false);
         });
-
-        // set stdin to non-blocking mode using fcntl.
-        let stdin_flags = unsafe { libc::fcntl(libc::STDIN_FILENO, libc::F_GETFL) };
-        assert!(stdin_flags != -1);
-        let stdin_flags = stdin::set_non_block(stdin_flags, true);
 
         // SAFETY: we can always wrap FD 1 (stdout).
         let mut out = unsafe { File::from_raw_fd(1) };
@@ -73,9 +68,9 @@ impl Terminal {
         Ok(Self {
             out,
             in_,
+            kbd_buf: CircularBuffer::new(),
             old_termios,
             term_size,
-            stdin_flags,
         })
     }
 

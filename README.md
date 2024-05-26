@@ -14,7 +14,6 @@ latter itself a dependency of the former).
   score, change the position to an actual number, don't keep it on 10
 - Fixing terminal resize issues :(
 - Some kind of audio feedback.
-- Get rid of `O_NONBLOCK` on stdin
 
 ## Instructions for running on bare metal linux
 

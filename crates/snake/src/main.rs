@@ -14,7 +14,7 @@ mod ui;
 use std::{io, time::Duration};
 
 use snake::game_main;
-use term::{from_pansi, Key, KeyEvent};
+use term::{from_pansi, KeyEvent};
 use ui::GameUi;
 
 const GAME_OVER_TEXT: &str = include_str!("../pansi/game-over.txt");
@@ -38,11 +38,7 @@ fn main() -> io::Result<()> {
                     false,
                     |ctx| {
                         Ok(matches!(
-                            ctx.term().wait_key(
-                                |k| k == Key::Enter,
-                                Some(Duration::from_secs(10)),
-                                true,
-                            )?,
+                            ctx.term().wait_enter(Some(Duration::from_secs(10)))?,
                             KeyEvent::Exit
                         ))
                     },

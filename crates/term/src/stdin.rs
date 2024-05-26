@@ -1,5 +1,5 @@
 use std::{
-    io::{self, ErrorKind, Read},
+    io::{self, Read},
     ptr,
     time::{Duration, Instant},
 };
@@ -7,104 +7,94 @@ use std::{
 use super::Terminal;
 
 impl Terminal {
-    pub fn wait_key(
-        &mut self,
-        want_key: impl Fn(Key) -> bool,
-        timeout: Option<Duration>,
-        only_new: bool,
-    ) -> io::Result<KeyEvent> {
-        if only_new && self.get_last_key()? == Some(Key::CrtlC) {
-            return Ok(KeyEvent::Exit);
+    pub fn wait_enter(&mut self, timeout: Option<Duration>) -> io::Result<KeyEvent> {
+        while let Some(key) = self.kbd_buf.read() {
+            if matches!(key, Key::CrtlC) {
+                return Ok(KeyEvent::Exit);
+            }
         }
 
         let end_time = timeout.map(|t| Instant::now() + t);
         loop {
-            if !poll_key(end_time.map(|end| (end - Instant::now()).as_millis() as u64)) {
-                return Ok(KeyEvent::Timeout);
+            if self.pollkey(end_time.map(|end| (end - Instant::now())))? {
+                break Ok(KeyEvent::Timeout);
             }
 
-            match self.read_key()? {
-                Key::CrtlC => return Ok(KeyEvent::Exit),
-                k if want_key(k) => return Ok(KeyEvent::Key(k)),
+            match self.kbd_buf.read() {
+                Some(Key::CrtlC) => return Ok(KeyEvent::Exit),
+                Some(Key::Enter) => return Ok(KeyEvent::Key(Key::Enter)),
                 _ => (),
             };
         }
     }
 
-    fn get_last_key(&mut self) -> io::Result<Option<Key>> {
-        let mut last_key = None;
+    pub fn get_key(&mut self, want_key: impl Fn(Key) -> bool) -> io::Result<Option<Key>> {
+        self.pollkey(Some(Duration::ZERO))?;
         loop {
-            match self.read_key() {
-                Ok(Key::CrtlC) => return Ok(Some(Key::CrtlC)),
-                Ok(key) => last_key = Some(key),
-                Err(err) if matches!(err.kind(), ErrorKind::WouldBlock) => return Ok(last_key),
-                Err(err) => return Err(err),
+            match self.kbd_buf.read() {
+                Some(Key::CrtlC) => return Ok(Some(Key::CrtlC)),
+                Some(k) if want_key(k) => return Ok(Some(k)),
+                Some(_) => (),
+                None => return Ok(None),
             }
         }
     }
 
-    fn read_key(&mut self) -> io::Result<Key> {
-        Ok(match self.readbyte()? {
-            0x3 => Key::CrtlC,
-            b'\n' => Key::Enter,
-            0x1B => {
-                let openbracket = self.readbyte();
-                match openbracket {
-                    Ok(b'[') => (),
-                    Ok(val) => return Ok(Key::Unknown(0x1B, val)),
-                    Err(err) if matches!(err.kind(), ErrorKind::WouldBlock) => {
-                        return Ok(Key::Unknown(0x1B, 0xFF))
-                    }
-                    Err(err) => return Err(err),
-                }
+    fn pollkey(&mut self, timeout: Option<Duration>) -> io::Result<bool> {
+        if !poll_stdin(timeout) {
+            // no data received
+            return Ok(true);
+        }
 
-                match self.readbyte()? {
-                    b'A' => Key::Up,
-                    b'B' => Key::Down,
-                    b'C' => Key::Right,
-                    b'D' => Key::Left,
-                    x => Key::Unknown(0x1B, x),
-                }
-            }
-            ch @ (b'A'..=b'Z' | b'a'..=b'z') => Key::Char(ch),
-            x => {
-                // println!("\x1B[H{x}                 ");
-                Key::Unknown(x, 0x0)
-            }
-        })
-    }
+        let mut buf = [0u8; 64];
+        let n = self.in_.read(&mut buf)?;
+        assert!(n != 64);
 
-    fn readbyte(&mut self) -> io::Result<u8> {
-        let mut buf = [0u8; 1];
-        self.in_.read_exact(&mut buf)?;
-        let [byte] = buf;
-        Ok(byte)
+        let mut i = 0;
+        let mut next = || {
+            let item = (i < n).then(|| buf[i]);
+            if item.is_some() {
+                i += 1;
+            }
+            item
+        };
+
+        while let Some(b) = next() {
+            self.kbd_buf.write(match b {
+                0x3 => Key::CrtlC,
+                b'\n' => Key::Enter,
+                0x1B => match next() {
+                    Some(b'[') if let Some(n) = next() => match n {
+                        b'A' => Key::Up,
+                        b'B' => Key::Down,
+                        b'C' => Key::Right,
+                        b'D' => Key::Left,
+                        _ => Key::Unknown,
+                    },
+                    _ => Key::Unknown,
+                },
+                ch @ (b'A'..=b'Z' | b'a'..=b'z') => Key::Char(ch),
+                _ => {
+                    // println!("\x1B[H{x}\t\t");
+                    Key::Unknown
+                }
+            });
+        }
+
+        Ok(false)
     }
 }
 
-pub fn set_non_block(mut flags: i32, non_block: bool) -> i32 {
-    if non_block {
-        flags |= libc::O_NONBLOCK;
-    } else {
-        flags &= !libc::O_NONBLOCK;
-    }
-
-    let res = unsafe { libc::fcntl(libc::STDIN_FILENO, libc::F_SETFL, flags) };
-    assert!(res != -1);
-
-    flags
-}
-
-fn poll_key(timeout_ms: Option<u64>) -> bool {
+fn poll_stdin(timeout: Option<Duration>) -> bool {
     let mut poll_fd = libc::pollfd {
         fd: libc::STDIN_FILENO,
         events: libc::POLLIN,
         revents: 0,
     };
 
-    let time_spec = timeout_ms.map(|t_ms| libc::timespec {
-        tv_sec: (t_ms / 1000).try_into().unwrap(),
-        tv_nsec: ((t_ms % 1000) * 1_000_000).try_into().unwrap(),
+    let time_spec = timeout.map(|tout| libc::timespec {
+        tv_sec: tout.as_secs() as i64,
+        tv_nsec: tout.subsec_nanos().into(),
     });
 
     let res = unsafe {
@@ -133,12 +123,13 @@ fn poll_key(timeout_ms: Option<u64>) -> bool {
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum KeyEvent {
+    Key(Key),
     Timeout,
     Exit,
-    Key(Key),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[repr(u8)]
 pub enum Key {
     CrtlC,
     Enter,
@@ -149,5 +140,5 @@ pub enum Key {
     Right,
     Left,
 
-    Unknown(u8, u8),
+    Unknown,
 }

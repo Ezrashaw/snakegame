@@ -15,7 +15,7 @@ use std::{
     time::Duration,
 };
 
-use term::{Color, Key, KeyEvent};
+use term::{Color, Key};
 
 use crate::ui::{Coord, GameUi, CANVAS_H, CANVAS_W};
 
@@ -93,19 +93,18 @@ pub fn game_main(ui: &mut GameUi) -> io::Result<Option<usize>> {
         thread::sleep(step_time);
 
         // Check for keys, but don't wait for anything (we've already waited).
-        match ui.term().wait_key(
-            |k| direction.change_from_key(k).is_some(),
-            Some(Duration::ZERO),
-            false,
-        )? {
+        match ui
+            .term()
+            .get_key(|k| direction.change_from_key(k).is_some())?
+        {
             // If we didn't get a key, do nothing.
-            KeyEvent::Timeout => (),
+            None => (),
 
             // If CTRL-C is pushed, then exit.
-            KeyEvent::Exit => return Ok(None),
+            Some(Key::CrtlC) => return Ok(None),
 
             // Otherwise, handle a movement keypress.
-            KeyEvent::Key(key) => {
+            Some(key) => {
                 // Map movement keys to their respective directions.
                 direction = direction.change_from_key(key).unwrap();
             }
