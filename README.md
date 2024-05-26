@@ -20,6 +20,6 @@ latter itself a dependency of the former).
 1. Tell the kernel not to write `prink` messages to the console:
    `echo 1 > /proc/sys/kernel/printk`
 2. Disable the shift and capslock keys (both break WASD, and we don't need them anyway):
-   `loadkeys contrib/keymap.map`
+   `loadkeys key.bmap` (needs to be created from the file in `contrib/` on a host system)
 3. Load the patched console font:
    `setfont contrib/default16x32-patched.psfu`
