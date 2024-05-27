@@ -7,11 +7,19 @@ use std::{
 use super::Terminal;
 
 impl Terminal {
-    pub fn wait_enter(&mut self, timeout: Option<Duration>) -> io::Result<KeyEvent> {
+    pub fn clear_input(&mut self) -> bool {
         while let Some(key) = self.kbd_buf.read() {
             if matches!(key, Key::CrtlC) {
-                return Ok(KeyEvent::Exit);
+                return true;
             }
+        }
+
+        false
+    }
+
+    pub fn wait_enter(&mut self, timeout: Option<Duration>) -> io::Result<KeyEvent> {
+        if self.clear_input() {
+            return Ok(KeyEvent::Exit);
         }
 
         let end_time = timeout.map(|t| Instant::now() + t);

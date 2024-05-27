@@ -55,6 +55,9 @@ pub fn run(ui: &mut GameUi) -> io::Result<bool> {
             }
         }
 
+        if ui.term().clear_input() {
+            return Ok(true);
+        }
         match ui.term().get_key(|k| k == Key::Enter)? {
             None => (),
             Some(Key::CrtlC) => return Ok(true),
