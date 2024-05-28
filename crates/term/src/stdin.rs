@@ -70,6 +70,7 @@ impl Terminal {
             self.kbd_buf.write(match b {
                 0x3 => Key::CrtlC,
                 b'\n' => Key::Enter,
+                0x7F => Key::Back,
                 0x1B => match next() {
                     Some(b'[') if let Some(n) = next() => match n {
                         b'A' => Key::Up,
@@ -81,8 +82,8 @@ impl Terminal {
                     _ => Key::Unknown,
                 },
                 ch @ (b'A'..=b'Z' | b'a'..=b'z') => Key::Char(ch),
-                _ => {
-                    // println!("\x1B[H{x}\t\t");
+                x => {
+                    println!("\x1B[H{x}\t\t");
                     Key::Unknown
                 }
             });
@@ -104,6 +105,7 @@ pub enum KeyEvent {
 pub enum Key {
     CrtlC,
     Enter,
+    Back,
     Char(u8),
 
     Up,

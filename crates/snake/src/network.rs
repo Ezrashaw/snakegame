@@ -25,6 +25,13 @@ impl Network {
         let lb = read_leaderboard(&mut self.conn).unwrap();
         Some(lb)
     }
+
+    pub fn send_game(&mut self, name: [u8; 3], score: u8) -> io::Result<()> {
+        let mut packet = [0u8; 4];
+        packet[0..3].copy_from_slice(&name);
+        packet[3] = score;
+        oca_network::write_packet(&mut self.conn, 0x1, &packet)
+    }
 }
 
 fn try_tcp() -> io::Result<(LeaderboardEntries, TcpStream)> {

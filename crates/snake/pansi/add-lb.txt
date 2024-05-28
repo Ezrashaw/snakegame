@@ -1,0 +1,6 @@
+GREAT {NBOLD}SCORE!{RESET}
+Enter your initials to add
+your score to the leaderboard:
+
+{DIM}---{NDIM} SCORE: {BOLD;BYELLOW}000{RESET}
+{DIM}Press {BOLD}<ENTER>{NBOLD;DIM} to submit...

@@ -131,7 +131,11 @@ impl GameUi {
 
         self.last_tick_update = Instant::now();
 
-        if let Some((_, lb)) = &mut self.lb {
+        if let Some((network, lb)) = &mut self.lb {
+            if let Some(entries) = network.read_leaderboard() {
+                lb.entries = entries;
+            }
+
             lb.score = 0;
             self.term.update(
                 self.cx + (CANVAS_W * 2) + 4,
@@ -146,6 +150,10 @@ impl GameUi {
 
     pub fn term(&mut self) -> &mut Terminal {
         &mut self.term
+    }
+
+    pub fn network(&mut self) -> Option<&mut Network> {
+        self.lb.as_mut().map(|(l, _)| l)
     }
 
     fn update_stats(&mut self, up: StatsUpdate) -> io::Result<()> {

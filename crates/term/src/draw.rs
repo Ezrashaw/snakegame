@@ -154,7 +154,7 @@ impl<T: AsRef<str>> Draw for CenteredStr<T> {
 
             let line_w = ansi_str_len(line);
             let x = (w - line_w) / 2;
-            assert!((w - line_w) % 2 == 0);
+            assert!(line_w == 0 || (w - line_w) % 2 == 0, "{idx}");
 
             if x > 0 {
                 write!(o, "\x1B[{x}C")?;
