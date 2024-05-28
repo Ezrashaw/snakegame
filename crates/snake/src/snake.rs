@@ -141,13 +141,17 @@ pub fn game_main(ui: &mut GameUi) -> io::Result<Option<usize>> {
             // Needn't remove fruit from bitboard because we ate it and will "digest" it (normal
             // snake code will remove it).
             gen_fruit(&mut rng, ui, &mut bitboard)?;
+
+            // Tell the game's UI that we have a new score, this updates the leaderboard
+            // statistics panel.
+            ui.update_score(len - STARTING_LENGTH)?;
         }
 
         // Draw the previous head position as the tail colour.
         ui.draw_canvas(old_pos, Pixel::new(Color::Green, false))?;
 
-        // Update the game's UI, including the statistics panel and leaderboard.
-        ui.update(len - STARTING_LENGTH)?;
+        // Update the game's UI, currently just the leaderboard and stats panel.
+        ui.update_tick()?;
     }
 
     // Do a fun little death animation.

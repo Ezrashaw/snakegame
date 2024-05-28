@@ -1,4 +1,10 @@
-#![feature(array_chunks, let_chains, iter_advance_by, strict_overflow_ops)]
+#![feature(
+    array_chunks,
+    let_chains,
+    iter_advance_by,
+    strict_overflow_ops,
+    if_let_guard
+)]
 #![warn(clippy::pedantic, clippy::nursery)]
 #![allow(
     clippy::cast_possible_truncation,
@@ -8,9 +14,9 @@
 
 mod attractor;
 mod leaderboard;
+mod network;
 mod snake;
 mod ui;
-mod network;
 
 use std::{io, time::Duration};
 

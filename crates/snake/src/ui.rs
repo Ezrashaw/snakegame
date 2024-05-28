@@ -1,12 +1,15 @@
 use std::{
     io::{self, Write},
     process::exit,
-    time::Instant,
+    time::{Duration, Instant},
 };
 
 use term::{ansi_str_len, from_pansi, Box, CenteredStr, Draw, DrawCtx, Rect, Terminal};
 
-use crate::leaderboard::Leaderboard;
+use crate::{
+    leaderboard::{Leaderboard, LeaderboardUpdate},
+    network::Network,
+};
 
 const CREDITS_TEXT: &str = include_str!("../pansi/credits.txt");
 const STATS_TEXT: &str = include_str!("../pansi/stats.txt");
@@ -20,9 +23,10 @@ pub const CANVAS_H: u16 = 18;
 pub struct GameUi {
     term: Terminal,
     stats: Stats,
-    lb: Option<Leaderboard>,
+    lb: Option<(Network, Leaderboard)>,
     cx: u16,
     cy: u16,
+    last_tick_update: Instant,
 }
 
 impl GameUi {
@@ -40,10 +44,14 @@ impl GameUi {
         let stats = Stats(Instant::now());
         term.draw(cx - 16, cy + 2, &stats)?;
 
-        let mut lb = Leaderboard::init();
-        if let Some(lb) = &mut lb {
-            term.draw(cx + (CANVAS_W * 2) + 4, cy, lb)?;
-        }
+        let network = Network::init();
+        let lb = if let Some((network, entries)) = network {
+            let mut lb = Leaderboard::init(entries);
+            term.draw(cx + (CANVAS_W * 2) + 4, cy, &mut lb)?;
+            Some((network, lb))
+        } else {
+            None
+        };
 
         Ok(Self {
             term,
@@ -51,6 +59,7 @@ impl GameUi {
             lb,
             cx,
             cy,
+            last_tick_update: Instant::now(),
         })
     }
 
@@ -82,17 +91,40 @@ impl GameUi {
             .draw(self.cx + (coord.x * 2) + 1, self.cy + coord.y + 1, object)
     }
 
-    pub fn update(&mut self, score: usize) -> io::Result<()> {
-        self.term
-            .update(self.cx - 16, self.cy + 2, &self.stats, score)?;
+    pub fn update_score(&mut self, score: usize) -> io::Result<()> {
+        self.update_stats(StatsUpdate::Score(score))?;
 
-        if let Some(lb) = &mut self.lb {
+        if let Some((_, lb)) = &mut self.lb {
             self.term.update(
                 self.cx + (CANVAS_W * 2) + 4,
                 self.cy,
                 lb,
-                (score.try_into().unwrap(), false),
+                LeaderboardUpdate::Score(score.try_into().unwrap()),
             )?;
+        }
+
+        Ok(())
+    }
+
+    pub fn update_tick(&mut self) -> io::Result<()> {
+        self.term
+            .update(self.cx - 16, self.cy + 2, &self.stats, StatsUpdate::Time)?;
+
+        if self.last_tick_update.elapsed() < Duration::from_secs(5) {
+            return Ok(());
+        }
+
+        self.last_tick_update = Instant::now();
+        if let Some((network, lb)) = &mut self.lb {
+            if let Some(entries) = network.read_leaderboard() {
+                lb.entries = entries;
+                self.term.update(
+                    self.cx + (CANVAS_W * 2) + 4,
+                    self.cy,
+                    lb,
+                    LeaderboardUpdate::Redraw,
+                )?;
+            }
         }
 
         Ok(())
@@ -103,12 +135,19 @@ impl GameUi {
             .clear_rect(Rect::new(self.cx + 1, self.cy + 1, CANVAS_W * 2, CANVAS_H))?;
 
         self.stats.0 = Instant::now();
-        self.term
-            .update(self.cx - 16, self.cy + 2, &self.stats, 0)?;
+        self.update_stats(StatsUpdate::Time)?;
+        self.update_stats(StatsUpdate::Score(0))?;
 
-        if let Some(lb) = &mut self.lb {
-            self.term
-                .update(self.cx + (CANVAS_W * 2) + 4, self.cy, lb, (0, true))?;
+        self.last_tick_update = Instant::now();
+
+        if let Some((_, lb)) = &mut self.lb {
+            lb.score = 0;
+            self.term.update(
+                self.cx + (CANVAS_W * 2) + 4,
+                self.cy,
+                lb,
+                LeaderboardUpdate::Redraw,
+            )?;
         }
 
         Ok(())
@@ -116,6 +155,10 @@ impl GameUi {
 
     pub fn term(&mut self) -> &mut Terminal {
         &mut self.term
+    }
+
+    fn update_stats(&mut self, up: StatsUpdate) -> io::Result<()> {
+        self.term.update(self.cx - 16, self.cy + 2, &self.stats, up)
     }
 
     /// This function draws all the "static" elements to the screen. These elements do not change or
@@ -190,17 +233,26 @@ impl Draw for &Stats {
         ctx.draw(2, 1, from_pansi(STATS_TEXT))
     }
 
-    type Update = usize;
+    type Update = StatsUpdate;
     fn update(self, ctx: &mut DrawCtx, update: Self::Update) -> io::Result<()> {
-        let t = self.0.elapsed();
-        let mins = t.as_secs() / 60;
-        let secs = t.as_secs() % 60;
+        match update {
+            StatsUpdate::Score(score) => {
+                ctx.goto(12, 3)?;
+                write!(ctx.o(), "{score:0>3}")
+            }
+            StatsUpdate::Time => {
+                let t = self.0.elapsed();
+                let mins = t.as_secs() / 60;
+                let secs = t.as_secs() % 60;
 
-        ctx.goto(12, 3)?;
-        write!(ctx.o(), "{update:0>3}")?;
-        ctx.goto(10, 4)?;
-        write!(ctx.o(), "{mins:0>2}:{secs:0>2}")?;
-
-        Ok(())
+                ctx.goto(10, 4)?;
+                write!(ctx.o(), "{mins:0>2}:{secs:0>2}")
+            }
+        }
     }
+}
+
+enum StatsUpdate {
+    Score(usize),
+    Time,
 }
