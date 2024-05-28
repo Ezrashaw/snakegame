@@ -3,8 +3,11 @@ compile_error!("This program only runs on Linux");
 
 use std::{os::fd::AsRawFd, ptr, time::Duration};
 
+mod cbuf;
 pub mod network;
 pub mod termios;
+
+pub use cbuf::CircularBuffer;
 
 pub fn poll_file(fd: &impl AsRawFd, timeout: Option<Duration>) -> bool {
     let mut poll_fd = libc::pollfd {

@@ -9,15 +9,17 @@
 )]
 
 mod ansi;
-mod cbuf;
 mod draw;
 mod stdin;
 mod stdout;
 
 pub use ansi::{ansi_str_len, from_pansi};
-use cbuf::CircularBuffer;
+use oca_io::{
+    termios::{self, Termios},
+    CircularBuffer,
+};
+
 pub use draw::{draw, draw_centered, update, Box, CenteredStr, Draw, DrawCtx, Pixel, Popup};
-use oca_io::termios::{self, Termios};
 pub use stdin::{Key, KeyEvent};
 pub use stdout::{Color, Rect};
 

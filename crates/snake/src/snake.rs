@@ -133,13 +133,12 @@ pub fn game_main(ui: &mut GameUi) -> io::Result<Option<usize>> {
             // ...otherwise, we have eaten a fruit.
             len += 1;
 
-            // Every 10 fruits, speed up a little.
-            if len % 10 == 0 {
-                step_time -= Duration::from_millis(5);
-            }
+            // Speed the snake up a little.
+            step_time -= Duration::from_micros(500);
 
-            // Needn't remove fruit from bitboard because we ate it and will "digest" it (normal
-            // snake code will remove it).
+            // Generate another fruit to replace that one we just ate. Note that we needn't remove
+            // fruit from the bitboard because we ate it and will "digest" it (the normal snake
+            // code will remove it).
             gen_fruit(&mut rng, ui, &mut bitboard)?;
 
             // Tell the game's UI that we have a new score, this updates the leaderboard

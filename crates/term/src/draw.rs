@@ -175,7 +175,7 @@ pub struct Box {
 }
 
 impl Box {
-    pub const DEFAULT_CORNERS: [char; 4] = ['┌', '┐', '└', '┘'];
+    const DEFAULT_CORNERS: [char; 4] = ['┌', '┐', '└', '┘'];
 
     #[must_use]
     pub const fn new(w: u16, h: u16) -> Self {
