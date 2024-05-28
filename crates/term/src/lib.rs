@@ -13,14 +13,11 @@ mod cbuf;
 mod draw;
 mod stdin;
 mod stdout;
-mod termios;
-
-#[cfg(not(all(target_os = "linux")))]
-compile_error!("This program only runs on Linux");
 
 pub use ansi::{ansi_str_len, from_pansi};
 use cbuf::CircularBuffer;
 pub use draw::{draw, draw_centered, update, Box, CenteredStr, Draw, DrawCtx, Pixel};
+use oca_io::termios::{self, Termios};
 pub use stdin::{Key, KeyEvent};
 pub use stdout::{Color, Rect};
 
@@ -28,10 +25,8 @@ use std::{
     fs::File,
     io::{self, Write},
     os::fd::FromRawFd,
-    ptr, thread,
+    thread,
 };
-
-use self::termios::Termios;
 
 // remember that coordinates begin at one, not zero.
 
@@ -60,7 +55,7 @@ impl Terminal {
         write!(out, "\x1B[?1049h\x1B[?25l")?;
         write!(out, "\x1B[2J\x1B[H")?;
 
-        let term_size = get_termsize();
+        let term_size = oca_io::get_termsize();
 
         #[cfg(feature = "term_debug")]
         draw_debug_lines(term_size.0, term_size.1);
@@ -89,25 +84,6 @@ impl Drop for Terminal {
             termios::restore(self.old_termios);
         }
     }
-}
-
-#[must_use]
-fn get_termsize() -> (u16, u16) {
-    let mut win_size = libc::winsize {
-        ws_row: 0,
-        ws_col: 0,
-        ws_xpixel: 0,
-        ws_ypixel: 0,
-    };
-    let res = unsafe {
-        libc::ioctl(
-            libc::STDOUT_FILENO,
-            libc::TIOCGWINSZ,
-            ptr::from_mut(&mut win_size),
-        )
-    };
-    assert_eq!(res, 0);
-    (win_size.ws_col, win_size.ws_row)
 }
 
 #[cfg(feature = "term_debug")]

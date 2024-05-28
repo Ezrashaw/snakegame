@@ -1,6 +1,5 @@
 use std::{
     io::{self, Read},
-    ptr,
     time::{Duration, Instant},
 };
 
@@ -49,7 +48,7 @@ impl Terminal {
     }
 
     fn pollkey(&mut self, timeout: Option<Duration>) -> io::Result<bool> {
-        if !poll_stdin(timeout) {
+        if !oca_io::poll_stdin(timeout) {
             // no data received
             return Ok(true);
         }
@@ -90,42 +89,6 @@ impl Terminal {
         }
 
         Ok(false)
-    }
-}
-
-fn poll_stdin(timeout: Option<Duration>) -> bool {
-    let mut poll_fd = libc::pollfd {
-        fd: libc::STDIN_FILENO,
-        events: libc::POLLIN,
-        revents: 0,
-    };
-
-    let time_spec = timeout.map(|tout| libc::timespec {
-        tv_sec: tout.as_secs() as i64,
-        tv_nsec: tout.subsec_nanos().into(),
-    });
-
-    let res = unsafe {
-        libc::ppoll(
-            ptr::from_mut(&mut poll_fd),
-            1,
-            // VERY IMPORTANT: take the reference with `as_ref`, not in a closure with
-            // ptr::from_ref because the reference's (represented as a raw pointer) lifetime is
-            // bound to the closure, not the libc call. Otherwise this is UB... oops. This was okay
-            // in debug mode, but release mode optimized it into UB.
-            time_spec.as_ref().map_or(ptr::null(), ptr::from_ref),
-            ptr::null::<libc::sigset_t>(),
-        )
-    };
-
-    match res {
-        -1 => panic!("libc call failed"),
-        0 => false,
-        1 => {
-            assert!(poll_fd.revents == libc::POLLIN);
-            true
-        }
-        _ => unreachable!(),
     }
 }
 

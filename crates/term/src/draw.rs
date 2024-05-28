@@ -92,7 +92,7 @@ pub fn draw_centered(
 
     let hoff = (rect.h - h) % 2 != 0;
     if (rect.w - w) % 2 != 0 || (allow_hoff ^ hoff) {
-        let w = crate::get_termsize().0;
+        let w = oca_io::get_termsize().0;
         draw(out, "\x1B[33;1mWARNING: \x1B[0mfailed to center", w - 25, 1)?;
     }
 

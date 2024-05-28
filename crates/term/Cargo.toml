@@ -3,8 +3,8 @@ name = "term"
 version = "0.1.0"
 edition = "2021"
 
-[dependencies]
-libc = "0.2.153"
-
 [features]
 term_debug = []
+
+[dependencies]
+oca_io = { version = "0.1.0", path = "../oca_io" }
