@@ -63,27 +63,18 @@ impl GameUi {
         })
     }
 
-    pub fn popup<T>(
-        &mut self,
-        text: impl AsRef<str>,
-        hoff: bool,
-        f: impl FnOnce(&mut Self) -> io::Result<T>,
-    ) -> io::Result<T> {
-        let (w, h) = text.size();
-
-        let popup = Box::new(w + 2, h).with_clear();
-        let (px, py) = self.term.draw_centered_hoff(
-            popup,
+    pub fn draw_centered(&mut self, object: impl Draw, hoff: bool) -> io::Result<(u16, u16)> {
+        self.term.draw_centered_hoff(
+            object,
             Rect::new(self.cx, self.cy, (CANVAS_W * 2) + 2, CANVAS_H + 2),
             hoff,
-        )?;
-        self.term.draw(px + 2, py + 1, CenteredStr(text))?;
+        )
+    }
 
-        let ret = f(self)?;
-
-        self.term.clear_rect(Rect::new(px, py, w + 4, h + 2))?;
-
-        Ok(ret)
+    #[allow(clippy::needless_pass_by_value)]
+    pub fn clear_centered(&mut self, object: impl Draw, pos: (u16, u16)) -> io::Result<()> {
+        let (w, h) = object.size();
+        self.term.clear_rect(Rect::new(pos.0, pos.1, w, h))
     }
 
     pub fn draw_canvas(&mut self, coord: Coord, object: impl Draw) -> io::Result<()> {

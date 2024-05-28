@@ -25,6 +25,11 @@ impl DrawCtx {
         &mut self.out
     }
 
+    #[must_use]
+    pub const fn size(&self) -> (u16, u16) {
+        (self.w, self.h)
+    }
+
     pub fn goto(&mut self, x: u16, y: u16) -> io::Result<()> {
         assert!(x <= self.w && y <= self.h);
         write!(self.out, "\x1B[{};{}H", self.y + y, self.x + x)
@@ -276,5 +281,40 @@ impl Draw for Pixel {
             }
             Self::Clear => ctx.draw(0, 0, "  "),
         }
+    }
+}
+
+pub struct Popup<'a> {
+    text: &'a str,
+    color: Option<Color>,
+}
+
+impl<'a> Popup<'a> {
+    #[must_use]
+    pub const fn new(text: &'a str) -> Self {
+        Self { text, color: None }
+    }
+
+    #[must_use]
+    pub fn with_color(mut self, color: Color) -> Self {
+        assert!(self.color.is_none());
+        self.color = Some(color);
+        self
+    }
+}
+
+impl Draw for &Popup<'_> {
+    fn size(&self) -> (u16, u16) {
+        let (tw, th) = self.text.size();
+        (tw + 4, th + 2)
+    }
+
+    fn draw(self, ctx: &mut DrawCtx) -> io::Result<()> {
+        let (w, h) = ctx.size();
+        if let Some(color) = self.color {
+            write!(ctx.o(), "\x1B[1;{}m", Color::to_str(&color.fg_bright()))?;
+        }
+        ctx.draw(0, 0, Box::new(w - 2, h - 2).with_clear())?;
+        ctx.draw(2, 1, CenteredStr(self.text))
     }
 }

@@ -21,7 +21,7 @@ mod ui;
 use std::{io, time::Duration};
 
 use snake::game_main;
-use term::{from_pansi, KeyEvent};
+use term::{from_pansi, Color, KeyEvent, Popup};
 use ui::GameUi;
 
 const GAME_OVER_TEXT: &str = include_str!("../pansi/game-over.txt");
@@ -31,27 +31,26 @@ fn main() -> io::Result<()> {
     let mut ui = GameUi::init()?;
 
     loop {
-        if ui.popup(from_pansi(WELCOME_TEXT), true, attractor::run)? {
+        let welcome_text = from_pansi(WELCOME_TEXT);
+        let popup = Popup::new(&welcome_text);
+        let pos = ui.draw_centered(&popup, true)?;
+        if attractor::run(&mut ui)? {
             break;
         }
+        ui.clear_centered(&popup, pos)?;
 
         ui.reset_game()?;
 
         match game_main(&mut ui)? {
             Some(score) => {
-                ui.term().write("\x1B[1;91m")?;
-                if ui.popup(
-                    from_pansi(GAME_OVER_TEXT).replace("000", &format!("{score:0>3}")),
-                    false,
-                    |ctx| {
-                        Ok(matches!(
-                            ctx.term().wait_enter(Some(Duration::from_secs(10)))?,
-                            KeyEvent::Exit
-                        ))
-                    },
-                )? {
+                let game_over_text =
+                    from_pansi(GAME_OVER_TEXT).replace("000", &format!("{score:0>3}"));
+                let popup = Popup::new(&game_over_text).with_color(Color::Red);
+                let pos = ui.draw_centered(&popup, false)?;
+                if ui.term().wait_enter(Some(Duration::from_secs(10)))? == KeyEvent::Exit {
                     break;
                 }
+                ui.clear_centered(&popup, pos)?;
 
                 ui.reset_game()?;
             }
