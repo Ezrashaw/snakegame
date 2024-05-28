@@ -19,12 +19,16 @@ dependencies = [
 name = "snake"
 version = "0.1.0"
 dependencies = [
+ "oca_io",
  "term",
 ]
 
 [[package]]
 name = "snake-server"
 version = "0.1.0"
+dependencies = [
+ "oca_io",
+]
 
 [[package]]
 name = "term"

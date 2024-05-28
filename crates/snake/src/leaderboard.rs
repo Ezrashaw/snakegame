@@ -1,17 +1,15 @@
-use std::{
-    io::{self, Read},
-    net::{Ipv4Addr, TcpStream},
-};
+use std::{io, net::TcpStream, time::Duration};
 
+use oca_io::network::LeaderboardEntries;
 use term::{Box, Draw, DrawCtx};
 
-type Entries = [([u8; 3], u8); 10];
+use crate::network::{self, try_tcp};
 
 const YOU_NAME: &str = "\x1B[95mYOU\x1B[90m";
 
 pub struct Leaderboard {
     you_row: Option<u16>,
-    entries: Entries,
+    entries: LeaderboardEntries,
     conn: TcpStream,
 }
 
@@ -89,16 +87,12 @@ impl Draw for &mut Leaderboard {
 
     type Update = (u8, bool);
     fn update(self, ctx: &mut DrawCtx, (score, force_redraw): Self::Update) -> io::Result<()> {
-        let entries = entries_from_stream(&mut self.conn);
-        match entries {
-            Ok(e) => {
-                self.entries = e;
-                self.draw_entries(ctx, score)?;
-                return Ok(());
-            }
-            Err(err) if matches!(err.kind(), io::ErrorKind::WouldBlock) => (),
-            Err(err) => return Err(err),
-        };
+        // If there is data from the network, then use that (which redraws the entire leaderboard).
+        if oca_io::poll_file(&self.conn, Some(Duration::ZERO)) {
+            self.entries = network::read_leaderboard(&mut self.conn)?;
+            self.draw_entries(ctx, score)?;
+            return Ok(());
+        }
 
         if let Some(you_row) = self.you_row
             && !force_redraw
@@ -111,26 +105,4 @@ impl Draw for &mut Leaderboard {
 
         Ok(())
     }
-}
-
-fn try_tcp() -> io::Result<(Entries, TcpStream)> {
-    let mut conn = TcpStream::connect((Ipv4Addr::LOCALHOST, 1234))?;
-    let entries = entries_from_stream(&mut conn)?;
-    conn.set_nonblocking(true)?;
-
-    Ok((entries, conn))
-}
-
-fn entries_from_stream(stream: &mut TcpStream) -> io::Result<Entries> {
-    let mut buf: [u8; 50] = [0u8; 5 * 10];
-    stream.read_exact(&mut buf)?;
-
-    let mut entries = [([0u8; 3], 0u8); 10];
-    for (idx, entry) in buf.array_chunks::<5>().enumerate() {
-        assert_eq!(entry[4], b'\n');
-        entries[idx].0 = entry[0..3].try_into().unwrap();
-        entries[idx].1 = entry[3];
-    }
-
-    Ok(entries)
 }

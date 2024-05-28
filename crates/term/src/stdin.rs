@@ -48,7 +48,7 @@ impl Terminal {
     }
 
     fn pollkey(&mut self, timeout: Option<Duration>) -> io::Result<bool> {
-        if !oca_io::poll_stdin(timeout) {
+        if !oca_io::poll_file(&self.in_, timeout) {
             // no data received
             return Ok(true);
         }

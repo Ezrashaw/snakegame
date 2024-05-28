@@ -10,6 +10,7 @@ mod attractor;
 mod leaderboard;
 mod snake;
 mod ui;
+mod network;
 
 use std::{io, time::Duration};
 

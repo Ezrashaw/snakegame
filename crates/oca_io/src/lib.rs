@@ -1,13 +1,14 @@
 #[cfg(not(all(target_os = "linux")))]
 compile_error!("This program only runs on Linux");
 
-use std::{ptr, time::Duration};
+use std::{os::fd::AsRawFd, ptr, time::Duration};
 
+pub mod network;
 pub mod termios;
 
-pub fn poll_stdin(timeout: Option<Duration>) -> bool {
+pub fn poll_file(fd: &impl AsRawFd, timeout: Option<Duration>) -> bool {
     let mut poll_fd = libc::pollfd {
-        fd: libc::STDIN_FILENO,
+        fd: fd.as_raw_fd(),
         events: libc::POLLIN,
         revents: 0,
     };
