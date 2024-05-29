@@ -47,6 +47,7 @@ impl Terminal {
             t.set_sig(false);
             t.set_canonical(false);
             t.set_echo(false);
+            t.set_ixon(false);
         });
 
         // SAFETY: we can always wrap FD 1 (stdout).
