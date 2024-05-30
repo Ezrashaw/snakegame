@@ -31,14 +31,14 @@ pub const STARTING_LENGTH: usize = 7;
 /// Defines the starting locations for the fruits. At the beginning of the game, we do not choose
 /// random locations for the fruits, instead we create an 'X' pattern (from this constant).
 /// Throughout the game, the number of fruits is _always_ equal to the length of this array.
-pub const FOOD_LOCATIONS: [(u16, u16); 5] = [(18, 5), (18, 11), (24, 5), (24, 11), (21, 8)];
+pub const FOOD_LOCATIONS: [(u16, u16); 5] = [(18, 6), (18, 12), (24, 6), (24, 12), (21, 9)];
 
 /// Defines where the snake begins on the canvas. This is defined in terms of [`CANVAS_H`], as we
 /// calculate from the vertical center of the screen. Note that the snake starts here as a single
 /// point and "grows" outwards from this point.
 pub const STARTING_POS: Coord = Coord {
     x: 3,
-    y: CANVAS_H / 2 - 1,
+    y: CANVAS_H / 2,
 };
 
 /// Main entry point for the game logic.

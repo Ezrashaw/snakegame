@@ -34,7 +34,7 @@ fn main() -> io::Result<()> {
     loop {
         let welcome_text = from_pansi(WELCOME_TEXT);
         let popup = Popup::new(&welcome_text);
-        let pos = ui.draw_centered(&popup, true)?;
+        let pos = ui.draw_centered(&popup, false)?;
         if attractor::run(&mut ui)? {
             break;
         }
@@ -50,7 +50,7 @@ fn main() -> io::Result<()> {
                     let game_over_text =
                         from_pansi(GAME_OVER_TEXT).replace("000", &format!("{score:0>3}"));
                     let popup = Popup::new(&game_over_text).with_color(Color::Red);
-                    let pos = ui.draw_centered(&popup, false)?;
+                    let pos = ui.draw_centered(&popup, true)?;
                     if ui.term().wait_enter(Some(Duration::from_secs(10)))? == KeyEvent::Exit {
                         break;
                     }

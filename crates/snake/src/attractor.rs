@@ -13,7 +13,7 @@ pub fn run(ui: &mut GameUi) -> io::Result<bool> {
     let (mut dir, mut left) = get_dir(0, &mut head).unwrap();
     let mut move_segment = 0;
 
-    ui.draw_canvas(Coord { x: 24, y: 7 }, Pixel::new(Color::Yellow, true))?;
+    ui.draw_canvas(Coord { x: 24, y: 8 }, Pixel::new(Color::Yellow, true))?;
 
     loop {
         ui.draw_canvas(head, Pixel::new(Color::Green, true))?;
@@ -24,9 +24,9 @@ pub fn run(ui: &mut GameUi) -> io::Result<bool> {
         }
 
         let fruit_coord = match head {
-            Coord { x: 24, y: 7 } => Some(Coord { x: 17, y: 3 }),
-            Coord { x: 17, y: 3 } => Some(Coord { x: 6, y: 14 }),
-            Coord { x: 6, y: 14 } => Some(Coord { x: 24, y: 7 }),
+            Coord { x: 24, y: 8 } => Some(Coord { x: 17, y: 4 }),
+            Coord { x: 17, y: 4 } => Some(Coord { x: 6, y: 15 }),
+            Coord { x: 6, y: 15 } => Some(Coord { x: 24, y: 8 }),
             _ => None,
         };
         if let Some(fruit) = fruit_coord {

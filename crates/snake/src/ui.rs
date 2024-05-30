@@ -18,7 +18,7 @@ const HELP_TEXT: &str = include_str!("../pansi/help.txt");
 const GIT_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/git.txt"));
 
 pub const CANVAS_W: u16 = 28;
-pub const CANVAS_H: u16 = 18;
+pub const CANVAS_H: u16 = 19;
 
 pub struct GameUi {
     term: Terminal,
@@ -187,9 +187,10 @@ fn draw_static(term: &mut Terminal) -> io::Result<(u16, u16)> {
     // Draw the outline of the canvas in the center of the entire screen. We use the xy values
     // given back to calculate the position of the help text, and the leaderboard + stats panel
     // but the latter are in other places.
-    let (cx, cy) = term.draw_centered(
+    let (cx, cy) = term.draw_centered_hoff(
         Box::new(CANVAS_W * 2, CANVAS_H + 3).with_separator(-2),
         Rect::new(1, 1, w, h),
+        true,
     )?;
 
     // Draw the help text, centered underneath the canvas.
