@@ -6,18 +6,20 @@ use std::{
 use super::Terminal;
 
 impl Terminal {
-    pub fn clear_input(&mut self) -> bool {
+    pub fn clear_input(&mut self) -> io::Result<bool> {
+        self.pollkey(Some(Duration::ZERO))?;
+
         while let Some(key) = self.kbd_buf.read() {
             if matches!(key, Key::CrtlC) {
-                return true;
+                return Ok(true);
             }
         }
 
-        false
+        Ok(false)
     }
 
     pub fn wait_enter(&mut self, timeout: Option<Duration>) -> io::Result<KeyEvent> {
-        if self.clear_input() {
+        if self.clear_input()? {
             return Ok(KeyEvent::Exit);
         }
 

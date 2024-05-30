@@ -67,7 +67,7 @@ fn main() -> io::Result<()> {
 }
 
 fn do_highscore(ui: &mut GameUi, score: usize) -> io::Result<()> {
-    ui.term().clear_input();
+    ui.term().clear_input()?;
 
     let game_over_text = from_pansi(ADD_LB_TEXT).replace("000", &format!("{score:0>3}"));
 
