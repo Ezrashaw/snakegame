@@ -1,3 +1,8 @@
+use std::{
+    io::{self, Write},
+    process::{Command, Stdio},
+};
+
 pub const MAGIC_BYTES: u32 = 0x864ab572;
 
 pub fn read_psf(mut psf: &[u8]) -> PsfFont {
@@ -49,6 +54,29 @@ pub struct PsfFont<'a> {
 }
 
 impl<'a> PsfFont<'a> {
+    pub fn write_psf(&self, w: &mut impl io::Write) -> io::Result<()> {
+        let mut write_u32 = |val: u32| w.write_all(&val.to_ne_bytes());
+
+        write_u32(MAGIC_BYTES)?; // magic bytes
+        write_u32(0)?; // version
+        write_u32(32)?; // header length in bytes
+        write_u32(1)?; // flags (has unicode table)
+
+        write_u32(self.glyph_count)?;
+        write_u32(self.bytes_per_glyph)?;
+        write_u32(self.height)?;
+        write_u32(self.width)?;
+
+        w.write_all(self.glyphs)?;
+
+        for entry in &self.unicode_table {
+            w.write_all(String::from_iter(&entry.singles[0..entry.singles_count]).as_bytes())?;
+            w.write_all(&[0xFF])?;
+        }
+
+        Ok(())
+    }
+
     pub fn glyph_count(&self) -> u32 {
         self.glyph_count
     }
@@ -172,5 +200,35 @@ fn find_utf8_boundary(bytes: &[u8]) -> usize {
 
             i += 1;
         }
+    }
+}
+
+pub fn ungzip(bytes: &[u8]) -> Vec<u8> {
+    let mut cmd = Command::new("gzip")
+        .arg("-d")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to spawn child process");
+
+    cmd.stdin.as_mut().unwrap().write_all(bytes).unwrap();
+    cmd.wait_with_output().unwrap().stdout
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    #[test]
+    fn test_default_font() {
+        let bytes =
+            super::ungzip(&fs::read("/usr/share/kbd/consolefonts/default8x16.psfu.gz").unwrap());
+
+        let font = super::read_psf(&bytes);
+
+        let mut buf = Vec::with_capacity(bytes.len());
+        font.write_psf(&mut buf).unwrap();
+
+        assert_eq!(bytes, buf);
     }
 }
