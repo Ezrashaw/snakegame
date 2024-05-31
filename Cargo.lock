@@ -16,6 +16,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "psf-util"
+version = "0.1.0"
+dependencies = [
+ "oca_io",
+]
+
+[[package]]
 name = "snake"
 version = "0.1.0"
 dependencies = [
