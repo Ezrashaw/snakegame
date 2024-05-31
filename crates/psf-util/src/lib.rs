@@ -1,6 +1,8 @@
+use core::slice;
 use std::{
     io::{self, Write},
     process::{Command, Stdio},
+    str::Lines,
 };
 
 pub const MAGIC_BYTES: u32 = 0x864ab572;
@@ -70,7 +72,7 @@ impl<'a> PsfFont<'a> {
         w.write_all(self.glyphs)?;
 
         for entry in &self.unicode_table {
-            w.write_all(String::from_iter(&entry.singles[0..entry.singles_count]).as_bytes())?;
+            w.write_all(String::from_iter(entry.get_singles()).as_bytes())?;
             w.write_all(&[0xFF])?;
         }
 
@@ -79,6 +81,10 @@ impl<'a> PsfFont<'a> {
 
     pub fn glyph_count(&self) -> u32 {
         self.glyph_count
+    }
+
+    pub fn stride(&self) -> usize {
+        ((self.width + 7) / 8) as usize
     }
 
     pub fn print_table(&self) {
@@ -115,15 +121,14 @@ impl<'a> PsfFont<'a> {
             println!();
         }
         let table = &self.unicode_table[g as usize];
-        for uni in &table.singles[0..table.singles_count] {
+        for uni in table.get_singles() {
             print!(" {}", uni.escape_debug());
         }
         println!();
     }
 
     fn print_double_row(&self, g: u32, first_r: usize) {
-        let stride = ((self.width + 7) / 8) as usize;
-
+        let stride = self.stride();
         let gbytes = self.get_glyph(g);
         let start = first_r * stride;
         let top = &gbytes[start..(start + stride)];
@@ -158,6 +163,10 @@ pub struct UnicodeEntry {
 }
 
 impl UnicodeEntry {
+    pub fn get_singles(&self) -> &[char] {
+        &self.singles[0..self.singles_count]
+    }
+
     fn read_from_bytes(bytes: &mut &[u8]) -> Self {
         let mut singles = ['\0'; 16];
         let mut singles_count = 0;
@@ -213,6 +222,97 @@ pub fn ungzip(bytes: &[u8]) -> Vec<u8> {
 
     cmd.stdin.as_mut().unwrap().write_all(bytes).unwrap();
     cmd.wait_with_output().unwrap().stdout
+}
+
+pub fn psf2txt(w: &mut impl io::Write, filename: &str, psf: PsfFont) -> io::Result<()> {
+    writeln!(w, "load {filename}")?;
+    writeln!(w, "size {}x{}\n", psf.width, psf.height)?;
+
+    for i in 0..psf.glyph_count {
+        writeln!(w, "character {i:#04x}")?;
+        write!(w, "unicode")?;
+        for ch in psf.unicode_table[i as usize].get_singles() {
+            write!(w, " '{}'", ch.escape_debug())?;
+        }
+        writeln!(w)?;
+
+        let glyph = psf.get_glyph(i);
+        for row in glyph.chunks(psf.stride()) {
+            for byte in row {
+                for bit in (0..8).rev() {
+                    let mask = 0x1 << bit;
+                    write!(w, "{}", if byte & mask == 0 { "-" } else { "#" })?;
+                }
+            }
+            writeln!(w)?;
+        }
+        writeln!(w)?;
+    }
+
+    Ok(())
+}
+
+pub fn txt2psf(mut lines: Lines, psf: &mut PsfFont) -> io::Result<()> {
+    let Some(("size", size)) = lines.next().unwrap().split_once(' ') else {
+        panic!("expected \"size <width>x<height>\"");
+    };
+
+    let Some((width, height)) = size.split_once('x') else {
+        panic!("expected \"size <width>x<height>\"");
+    };
+
+    let (width, height): (u32, u32) = (width.parse().unwrap(), height.parse().unwrap());
+    assert!(width == psf.width);
+    assert!(height == psf.height);
+
+    while let Some(line) = lines.next() {
+        if line.trim().is_empty() {
+            continue;
+        }
+
+        let Some(("character 0", char)) = line.split_once('x') else {
+            panic!("expected \"character 0x<character>\"");
+        };
+
+        let char = u32::from_str_radix(char, 16).unwrap();
+
+        let Some(("unicode ", unicode)) = lines.next().unwrap().split_once('\'') else {
+            panic!("expected \"unicode '<character>'...");
+        };
+
+        let table = &mut psf.unicode_table[char as usize];
+        table.singles_count = 0;
+        for char in unicode.split("' '") {
+            let ch = char.chars().next().unwrap();
+            table.singles[table.singles_count] = ch;
+            table.singles_count += 1;
+        }
+
+        let data = psf.get_glyph(char);
+        // SAFETY: no no no no no (but it works ;)
+        let data = unsafe { slice::from_raw_parts_mut(data.as_ptr() as *mut u8, data.len()) };
+        assert!(data.len() == height as usize); // TODO: one of the many things to fix
+
+        for h in 0..height {
+            data[h as usize] = 0x0;
+            let line = lines.next().unwrap();
+            assert!(line.trim().len() == width as usize);
+
+            let mut mask = 0b1000_0000;
+            for ch in line.chars() {
+                match ch {
+                    '#' => data[h as usize] |= mask,
+                    '-' => (),
+                    _ => panic!("unexpected character"),
+                }
+                mask >>= 1;
+            }
+        }
+
+        psf.print_glyph(char);
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
