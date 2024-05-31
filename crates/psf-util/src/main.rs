@@ -32,6 +32,6 @@ fn write_psf() {
     let mut psf = read_psf(&bytes);
     txt2psf(lines, &mut psf).unwrap();
 
-    psf.write_psf(&mut fs::File::create("default8x16.psfu").unwrap())
+    psf.write_psf(&mut fs::File::create("patched8x16.psfu").unwrap())
         .unwrap();
 }
