@@ -1,5 +1,5 @@
 use std::{
-    io,
+    io, iter,
     net::{Ipv4Addr, TcpListener, TcpStream},
 };
 
@@ -7,18 +7,7 @@ use oca_io::network::{read_packet, write_packet, LeaderboardEntry};
 
 fn main() -> io::Result<()> {
     let server = TcpListener::bind((Ipv4Addr::UNSPECIFIED, 1234))?;
-    let mut leaderboard = vec![
-        (*b"AAA", 100),
-        (*b"BBB", 90),
-        (*b"CCC", 80),
-        (*b"DDD", 70),
-        (*b"EEE", 60),
-        (*b"FFF", 50),
-        (*b"GGG", 40),
-        (*b"HHH", 30),
-        (*b"III", 20),
-        (*b"JJJ", 10),
-    ];
+    let mut leaderboard = Vec::new();
 
     let (stream, _addr) = server.accept()?;
     let mut client = GameClient::new(stream)?;
@@ -28,8 +17,12 @@ fn main() -> io::Result<()> {
         let (id, packet) = read_packet(&mut client.stream)?;
         assert_eq!(id, 0x1);
 
-        leaderboard[0].0 = packet[0..3].try_into().unwrap();
-        leaderboard[0].1 = packet[3];
+        let game = (packet[0..3].try_into().unwrap(), packet[3]);
+        let pos = leaderboard
+            .binary_search_by(|(_, score)| game.1.cmp(score))
+            .map(|e| e + 1)
+            .unwrap_or_else(|e| e);
+        leaderboard.insert(pos, game);
 
         client.send_leaderboard(&leaderboard)?;
     }
@@ -54,7 +47,12 @@ impl GameClient {
 
     pub fn send_leaderboard(&mut self, leaderboard: &[LeaderboardEntry]) -> io::Result<()> {
         let mut lb_packet = [0u8; 40];
-        for (idx, entry) in leaderboard[0..10].iter().enumerate() {
+        for (idx, entry) in leaderboard
+            .iter()
+            .chain(iter::repeat(&(*b"---", 0)))
+            .take(10)
+            .enumerate()
+        {
             let idx = idx * 4;
             lb_packet[idx..(idx + 3)].copy_from_slice(&entry.0);
             lb_packet[idx + 3] = entry.1;
