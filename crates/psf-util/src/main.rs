@@ -16,7 +16,7 @@ fn read_psf_totxt() {
     psf2txt(
         &mut fs::File::create("default8x16.psftxt").unwrap(),
         DEFAULT_FONT,
-        psf,
+        &psf,
     )
     .unwrap();
 }

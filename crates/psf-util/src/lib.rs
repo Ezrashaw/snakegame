@@ -1,3 +1,6 @@
+#![warn(clippy::pedantic, clippy::nursery)]
+#![allow(clippy::missing_panics_doc, clippy::missing_errors_doc)]
+
 use core::slice;
 use std::{
     io::{self, Write},
@@ -5,8 +8,9 @@ use std::{
     str::Lines,
 };
 
-pub const MAGIC_BYTES: u32 = 0x864ab572;
+pub const MAGIC_BYTES: u32 = 0x864a_b572;
 
+#[must_use]
 pub fn read_psf(mut psf: &[u8]) -> PsfFont {
     assert!(psf.len() > 32);
 
@@ -79,16 +83,18 @@ impl<'a> PsfFont<'a> {
         Ok(())
     }
 
-    pub fn glyph_count(&self) -> u32 {
+    #[must_use]
+    pub const fn glyph_count(&self) -> u32 {
         self.glyph_count
     }
 
-    pub fn stride(&self) -> usize {
+    #[must_use]
+    pub const fn stride(&self) -> usize {
         ((self.width + 7) / 8) as usize
     }
 
     pub fn print_table(&self) {
-        let per_row = oca_io::get_termsize().0 as u32 / (self.width + 2);
+        let per_row = u32::from(oca_io::get_termsize().0) / (self.width + 2);
         for row in 0..(self.glyph_count / per_row) {
             for g in 0..per_row {
                 let g = g + row * per_row;
@@ -163,6 +169,7 @@ pub struct UnicodeEntry {
 }
 
 impl UnicodeEntry {
+    #[must_use]
     pub fn get_singles(&self) -> &[char] {
         &self.singles[0..self.singles_count]
     }
@@ -197,7 +204,7 @@ impl UnicodeEntry {
     }
 }
 
-fn find_utf8_boundary(bytes: &[u8]) -> usize {
+const fn find_utf8_boundary(bytes: &[u8]) -> usize {
     if bytes[0] & 0b1000_0000 == 0 {
         1
     } else {
@@ -212,6 +219,7 @@ fn find_utf8_boundary(bytes: &[u8]) -> usize {
     }
 }
 
+#[must_use]
 pub fn ungzip(bytes: &[u8]) -> Vec<u8> {
     let mut cmd = Command::new("gzip")
         .arg("-d")
@@ -224,7 +232,7 @@ pub fn ungzip(bytes: &[u8]) -> Vec<u8> {
     cmd.wait_with_output().unwrap().stdout
 }
 
-pub fn psf2txt(w: &mut impl io::Write, filename: &str, psf: PsfFont) -> io::Result<()> {
+pub fn psf2txt(w: &mut impl io::Write, filename: &str, psf: &PsfFont) -> io::Result<()> {
     writeln!(w, "load {filename}")?;
     writeln!(w, "size {}x{}\n", psf.width, psf.height)?;
 
@@ -290,7 +298,7 @@ pub fn txt2psf(mut lines: Lines, psf: &mut PsfFont) -> io::Result<()> {
 
         let data = psf.get_glyph(char);
         // SAFETY: no no no no no (but it works ;)
-        let data = unsafe { slice::from_raw_parts_mut(data.as_ptr() as *mut u8, data.len()) };
+        let data = unsafe { slice::from_raw_parts_mut(data.as_ptr().cast_mut(), data.len()) };
         assert!(data.len() == height as usize); // TODO: one of the many things to fix
 
         for h in 0..height {
