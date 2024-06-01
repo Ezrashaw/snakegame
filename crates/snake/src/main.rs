@@ -71,7 +71,7 @@ fn do_highscore(ui: &mut GameUi, score: usize) -> io::Result<()> {
     let game_over_text = ADD_LB_TEXT.replace("000", &format!("{score:0>3}"));
 
     let popup = Popup::new(&game_over_text).with_color(Color::Green);
-    let pos = ui.draw_centered(&popup, false)?;
+    let pos = ui.draw_centered(&popup, true)?;
     let mut colored_left = true;
     let mut next_update = Instant::now() + Duration::from_millis(500);
     let mut cursor_pos = 0;
