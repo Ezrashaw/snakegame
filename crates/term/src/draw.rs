@@ -50,8 +50,10 @@ fn with_ctx<D: Draw>(
     assert!(x >= 1 && y >= 1);
 
     let (w, h) = object.size();
+    let mut psout = Vec::with_capacity(1024);
+    write!(psout, "\x1B[{y};{x}H")?;
     let mut ctx = DrawCtx {
-        out: Vec::with_capacity(2048),
+        out: psout,
         x,
         y,
         w,
@@ -63,7 +65,7 @@ fn with_ctx<D: Draw>(
     let string: String = String::from_utf8(ctx.out).unwrap();
     let string = string.replace('\n', &format!("\n\x1B[{x}G"));
 
-    write!(out, "\x1B[{y};{x}H{string}")
+    out.write_all(string.as_bytes())
 }
 
 pub fn draw(out: &mut impl Write, object: impl Draw, x: u16, y: u16) -> io::Result<()> {
@@ -269,6 +271,7 @@ impl Draw for Pixel {
     }
 
     fn draw(self, ctx: &mut DrawCtx) -> io::Result<()> {
+        let o = ctx.o();
         match self {
             Self::Draw { color, bright } => {
                 let color = if bright {
@@ -276,10 +279,10 @@ impl Draw for Pixel {
                 } else {
                     color.fg()
                 };
-                let color = Color::to_str(&color);
-                ctx.draw(0, 0, format!("\x1B[{color}m██\x1B[0m"))
+                write!(o, "\x1B[{}m", Color::to_str(&color))?;
+                write!(o, "██\x1B[0m")
             }
-            Self::Clear => ctx.draw(0, 0, "  "),
+            Self::Clear => write!(o, "  "),
         }
     }
 }
