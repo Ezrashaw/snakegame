@@ -10,7 +10,5 @@ latter itself a dependency of the former).
 ### TODO
 - Continuing work on the leaderboard.
 - Documenting the remainder of the code (everything except `src/snake.rs`).
-- Leaderboard: when "You!" is being put on leaderboard to show the user's
-  score, change the position to an actual number, don't keep it on 10
 - Fixing terminal resize issues :(
 - Some kind of audio feedback.
