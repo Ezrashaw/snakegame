@@ -80,12 +80,12 @@ impl Terminal {
 
 impl Drop for Terminal {
     fn drop(&mut self) {
-        // Don't reset terminal if panicking so that we can see the error message.
+        // Don't clear terminal if panicking so that we can see the error message.
         if !thread::panicking() {
-            write!(&mut self.out, "\x1B[2J\x1B[H").unwrap();
-            write!(&mut self.out, "\x1B[?1049l\x1B[?25h").unwrap();
-            termios::restore(self.old_termios);
+            write!(&mut self.out, "\x1B[2J\x1B[H\x1B[?1049l").unwrap();
         }
+        write!(&mut self.out, "\x1B[?25h").unwrap();
+        termios::restore(self.old_termios);
     }
 }
 
