@@ -181,7 +181,7 @@ pub fn game_main(ui: &mut GameUi) -> io::Result<Option<usize>> {
 /// 1. Calculate the number of free squares.
 /// 2. Generate a random number between 0 and the number of free squares.
 /// 3. Map the generated index onto the canvas (we iterate over the whole canvas, and only
-/// increment on free squares).
+///    increment on free squares).
 /// 4. Place the fruit on the canvas.
 fn gen_fruit(rng: &mut File, ui: &mut GameUi, bitboard: &mut [u64]) -> io::Result<()> {
     // Read eight bytes (a u64) into a buffer.

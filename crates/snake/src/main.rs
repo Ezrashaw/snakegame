@@ -25,7 +25,11 @@ const GAME_OVER_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/game-over.t
 const ADD_LB_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/add-lb.txt"));
 const WELCOME_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/welcome.txt"));
 
-fn main() -> io::Result<()> {
+fn main() {
+    snake_main().unwrap();
+}
+
+fn snake_main() -> io::Result<()> {
     let mut ui = GameUi::init()?;
 
     loop {

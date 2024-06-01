@@ -11,8 +11,8 @@ chmod +x contrib/snake/setup.sh
 
 # Build main snake package.
 cargo clean
-cargo build -Z build-std=std,panic_abort -Z build-std-features=panic_immediate_abort --target x86_64-unknown-linux-musl --release
-cp target/x86_64-unknown-linux-musl/release/snake contrib/snake
+RUSTFLAGS="-Ctarget-cpu=native -Clink-args=-Wl,-build-id=none,--no-eh-frame-hdr -Crelocation-model=static" cargo build -Z build-std=std,panic_abort -Z build-std-features=panic_immediate_abort --target x86_64-unknown-linux-musl --release
+objcopy -R .eh_frame -R .got.plt -R .comment target/x86_64-unknown-linux-musl/release/snake contrib/snake/snake
 
 # Create patched 16x32 consolefont.
 cd crates/psf-util
