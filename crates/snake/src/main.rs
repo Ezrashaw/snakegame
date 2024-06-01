@@ -18,19 +18,18 @@ use std::{
 };
 
 use snake::game_main;
-use term::{from_pansi, Color, Key, KeyEvent, Popup};
+use term::{Color, Key, KeyEvent, Popup};
 use ui::GameUi;
 
-const GAME_OVER_TEXT: &str = include_str!("../pansi/game-over.txt");
-const ADD_LB_TEXT: &str = include_str!("../pansi/add-lb.txt");
-const WELCOME_TEXT: &str = include_str!("../pansi/welcome.txt");
+const GAME_OVER_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/game-over.txt"));
+const ADD_LB_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/add-lb.txt"));
+const WELCOME_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/welcome.txt"));
 
 fn main() -> io::Result<()> {
     let mut ui = GameUi::init()?;
 
     loop {
-        let welcome_text = from_pansi(WELCOME_TEXT);
-        let popup = Popup::new(&welcome_text);
+        let popup = Popup::new(WELCOME_TEXT);
         let pos = ui.draw_centered(&popup, false)?;
         if attractor::run(&mut ui)? {
             break;
@@ -44,8 +43,7 @@ fn main() -> io::Result<()> {
                 if ui.network().is_some() && score > 3 {
                     do_highscore(&mut ui, score)?;
                 } else {
-                    let game_over_text =
-                        from_pansi(GAME_OVER_TEXT).replace("000", &format!("{score:0>3}"));
+                    let game_over_text = GAME_OVER_TEXT.replace("000", &format!("{score:0>3}"));
                     let popup = Popup::new(&game_over_text).with_color(Color::Red);
                     let pos = ui.draw_centered(&popup, true)?;
                     if ui.term().wait_enter(Some(Duration::from_secs(10)))? == KeyEvent::Exit {
@@ -66,7 +64,7 @@ fn main() -> io::Result<()> {
 fn do_highscore(ui: &mut GameUi, score: usize) -> io::Result<()> {
     ui.term().clear_input()?;
 
-    let game_over_text = from_pansi(ADD_LB_TEXT).replace("000", &format!("{score:0>3}"));
+    let game_over_text = ADD_LB_TEXT.replace("000", &format!("{score:0>3}"));
 
     let popup = Popup::new(&game_over_text).with_color(Color::Green);
     let pos = ui.draw_centered(&popup, false)?;

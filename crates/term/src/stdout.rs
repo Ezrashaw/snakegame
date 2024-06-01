@@ -68,16 +68,55 @@ pub enum Color {
 
 impl Color {
     #[must_use]
-    pub(crate) const fn fg(self) -> [u8; 2] {
+    pub const fn fg(self) -> [u8; 2] {
         [b'3', b'0' + self as u8]
     }
 
     #[must_use]
-    pub(crate) const fn fg_bright(self) -> [u8; 2] {
+    pub const fn fg_bright(self) -> [u8; 2] {
         [b'9', b'0' + self as u8]
     }
 
-    pub(crate) fn to_str(x: &[u8]) -> &str {
+    #[must_use]
+    pub fn to_str(x: &[u8]) -> &str {
         std::str::from_utf8(x).unwrap()
+    }
+}
+
+#[must_use]
+pub fn ansi_str_len(s: &str) -> u16 {
+    let mut len = 0;
+    let mut chars = s.chars();
+
+    while let Some(ch) = chars.next() {
+        if ch == '\x1B' {
+            let mut ch = ch;
+            while ch != 'm' {
+                ch = chars.next().unwrap();
+            }
+        } else {
+            len += 1;
+        }
+    }
+    len
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ansi_str_len;
+
+    #[test]
+    fn ansi_len_empty() {
+        assert!(ansi_str_len("") == 0);
+    }
+
+    #[test]
+    fn ansi_len_empty2() {
+        assert!(ansi_str_len("\x1B[11121;424m") == 0);
+    }
+
+    #[test]
+    fn ansi_len_help_text() {
+        assert!(ansi_str_len("MOVE WITH \x1B[1;36mARROW KEYS\x1B[0m; EAT \x1B[1;31mFRUIT\x1B[0m; AVOID \x1B[1;32mTAIL\x1B[0m AND \x1B[1;2;37mWALLS\x1B[0m") == 53);
     }
 }

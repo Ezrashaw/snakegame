@@ -4,17 +4,17 @@ use std::{
     time::{Duration, Instant},
 };
 
-use term::{ansi_str_len, from_pansi, Box, CenteredStr, Draw, DrawCtx, Rect, Terminal};
+use term::{ansi_str_len, Box, CenteredStr, Draw, DrawCtx, Rect, Terminal};
 
 use crate::{
     leaderboard::{Leaderboard, LeaderboardUpdate},
     network::Network,
 };
 
-const CREDITS_TEXT: &str = include_str!("../pansi/credits.txt");
-const STATS_TEXT: &str = include_str!("../pansi/stats.txt");
-const SNAKE_TEXT: &str = include_str!("../pansi/snake.txt");
-const HELP_TEXT: &str = include_str!("../pansi/help.txt");
+const CREDITS_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/credits.txt"));
+const STATS_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/stats.txt"));
+const SNAKE_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/snake.txt"));
+const HELP_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/help.txt"));
 const GIT_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/git.txt"));
 
 pub const CANVAS_W: u16 = 28;
@@ -188,15 +188,14 @@ fn draw_static(term: &mut Terminal) -> io::Result<(u16, u16)> {
     let (w, h) = term.size();
 
     // Draw the credits text in the bottom left corner of the screen.
-    term.draw(1, h - 3, from_pansi(CREDITS_TEXT))?;
+    term.draw(1, h - 3, CREDITS_TEXT)?;
 
     // Draw the git commit text in the bottom right corner of the screen.
-    let git_text = from_pansi(GIT_TEXT);
-    let git_width = ansi_str_len(git_text.split_once('\n').unwrap().0);
-    term.draw(w - git_width as u16, h - 1, git_text)?;
+    let git_width = ansi_str_len(GIT_TEXT.split_once('\n').unwrap().0);
+    term.draw(w - git_width, h - 1, GIT_TEXT)?;
 
     // Draw the SNAKE title text in the top center of the screen.
-    term.draw_centered(from_pansi(SNAKE_TEXT), Rect::new(1, 1, w, 4))?;
+    term.draw_centered(SNAKE_TEXT, Rect::new(1, 1, w, 4))?;
 
     // Draw the outline of the canvas in the center of the entire screen. We use the xy values
     // given back to calculate the position of the help text, and the leaderboard + stats panel
@@ -209,7 +208,7 @@ fn draw_static(term: &mut Terminal) -> io::Result<(u16, u16)> {
 
     // Draw the help text, centered underneath the canvas.
     term.draw_centered(
-        CenteredStr(from_pansi(HELP_TEXT)),
+        CenteredStr(HELP_TEXT),
         Rect::new(cx + 1, cy + CANVAS_H + 2, CANVAS_W * 2, 2),
     )?;
 
@@ -244,7 +243,7 @@ impl Draw for &Stats {
                 .with_separator(1)
                 .with_corners(['┌', '┤', '└', '┤']),
         )?;
-        ctx.draw(2, 1, from_pansi(STATS_TEXT))
+        ctx.draw(2, 1, STATS_TEXT)
     }
 
     type Update = StatsUpdate;

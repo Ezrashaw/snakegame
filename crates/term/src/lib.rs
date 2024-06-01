@@ -8,12 +8,10 @@
     clippy::module_name_repetitions
 )]
 
-mod ansi;
 mod draw;
 mod stdin;
 mod stdout;
 
-pub use ansi::{ansi_str_len, from_pansi};
 use oca_io::{
     termios::{self, Termios},
     CircularBuffer,
@@ -21,7 +19,7 @@ use oca_io::{
 
 pub use draw::{draw, draw_centered, update, Box, CenteredStr, Draw, DrawCtx, Pixel, Popup};
 pub use stdin::{Key, KeyEvent};
-pub use stdout::{Color, Rect};
+pub use stdout::{ansi_str_len, Color, Rect};
 
 use std::{
     fs::File,

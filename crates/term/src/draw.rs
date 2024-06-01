@@ -1,4 +1,4 @@
-use crate::{ansi_str_len, Color, Rect};
+use crate::{stdout::ansi_str_len, Color, Rect};
 use std::io::{self, Write};
 
 pub trait Draw: Sized {
