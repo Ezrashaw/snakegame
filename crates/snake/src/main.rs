@@ -1,3 +1,4 @@
+#![feature(let_chains)]
 #![warn(clippy::pedantic, clippy::nursery)]
 #![allow(
     clippy::cast_possible_truncation,
@@ -36,7 +37,7 @@ fn main() -> io::Result<()> {
         }
         ui.clear_centered(&popup, pos)?;
 
-        ui.reset_game()?;
+        ui.reset_game(Some(0))?;
 
         match game_main(&mut ui)? {
             Some(score) => {
@@ -53,7 +54,7 @@ fn main() -> io::Result<()> {
                     ui.clear_centered(&popup, pos)?;
                 }
 
-                ui.reset_game()?;
+                ui.reset_game(None)?;
             }
             None => break,
         }

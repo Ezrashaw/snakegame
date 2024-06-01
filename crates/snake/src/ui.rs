@@ -135,7 +135,7 @@ impl GameUi {
         Ok(())
     }
 
-    pub fn reset_game(&mut self) -> io::Result<()> {
+    pub fn reset_game(&mut self, leaderboard_score: Option<u8>) -> io::Result<()> {
         self.term
             .clear_rect(Rect::new(self.cx + 1, self.cy + 1, CANVAS_W * 2, CANVAS_H))?;
 
@@ -150,7 +150,7 @@ impl GameUi {
                 lb.entries = entries;
             }
 
-            lb.score = 0;
+            lb.score = leaderboard_score;
             self.term.update(
                 self.cx + (CANVAS_W * 2) + 4,
                 self.cy,
