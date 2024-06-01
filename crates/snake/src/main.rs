@@ -18,7 +18,10 @@ mod network;
 mod snake;
 mod ui;
 
-use std::{io, thread, time::Duration};
+use std::{
+    io,
+    time::{Duration, Instant},
+};
 
 use snake::game_main;
 use term::{from_pansi, Color, Key, KeyEvent, Popup};
@@ -74,15 +77,16 @@ fn do_highscore(ui: &mut GameUi, score: usize) -> io::Result<()> {
     let popup = Popup::new(&game_over_text).with_color(Color::Green);
     let pos = ui.draw_centered(&popup, false)?;
     let mut colored_left = true;
+    let mut next_update = Instant::now() + Duration::from_millis(500);
     let mut cursor_pos = 0;
     let mut input = [0u8; 3];
-    loop {
-        thread::sleep(Duration::from_secs(1));
 
+    loop {
         match ui
             .term()
-            .get_key(|k| matches!(k, Key::Char(_) | Key::Back | Key::Enter))?
-        {
+            .get_key_timeout(Some(next_update.duration_since(Instant::now())), |k| {
+                matches!(k, Key::Char(_) | Key::Back | Key::Enter)
+            })? {
             Some(Key::Char(ch)) if cursor_pos < 3 => {
                 let ch = ch.to_ascii_uppercase();
                 input[cursor_pos as usize] = ch;
@@ -102,18 +106,22 @@ fn do_highscore(ui: &mut GameUi, score: usize) -> io::Result<()> {
             _ => (),
         }
 
-        let str = if colored_left {
-            "\x1B[32mGREAT \x1B[1mSCORE\x1B[0m"
-        } else {
-            "\x1B[32;1mGREAT \x1B[22mSCORE\x1B[0m"
-        };
-        ui.term().draw(pos.0 + 11, pos.1 + 1, str)?;
-        colored_left = !colored_left;
+        if Instant::now() > next_update {
+            let str = if colored_left {
+                "\x1B[32mGREAT \x1B[1mSCORE\x1B[0m"
+            } else {
+                "\x1B[32;1mGREAT \x1B[22mSCORE\x1B[0m"
+            };
+            ui.term().draw(pos.0 + 11, pos.1 + 1, str)?;
+            colored_left = !colored_left;
+            next_update = Instant::now() + Duration::from_millis(500);
+        }
     }
 
     ui.clear_centered(&popup, pos)?;
 
     ui.network().unwrap().send_game(input, score as u8)?;
+    ui.block_update_lb()?;
 
     Ok(())
 }

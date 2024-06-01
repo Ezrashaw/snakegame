@@ -22,8 +22,11 @@ impl Network {
             return None;
         }
 
-        let lb = read_leaderboard(&mut self.conn).unwrap();
-        Some(lb)
+        Some(self.force_read_leaderboard())
+    }
+
+    pub fn force_read_leaderboard(&mut self) -> LeaderboardEntries {
+        read_leaderboard(&mut self.conn).unwrap()
     }
 
     pub fn send_game(&mut self, name: [u8; 3], score: u8) -> io::Result<()> {

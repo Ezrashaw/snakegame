@@ -38,7 +38,15 @@ impl Terminal {
     }
 
     pub fn get_key(&mut self, want_key: impl Fn(Key) -> bool) -> io::Result<Option<Key>> {
-        self.pollkey(Some(Duration::ZERO))?;
+        self.get_key_timeout(Some(Duration::ZERO), want_key)
+    }
+
+    pub fn get_key_timeout(
+        &mut self,
+        timeout: Option<Duration>,
+        want_key: impl Fn(Key) -> bool,
+    ) -> io::Result<Option<Key>> {
+        self.pollkey(timeout)?;
         loop {
             match self.kbd_buf.read() {
                 Some(Key::CrtlC) => return Ok(Some(Key::CrtlC)),

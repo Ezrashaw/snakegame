@@ -121,6 +121,20 @@ impl GameUi {
         Ok(())
     }
 
+    pub fn block_update_lb(&mut self) -> io::Result<()> {
+        if let Some((network, lb)) = &mut self.lb {
+            lb.entries = network.force_read_leaderboard();
+            self.term.update(
+                self.cx + (CANVAS_W * 2) + 4,
+                self.cy,
+                lb,
+                LeaderboardUpdate::Redraw,
+            )?;
+        }
+
+        Ok(())
+    }
+
     pub fn reset_game(&mut self) -> io::Result<()> {
         self.term
             .clear_rect(Rect::new(self.cx + 1, self.cy + 1, CANVAS_W * 2, CANVAS_H))?;
