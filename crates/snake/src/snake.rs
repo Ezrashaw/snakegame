@@ -8,13 +8,13 @@
 //! already been setup. This function runs the game through to completion.
 
 use std::{
-    collections::VecDeque,
     fs::File,
     io::{self, Read},
     thread,
     time::Duration,
 };
 
+use oca_io::CircularBuffer;
 use term::{Color, Key, Pixel};
 
 use crate::ui::{Coord, GameUi, CANVAS_H, CANVAS_W};
@@ -55,15 +55,16 @@ pub fn game_main(ui: &mut GameUi) -> io::Result<Option<usize>> {
     // We face towards the rest of the canvas, that is, rightwards.
     let mut direction = Direction::Right;
     // The tail starts out being empty, we add to it and trim it to keep it less than `len`.
-    let mut tail = VecDeque::new();
+    let mut tail = CircularBuffer::<Coord, { (CANVAS_W * CANVAS_H) as usize }>::new();
     // Initialize the bitboard that we use to determine valid locations for placing fruits. We take
     // the number of game cells, divided by size of each value (64 bits). Note also that division
     // rounds down, so we have to add another u64 (which will only be partly filled).
-    let mut bitboard = vec![0u64; CANVAS_W as usize * CANVAS_H as usize / 64 + 1];
+    let mut bitboard = [0u64; (CANVAS_W * CANVAS_H) as usize / 64 + 1];
     // Initialize the current step time to `STARTING_STEP_TIME`.
     let mut step_time = STARTING_STEP_TIME;
     // Initialize the snake's length to the starting length.
     let mut len = STARTING_LENGTH;
+    
     // Initialize the fruits from the locations in FOOD_LOCATIONS.
     for (x, y) in FOOD_LOCATIONS {
         let coord = Coord { x, y };
@@ -75,12 +76,12 @@ pub fn game_main(ui: &mut GameUi) -> io::Result<Option<usize>> {
 
     loop {
         // Put the head into the tail, and mark it as occupied on the bitboard.
-        tail.push_back(head);
+        tail.push(head);
         set_bb(&mut bitboard, head, true);
 
         // If the tail is longer than the snake's length, trim it.
         if tail.len() > len {
-            let coord = tail.pop_front().unwrap();
+            let coord = tail.pop().unwrap();
 
             ui.draw_canvas(coord, Pixel::Clear)?;
             set_bb(&mut bitboard, coord, false);
@@ -123,7 +124,7 @@ pub fn game_main(ui: &mut GameUi) -> io::Result<Option<usize>> {
         // Check if we have encountered *something*, we'll find out what it is below.
         if get_bb(&bitboard, head) {
             // If we have hit our own tail, then we die...
-            if tail.contains(&head) {
+            if tail.iter().any(|h| h == head) {
                 // Make sure to reset the head position back to where it was, otherwise the animation
                 // mucks up.
                 head = old_pos;
@@ -154,7 +155,7 @@ pub fn game_main(ui: &mut GameUi) -> io::Result<Option<usize>> {
     }
 
     // Do a fun little death animation.
-    for &coord in tail.iter().rev().skip(1) {
+    for coord in tail.iter().rev().skip(1) {
         ui.draw_canvas(coord, Pixel::new(Color::Red, false))?;
         thread::sleep(Duration::from_millis(50));
     }

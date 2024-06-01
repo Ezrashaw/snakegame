@@ -9,7 +9,7 @@ impl Terminal {
     pub fn clear_input(&mut self) -> io::Result<bool> {
         self.pollkey(Some(Duration::ZERO))?;
 
-        while let Some(key) = self.kbd_buf.read() {
+        while let Some(key) = self.kbd_buf.pop() {
             if matches!(key, Key::CrtlC) {
                 return Ok(true);
             }
@@ -29,7 +29,7 @@ impl Terminal {
                 break Ok(KeyEvent::Timeout);
             }
 
-            match self.kbd_buf.read() {
+            match self.kbd_buf.pop() {
                 Some(Key::CrtlC) => return Ok(KeyEvent::Exit),
                 Some(Key::Enter) => return Ok(KeyEvent::Key(Key::Enter)),
                 _ => (),
@@ -48,7 +48,7 @@ impl Terminal {
     ) -> io::Result<Option<Key>> {
         self.pollkey(timeout)?;
         loop {
-            match self.kbd_buf.read() {
+            match self.kbd_buf.pop() {
                 Some(Key::CrtlC) => return Ok(Some(Key::CrtlC)),
                 Some(k) if want_key(k) => return Ok(Some(k)),
                 Some(_) => (),
@@ -77,7 +77,7 @@ impl Terminal {
         };
 
         while let Some(b) = next() {
-            self.kbd_buf.write(match b {
+            self.kbd_buf.push(match b {
                 0x3 => Key::CrtlC,
                 b'\n' => Key::Enter,
                 0x7F => Key::Back,

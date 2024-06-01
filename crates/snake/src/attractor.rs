@@ -1,5 +1,6 @@
-use std::{collections::VecDeque, io, thread};
+use std::{io, thread};
 
+use oca_io::CircularBuffer;
 use term::{Color, Key, Pixel};
 
 use crate::{
@@ -9,7 +10,7 @@ use crate::{
 
 pub fn run(ui: &mut GameUi) -> io::Result<bool> {
     let mut head = snake::STARTING_POS;
-    let mut tail = VecDeque::with_capacity(snake::STARTING_LENGTH);
+    let mut tail = CircularBuffer::<Coord, { snake::STARTING_LENGTH * 2 + 1 }>::new();
     let (mut dir, mut left) = get_dir(0, &mut head).unwrap();
     let mut move_segment = 0;
 
@@ -17,10 +18,10 @@ pub fn run(ui: &mut GameUi) -> io::Result<bool> {
 
     loop {
         ui.draw_canvas(head, Pixel::new(Color::Green, true))?;
-        tail.push_back(head);
+        tail.push(head);
 
         if tail.len() > snake::STARTING_LENGTH * 2 {
-            ui.draw_canvas(tail.pop_front().unwrap(), Pixel::Clear)?;
+            ui.draw_canvas(tail.pop().unwrap(), Pixel::Clear)?;
         }
 
         let fruit_coord = match head {
