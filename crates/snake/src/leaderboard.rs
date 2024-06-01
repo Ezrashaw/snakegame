@@ -105,15 +105,14 @@ impl Draw for &mut Leaderboard {
     type Update = LeaderboardUpdate;
     fn update(self, ctx: &mut DrawCtx, update: Self::Update) -> io::Result<()> {
         match update {
-            LeaderboardUpdate::Score(score)
-                if let Some(you_row) = self.you_row
-                    && !(you_row > 0 && score > self.entries[you_row as usize - 1].1) =>
-            {
-                self.score = score;
-                ctx.draw(10, 3 + you_row, format!("\x1B[1;95m{score:0>3}\x1B[0m"))
-            }
             LeaderboardUpdate::Score(score) => {
                 self.score = score;
+                if let Some(you_row) = self.you_row {
+                    if you_row == 0 || score <= self.entries[you_row as usize - 1].1 {
+                        return ctx.draw(10, 3 + you_row, format!("\x1B[1;95m{score:0>3}\x1B[0m"));
+                    }
+                }
+
                 self.draw_entries(ctx)
             }
             LeaderboardUpdate::Redraw => self.draw_entries(ctx),

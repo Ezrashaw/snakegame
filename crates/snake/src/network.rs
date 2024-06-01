@@ -54,7 +54,7 @@ fn read_leaderboard(stream: &mut TcpStream) -> io::Result<LeaderboardEntries> {
     assert_eq!(packet.len(), 40);
 
     let mut entries = LeaderboardEntries::default();
-    for (idx, entry) in packet.array_chunks::<4>().enumerate() {
+    for (idx, entry) in packet.chunks(4).enumerate() {
         entries[idx].0 = entry[0..3].try_into().unwrap();
         entries[idx].1 = entry[3];
     }
