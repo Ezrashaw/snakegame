@@ -3,15 +3,15 @@ use std::io::{self, Write};
 
 impl Terminal {
     pub fn draw(&mut self, x: u16, y: u16, object: impl Draw) -> io::Result<()> {
-        crate::draw(&mut self.out, object, x, y)
+        crate::draw(&mut self.file, object, x, y)
     }
 
     pub fn update<T: Draw>(&mut self, x: u16, y: u16, object: T, u: T::Update) -> io::Result<()> {
-        crate::update(&mut self.out, object, x, y, u)
+        crate::update(&mut self.file, object, x, y, u)
     }
 
     pub fn draw_centered(&mut self, object: impl Draw, rect: Rect) -> io::Result<(u16, u16)> {
-        crate::draw_centered(&mut self.out, object, rect, false)
+        crate::draw_centered(&mut self.file, object, rect, false)
     }
 
     pub fn draw_centered_hoff(
@@ -20,13 +20,13 @@ impl Terminal {
         rect: Rect,
         hoff: bool,
     ) -> io::Result<(u16, u16)> {
-        crate::draw_centered(&mut self.out, object, rect, hoff)
+        crate::draw_centered(&mut self.file, object, rect, hoff)
     }
 
     pub fn clear_rect(&mut self, rect: Rect) -> io::Result<()> {
         let (x, y, w, h) = (rect.x, rect.y, rect.w as usize, rect.h);
         for i in 0..h {
-            write!(&mut self.out, "\x1B[{};{x}H{:w$}", y + i, "")?;
+            write!(&mut self.file, "\x1B[{};{x}H{:w$}", y + i, "")?;
         }
         Ok(())
     }

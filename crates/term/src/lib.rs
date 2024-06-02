@@ -27,8 +27,7 @@ use std::{
 };
 
 pub struct Terminal {
-    out: File,
-    in_: File,
+    file: File,
     kbd_buf: CircularBuffer<Key, 64>,
 
     old_termios: Termios,
@@ -44,16 +43,12 @@ impl Terminal {
             t.set_ixon(false);
         });
 
-        // SAFETY: we can always wrap FD 1 (stdout).
-        let mut out = unsafe { File::from_raw_fd(1) };
-        write!(out, "\x1B[?1049h\x1B[?25l\x1B[2J\x1B[H")?;
-
         // SAFETY: we can always wrap FD 0 (stdin).
-        let in_ = unsafe { File::from_raw_fd(0) };
+        let mut file = unsafe { File::from_raw_fd(0) };
+        write!(file, "\x1B[?1049h\x1B[?25l\x1B[2J\x1B[H")?;
 
         Ok(Self {
-            out,
-            in_,
+            file,
             kbd_buf: CircularBuffer::new(),
             old_termios,
             term_size: oca_io::get_termsize(),
@@ -70,9 +65,9 @@ impl Drop for Terminal {
     fn drop(&mut self) {
         // Don't clear terminal if panicking so that we can see the error message.
         if !thread::panicking() {
-            write!(&mut self.out, "\x1B[2J\x1B[H\x1B[?1049l").unwrap();
+            write!(&mut self.file, "\x1B[2J\x1B[H\x1B[?1049l").unwrap();
         }
-        write!(&mut self.out, "\x1B[?25h").unwrap();
+        write!(&mut self.file, "\x1B[?25h").unwrap();
         termios::restore(self.old_termios);
     }
 }

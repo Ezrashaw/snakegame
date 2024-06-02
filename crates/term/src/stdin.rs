@@ -57,13 +57,13 @@ impl Terminal {
     }
 
     fn pollkey(&mut self, timeout: Option<Duration>) -> io::Result<bool> {
-        if !oca_io::poll_file(&self.in_, timeout) {
+        if !oca_io::poll_file(&self.file, timeout) {
             // no data received
             return Ok(true);
         }
 
         let mut buf = [0u8; 64];
-        let n = self.in_.read(&mut buf)?;
+        let n = self.file.read(&mut buf)?;
         assert!(n != 64);
 
         let mut i = 0;
