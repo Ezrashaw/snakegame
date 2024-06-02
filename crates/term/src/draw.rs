@@ -1,4 +1,4 @@
-use crate::{stdout::ansi_str_len, Color, Rect};
+use crate::{ansi_str_len, Color, Rect};
 use std::io::{self, Write};
 
 pub trait Draw: Sized {
@@ -90,12 +90,6 @@ pub fn draw_centered(
 ) -> io::Result<(u16, u16)> {
     let (w, h) = object.size();
     assert!(w <= rect.w && h <= rect.h);
-
-    if cfg!(feature = "term_debug") {
-        write!(out, "\x1B[32m")?;
-        draw(out, Box::new(rect.w - 2, rect.h - 2), rect.x, rect.y)?;
-        write!(out, "\x1B[0m")?;
-    }
 
     let hoff = (rect.h - h) % 2 != 0;
     if (rect.w - w) % 2 != 0 || (allow_hoff ^ hoff) {

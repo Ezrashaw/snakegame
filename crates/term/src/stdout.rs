@@ -1,6 +1,4 @@
-use crate::Draw;
-
-use super::Terminal;
+use crate::{Draw, Terminal};
 use std::io::{self, Write};
 
 impl Terminal {

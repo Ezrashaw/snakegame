@@ -3,7 +3,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use super::Terminal;
+use crate::Terminal;
 
 impl Terminal {
     pub fn clear_input(&mut self) -> io::Result<bool> {
@@ -82,11 +82,11 @@ impl Terminal {
                 b'\n' => Key::Enter,
                 0x7F => Key::Back,
                 0x1B => match next() {
-                    Some(b'[') if let Some(n) = next() => match n {
-                        b'A' => Key::Up,
-                        b'B' => Key::Down,
-                        b'C' => Key::Right,
-                        b'D' => Key::Left,
+                    Some(b'[') => match next() {
+                        Some(b'A') => Key::Up,
+                        Some(b'B') => Key::Down,
+                        Some(b'C') => Key::Right,
+                        Some(b'D') => Key::Left,
                         _ => Key::Unknown,
                     },
                     _ => Key::Unknown,

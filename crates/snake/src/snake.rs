@@ -64,8 +64,8 @@ pub fn game_main(ui: &mut GameUi) -> io::Result<Option<usize>> {
     let mut step_time = STARTING_STEP_TIME;
     // Initialize the snake's length to the starting length.
     let mut len = STARTING_LENGTH;
-    
-    // Initialize the fruits from the locations in FOOD_LOCATIONS.
+
+    // Initialize the fruits from the locations in `FOOD_LOCATIONS`.
     for (x, y) in FOOD_LOCATIONS {
         let coord = Coord { x, y };
 

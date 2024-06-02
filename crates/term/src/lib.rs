@@ -1,8 +1,6 @@
-#![feature(strict_overflow_ops, associated_type_defaults, if_let_guard)]
+#![feature(strict_overflow_ops, associated_type_defaults)]
 #![warn(clippy::pedantic, clippy::nursery)]
 #![allow(
-    clippy::cast_possible_truncation,
-    clippy::cast_possible_wrap,
     clippy::missing_errors_doc,
     clippy::missing_panics_doc,
     clippy::module_name_repetitions
@@ -58,9 +56,6 @@ impl Terminal {
 
         let term_size = oca_io::get_termsize();
 
-        #[cfg(feature = "term_debug")]
-        draw_debug_lines(term_size.0, term_size.1);
-
         Ok(Self {
             out,
             in_,
@@ -84,20 +79,5 @@ impl Drop for Terminal {
         }
         write!(&mut self.out, "\x1B[?25h").unwrap();
         termios::restore(self.old_termios);
-    }
-}
-
-#[cfg(feature = "term_debug")]
-fn draw_debug_lines(w: u16, h: u16) {
-    for i in (1..h).step_by(2) {
-        print!("\x1B[{i};0H{i:0>2}--+");
-        for x in (1..(w - 15)).step_by(5) {
-            if x % 10 == 1 {
-                print!("--{:0>2}+", x + 9);
-            } else {
-                print!("----+");
-            }
-        }
-        println!("\x1B[{}G{i:0>2}", w - 1);
     }
 }
