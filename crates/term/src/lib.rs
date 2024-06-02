@@ -10,14 +10,14 @@ mod draw;
 mod stdin;
 mod stdout;
 
+pub use draw::{draw, draw_centered, update, Box, CenteredStr, Draw, DrawCtx, Pixel, Popup};
+pub use stdin::{Key, KeyEvent};
+pub use stdout::{ansi_str_len, Color, Rect};
+
 use oca_io::{
     termios::{self, Termios},
     CircularBuffer,
 };
-
-pub use draw::{draw, draw_centered, update, Box, CenteredStr, Draw, DrawCtx, Pixel, Popup};
-pub use stdin::{Key, KeyEvent};
-pub use stdout::{ansi_str_len, Color, Rect};
 
 use std::{
     fs::File,
@@ -25,8 +25,6 @@ use std::{
     os::fd::FromRawFd,
     thread,
 };
-
-// remember that coordinates begin at one, not zero.
 
 pub struct Terminal {
     out: File,
@@ -48,20 +46,17 @@ impl Terminal {
 
         // SAFETY: we can always wrap FD 1 (stdout).
         let mut out = unsafe { File::from_raw_fd(1) };
+        write!(out, "\x1B[?1049h\x1B[?25l\x1B[2J\x1B[H")?;
+
         // SAFETY: we can always wrap FD 0 (stdin).
         let in_ = unsafe { File::from_raw_fd(0) };
-
-        write!(out, "\x1B[?1049h\x1B[?25l")?;
-        write!(out, "\x1B[2J\x1B[H")?;
-
-        let term_size = oca_io::get_termsize();
 
         Ok(Self {
             out,
             in_,
             kbd_buf: CircularBuffer::new(),
             old_termios,
-            term_size,
+            term_size: oca_io::get_termsize(),
         })
     }
 

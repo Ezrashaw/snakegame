@@ -1,9 +1,8 @@
+use crate::Terminal;
 use std::{
     io::{self, Read},
     time::{Duration, Instant},
 };
-
-use crate::Terminal;
 
 impl Terminal {
     pub fn clear_input(&mut self) -> io::Result<bool> {

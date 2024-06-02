@@ -1,4 +1,4 @@
-#[cfg(not(all(target_os = "linux")))]
+#[cfg(not(target_os = "linux"))]
 compile_error!("This program only runs on Linux");
 
 use std::{os::fd::AsRawFd, ptr, time::Duration};

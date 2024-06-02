@@ -2,10 +2,6 @@ use crate::{Draw, Terminal};
 use std::io::{self, Write};
 
 impl Terminal {
-    pub fn write(&mut self, s: &str) -> io::Result<()> {
-        write!(self.out, "{s}")
-    }
-
     pub fn draw(&mut self, x: u16, y: u16, object: impl Draw) -> io::Result<()> {
         crate::draw(&mut self.out, object, x, y)
     }

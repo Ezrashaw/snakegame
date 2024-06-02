@@ -3,8 +3,7 @@ use std::io::{self, Write};
 
 pub trait Draw: Sized {
     type Update = ();
-    #[allow(unused)]
-    fn update(self, ctx: &mut DrawCtx, update: Self::Update) -> io::Result<()> {
+    fn update(self, _ctx: &mut DrawCtx, _update: Self::Update) -> io::Result<()> {
         unimplemented!()
     }
 
@@ -118,12 +117,8 @@ impl<T: AsRef<str>> Draw for T {
         let str = self.as_ref();
         assert_eq!(str, str.trim_end_matches('\n'));
 
-        let o = ctx.o();
         for (idx, line) in str.lines().enumerate() {
-            if idx != 0 {
-                writeln!(o)?;
-            }
-            write!(o, "{line}")?;
+            write!(ctx.o(), "{}{line}", if idx == 0 { "" } else { "\n" })?;
         }
 
         Ok(())

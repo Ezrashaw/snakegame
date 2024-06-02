@@ -83,8 +83,8 @@ pub fn game_main(ui: &mut GameUi) -> io::Result<Option<usize>> {
         if tail.len() > len {
             let coord = tail.pop().unwrap();
 
-            ui.draw_canvas(coord, Pixel::Clear)?;
             set_bb(&mut bitboard, coord, false);
+            ui.draw_canvas(coord, Pixel::Clear)?;
         }
 
         // Draw the snake's head onto the screen.
@@ -104,11 +104,8 @@ pub fn game_main(ui: &mut GameUi) -> io::Result<Option<usize>> {
             // If CTRL-C is pushed, then exit.
             Some(Key::CrtlC) => return Ok(None),
 
-            // Otherwise, handle a movement keypress.
-            Some(key) => {
-                // Map movement keys to their respective directions.
-                direction = direction.change_from_key(key).unwrap();
-            }
+            // Otherwise, handle a movement keypress, mapping keys to their respective directions.
+            Some(key) => direction = direction.change_from_key(key).unwrap(),
         }
 
         // Actually move the snake's head position, checking to see if we have hit a wall.
@@ -260,7 +257,7 @@ pub enum Direction {
 impl Direction {
     /// Convert a keypress event into a direction for the snake, checking that the snake isn't
     /// doubling back on itself or continuing in the same direction (the latter improves input
-    /// "feel")
+    /// "feel").
     pub const fn change_from_key(self, key: Key) -> Option<Self> {
         Some(match (self, key) {
             (Self::Left | Self::Right, Key::Up | Key::Char(b'w')) => Self::Up,

@@ -37,10 +37,10 @@ impl Termios {
         assert_eq!(res, 0);
     }
 
-    set_bit!(fn set_sig(c_lflag) => ISIG );
-    set_bit!(fn set_canonical(c_lflag) => ICANON );
-    set_bit!(fn set_echo(c_lflag) => ECHO );
-    set_bit!(fn set_ixon(c_iflag) => IXON );
+    set_bit!(fn set_sig(c_lflag) => ISIG);
+    set_bit!(fn set_canonical(c_lflag) => ICANON);
+    set_bit!(fn set_echo(c_lflag) => ECHO);
+    set_bit!(fn set_ixon(c_iflag) => IXON);
 }
 
 pub fn init(f: impl FnOnce(&mut Termios)) -> Termios {
