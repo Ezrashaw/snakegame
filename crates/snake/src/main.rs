@@ -4,7 +4,6 @@
 
 mod attractor;
 mod leaderboard;
-mod network;
 mod snake;
 mod ui;
 
@@ -36,12 +35,13 @@ fn snake_main() -> io::Result<()> {
         }
         ui.clear_centered(&popup, pos)?;
 
-        ui.reset_game(Some(0))?;
+        ui.reset_game(false)?;
 
         match game_main(&mut ui)? {
             Some(score) => {
-                if ui.network().is_some() && score > 3 {
+                if ui.lb().is_some() && score > 3 {
                     do_highscore(&mut ui, score)?;
+                    ui.reset_game(true)?;
                 } else {
                     let game_over_text = GAME_OVER_TEXT.replace("000", &format!("{score:0>3}"));
                     let popup = Popup::new(&game_over_text).with_color(Color::Red);
@@ -50,9 +50,8 @@ fn snake_main() -> io::Result<()> {
                         break;
                     }
                     ui.clear_centered(&popup, pos)?;
+                    ui.reset_game(false)?;
                 }
-
-                ui.reset_game(None)?;
             }
             None => break,
         }
@@ -111,9 +110,5 @@ fn do_highscore(ui: &mut GameUi, score: usize) -> io::Result<()> {
     }
 
     ui.clear_centered(&popup, pos)?;
-
-    ui.network().unwrap().send_game(input, score as u8)?;
-    ui.block_update_lb()?;
-
-    Ok(())
+    ui.lb().unwrap().send_game(input, score as u8)
 }

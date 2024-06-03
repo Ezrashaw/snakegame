@@ -6,27 +6,15 @@ use std::{
 
 use oca_io::network::{self as oca_network, LeaderboardEntries};
 
-pub struct Network {
-    conn: TcpStream,
-}
+use super::Leaderboard;
 
-impl Network {
-    pub fn init() -> Option<(Self, LeaderboardEntries)> {
-        let (entries, conn) = try_tcp().ok()?;
-
-        Some((Self { conn }, entries))
-    }
-
-    pub fn read_leaderboard(&mut self) -> Option<LeaderboardEntries> {
-        if !oca_io::poll_file(&self.conn, Some(Duration::ZERO)) {
+impl Leaderboard {
+    pub(super) fn read_leaderboard(&mut self, block: bool) -> Option<LeaderboardEntries> {
+        if !block && !oca_io::poll_file(&self.conn, Some(Duration::ZERO)) {
             return None;
         }
 
-        Some(self.force_read_leaderboard())
-    }
-
-    pub fn force_read_leaderboard(&mut self) -> LeaderboardEntries {
-        read_leaderboard(&mut self.conn).unwrap()
+        read_leaderboard(&mut self.conn).ok()
     }
 
     pub fn send_game(&mut self, name: [u8; 3], score: u8) -> io::Result<()> {
@@ -37,7 +25,7 @@ impl Network {
     }
 }
 
-fn try_tcp() -> io::Result<(LeaderboardEntries, TcpStream)> {
+pub(super) fn try_tcp() -> io::Result<(LeaderboardEntries, TcpStream)> {
     let mut conn = TcpStream::connect((Ipv4Addr::LOCALHOST, 1234))?;
 
     let hostname = fs::read_to_string("/proc/sys/kernel/hostname")?;

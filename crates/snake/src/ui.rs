@@ -6,10 +6,7 @@ use std::{
 
 use term::{ansi_str_len, Box, CenteredStr, Draw, DrawCtx, Rect, Terminal};
 
-use crate::{
-    leaderboard::{Leaderboard, LeaderboardUpdate},
-    network::Network,
-};
+use crate::leaderboard::{Leaderboard, LeaderboardUpdate};
 
 const CREDITS_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/credits.txt"));
 const STATS_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/stats.txt"));
@@ -23,7 +20,7 @@ pub const CANVAS_H: u16 = 19;
 pub struct GameUi {
     term: Terminal,
     stats: Stats,
-    lb: Option<(Network, Leaderboard)>,
+    lb: Option<Leaderboard>,
     cx: u16,
     cy: u16,
     last_tick_update: Instant,
@@ -44,11 +41,9 @@ impl GameUi {
         let stats = Stats(Instant::now());
         term.draw(cx - 16, cy + 2, &stats)?;
 
-        let network = Network::init();
-        let lb = if let Some((network, entries)) = network {
-            let mut lb = Leaderboard::init(entries);
-            term.draw(cx + (CANVAS_W * 2) + 4, cy, &mut lb)?;
-            Some((network, lb))
+        let lb = if let Some(mut leaderboard) = Leaderboard::init() {
+            term.draw(cx + (CANVAS_W * 2) + 4, cy, &mut leaderboard)?;
+            Some(leaderboard)
         } else {
             None
         };
@@ -85,7 +80,7 @@ impl GameUi {
     pub fn update_score(&mut self, score: usize) -> io::Result<()> {
         self.update_stats(StatsUpdate::Score(score))?;
 
-        if let Some((_, lb)) = &mut self.lb {
+        if let Some(lb) = &mut self.lb {
             self.term.update(
                 self.cx + (CANVAS_W * 2) + 4,
                 self.cy,
@@ -101,19 +96,14 @@ impl GameUi {
         self.term
             .update(self.cx - 16, self.cy + 2, &self.stats, StatsUpdate::Time)?;
 
-        if self.last_tick_update.elapsed() < Duration::from_secs(5) {
-            return Ok(());
-        }
-
-        self.last_tick_update = Instant::now();
-        if let Some((network, lb)) = &mut self.lb {
-            if let Some(entries) = network.read_leaderboard() {
-                lb.entries = entries;
+        if self.last_tick_update.elapsed() > Duration::from_secs(5) {
+            self.last_tick_update = Instant::now();
+            if let Some(lb) = &mut self.lb {
                 self.term.update(
                     self.cx + (CANVAS_W * 2) + 4,
                     self.cy,
                     lb,
-                    LeaderboardUpdate::Redraw,
+                    LeaderboardUpdate::Network(false),
                 )?;
             }
         }
@@ -121,21 +111,7 @@ impl GameUi {
         Ok(())
     }
 
-    pub fn block_update_lb(&mut self) -> io::Result<()> {
-        if let Some((network, lb)) = &mut self.lb {
-            lb.entries = network.force_read_leaderboard();
-            self.term.update(
-                self.cx + (CANVAS_W * 2) + 4,
-                self.cy,
-                lb,
-                LeaderboardUpdate::Redraw,
-            )?;
-        }
-
-        Ok(())
-    }
-
-    pub fn reset_game(&mut self, leaderboard_score: Option<u8>) -> io::Result<()> {
+    pub fn reset_game(&mut self, block_lb: bool) -> io::Result<()> {
         self.term
             .clear_rect(Rect::new(self.cx + 1, self.cy + 1, CANVAS_W * 2, CANVAS_H))?;
 
@@ -145,29 +121,24 @@ impl GameUi {
 
         self.last_tick_update = Instant::now();
 
-        if let Some((network, lb)) = &mut self.lb {
-            if let Some(entries) = network.read_leaderboard() {
-                lb.entries = entries;
-            }
-
-            lb.score = leaderboard_score;
+        if let Some(lb) = &mut self.lb {
             self.term.update(
                 self.cx + (CANVAS_W * 2) + 4,
                 self.cy,
                 lb,
-                LeaderboardUpdate::Redraw,
+                LeaderboardUpdate::Network(block_lb),
             )?;
         }
 
         Ok(())
     }
 
-    pub fn term(&mut self) -> &mut Terminal {
-        &mut self.term
+    pub fn lb(&mut self) -> Option<&mut Leaderboard> {
+        self.lb.as_mut()
     }
 
-    pub fn network(&mut self) -> Option<&mut Network> {
-        self.lb.as_mut().map(|(l, _)| l)
+    pub fn term(&mut self) -> &mut Terminal {
+        &mut self.term
     }
 
     fn update_stats(&mut self, up: StatsUpdate) -> io::Result<()> {
