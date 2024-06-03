@@ -1,6 +1,7 @@
 #[cfg(not(target_os = "linux"))]
 compile_error!("This program only runs on Linux");
 
+use core::slice;
 use std::{os::fd::AsRawFd, ptr, time::Duration};
 
 mod cbuf;
@@ -9,13 +10,19 @@ pub mod termios;
 
 pub use cbuf::CircularBuffer;
 
-pub fn poll_file(fd: &impl AsRawFd, timeout: Option<Duration>) -> bool {
-    let mut poll_fd = libc::pollfd {
-        fd: fd.as_raw_fd(),
-        events: libc::POLLIN,
-        revents: 0,
-    };
+pub fn poll_read_fd(fd: &impl AsRawFd, timeout: Option<Duration>) -> bool {
+    let mut poll_fd = PollFd::new_read(fd);
+    match poll(slice::from_mut(&mut poll_fd), timeout) {
+        0 => false,
+        1 => {
+            assert!(poll_fd.is_read());
+            true
+        }
+        _ => unreachable!(),
+    }
+}
 
+pub fn poll(fds: &mut [PollFd], timeout: Option<Duration>) -> u32 {
     let time_spec = timeout.map(|tout| libc::timespec {
         tv_sec: tout.as_secs() as i64,
         tv_nsec: tout.subsec_nanos().into(),
@@ -23,8 +30,8 @@ pub fn poll_file(fd: &impl AsRawFd, timeout: Option<Duration>) -> bool {
 
     let res = unsafe {
         libc::ppoll(
-            ptr::from_mut(&mut poll_fd),
-            1,
+            fds.as_mut_ptr().cast(),
+            fds.len() as libc::nfds_t,
             // VERY IMPORTANT: take the reference with `as_ref`, not in a closure with
             // ptr::from_ref because the reference's (represented as a raw pointer) lifetime is
             // bound to the closure, not the libc call. Otherwise this is UB... oops. This was okay
@@ -34,14 +41,43 @@ pub fn poll_file(fd: &impl AsRawFd, timeout: Option<Duration>) -> bool {
         )
     };
 
-    match res {
-        -1 => panic!("libc call failed"),
-        0 => false,
-        1 => {
-            assert!(poll_fd.revents == libc::POLLIN);
-            true
-        }
-        _ => unreachable!(),
+    if res == -1 {
+        panic!("libc call failed");
+    }
+
+    res.try_into().unwrap()
+}
+
+#[repr(transparent)]
+pub struct PollFd(libc::pollfd);
+
+impl PollFd {
+    pub fn new_socket(fd: &impl AsRawFd) -> Self {
+        Self(libc::pollfd {
+            fd: fd.as_raw_fd(),
+            events: libc::POLLIN | libc::POLLRDHUP,
+            revents: 0,
+        })
+    }
+
+    pub fn new_read(fd: &impl AsRawFd) -> Self {
+        Self(libc::pollfd {
+            fd: fd.as_raw_fd(),
+            events: libc::POLLIN,
+            revents: 0,
+        })
+    }
+
+    pub fn fd(&self) -> i32 {
+        self.0.fd
+    }
+
+    pub fn is_sock_closed(&self) -> bool {
+        self.0.revents == (libc::POLLIN | libc::POLLRDHUP)
+    }
+
+    pub fn is_read(&self) -> bool {
+        self.0.revents == libc::POLLIN
     }
 }
 

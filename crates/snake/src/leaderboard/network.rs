@@ -10,7 +10,7 @@ use super::Leaderboard;
 
 impl Leaderboard {
     pub(super) fn read_leaderboard(&mut self, block: bool) -> Option<LeaderboardEntries> {
-        if !block && !oca_io::poll_file(&self.conn, Some(Duration::ZERO)) {
+        if !block && !oca_io::poll_read_fd(&self.conn, Some(Duration::ZERO)) {
             return None;
         }
 
