@@ -149,9 +149,11 @@ impl Draw for &mut Leaderboard {
 
                 self.draw_entries(ctx)
             }
-            LeaderboardUpdate::Network(block) => {
+            LeaderboardUpdate::Network(block, force) => {
                 if let Some(entries) = self.read_leaderboard(block) {
                     self.entries = entries;
+                    self.draw_entries(ctx)?;
+                } else if force {
                     self.draw_entries(ctx)?;
                 }
 
@@ -164,6 +166,6 @@ impl Draw for &mut Leaderboard {
 
 pub enum LeaderboardUpdate {
     Score(u8),
-    Network(bool),
+    Network(bool, bool),
     Redraw,
 }

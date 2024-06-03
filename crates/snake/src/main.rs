@@ -34,14 +34,17 @@ fn snake_main() -> io::Result<()> {
             break;
         }
         ui.clear_centered(&popup, pos)?;
-
-        ui.reset_game(false)?;
+        ui.clear_canvas()?;
+        if let Some(lb) = ui.lb() {
+            lb.score = Some(0);
+            ui.reset_lb(false)?;
+        }
 
         match game_main(&mut ui)? {
             Some(score) => {
-                if ui.lb().is_some() && score > 3 {
+                let needs_lb_update = if ui.lb().is_some() && score > 3 {
                     do_highscore(&mut ui, score)?;
-                    ui.reset_game(true)?;
+                    true
                 } else {
                     let game_over_text = GAME_OVER_TEXT.replace("000", &format!("{score:0>3}"));
                     let popup = Popup::new(&game_over_text).with_color(Color::Red);
@@ -50,8 +53,15 @@ fn snake_main() -> io::Result<()> {
                         break;
                     }
                     ui.clear_centered(&popup, pos)?;
-                    ui.reset_game(false)?;
+                    false
+                };
+
+                if let Some(lb) = ui.lb() {
+                    lb.score = None;
+                    ui.reset_lb(needs_lb_update)?;
                 }
+                ui.reset_stats()?;
+                ui.clear_canvas()?;
             }
             None => break,
         }

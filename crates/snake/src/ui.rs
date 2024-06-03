@@ -103,7 +103,7 @@ impl GameUi {
                     self.cx + (CANVAS_W * 2) + 4,
                     self.cy,
                     lb,
-                    LeaderboardUpdate::Network(false),
+                    LeaderboardUpdate::Network(false, false),
                 )?;
             }
         }
@@ -111,22 +111,25 @@ impl GameUi {
         Ok(())
     }
 
-    pub fn reset_game(&mut self, block_lb: bool) -> io::Result<()> {
+    pub fn clear_canvas(&mut self) -> io::Result<()> {
         self.term
-            .clear_rect(Rect::new(self.cx + 1, self.cy + 1, CANVAS_W * 2, CANVAS_H))?;
+            .clear_rect(Rect::new(self.cx + 1, self.cy + 1, CANVAS_W * 2, CANVAS_H))
+    }
 
+    pub fn reset_stats(&mut self) -> io::Result<()> {
         self.stats.0 = Instant::now();
         self.update_stats(StatsUpdate::Time)?;
-        self.update_stats(StatsUpdate::Score(0))?;
+        self.update_stats(StatsUpdate::Score(0))
+    }
 
+    pub fn reset_lb(&mut self, block_lb: bool) -> io::Result<()> {
         self.last_tick_update = Instant::now();
-
         if let Some(lb) = &mut self.lb {
             self.term.update(
                 self.cx + (CANVAS_W * 2) + 4,
                 self.cy,
                 lb,
-                LeaderboardUpdate::Network(block_lb),
+                LeaderboardUpdate::Network(block_lb, true),
             )?;
         }
 
