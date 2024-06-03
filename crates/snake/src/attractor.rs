@@ -61,6 +61,8 @@ pub fn run(ui: &mut GameUi) -> io::Result<bool> {
             Some(Key::CrtlC) => return Ok(true),
             Some(_) => return Ok(false),
         }
+
+        ui.update_tick(false)?;
     }
 }
 

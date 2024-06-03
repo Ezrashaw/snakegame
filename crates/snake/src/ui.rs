@@ -92,11 +92,13 @@ impl GameUi {
         Ok(())
     }
 
-    pub fn update_tick(&mut self) -> io::Result<()> {
-        self.term
-            .update(self.cx - 16, self.cy + 2, &self.stats, StatsUpdate::Time)?;
+    pub fn update_tick(&mut self, stats: bool) -> io::Result<()> {
+        if stats {
+            self.term
+                .update(self.cx - 16, self.cy + 2, &self.stats, StatsUpdate::Time)?;
+        }
 
-        if self.last_tick_update.elapsed() > Duration::from_secs(5) {
+        if self.last_tick_update.elapsed() > Duration::from_secs(3) {
             self.last_tick_update = Instant::now();
             if let Some(lb) = &mut self.lb {
                 self.term.update(

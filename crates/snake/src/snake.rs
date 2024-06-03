@@ -148,7 +148,7 @@ pub fn game_main(ui: &mut GameUi) -> io::Result<Option<usize>> {
         ui.draw_canvas(old_pos, Pixel::new(Color::Green, false))?;
 
         // Update the game's UI, currently just the leaderboard and stats panel.
-        ui.update_tick()?;
+        ui.update_tick(true)?;
     }
 
     // Do a fun little death animation.
