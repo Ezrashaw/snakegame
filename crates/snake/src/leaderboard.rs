@@ -51,10 +51,10 @@ impl Leaderboard {
                 && self.you_row.is_none()
                 && (at_last_entry || score > self.entries[i].1)
             {
-                // If we are at position #10, then we might actually be further below that (we
-                // don't know if we are position #10 or #100), so get rid of the position
-                // number.
-                if at_last_entry {
+                // If the player isn't on the leaderboard (at least at position #10), then we might
+                // actually be further below that (we don't know if we are position #10 or #100),
+                // so get rid of the position number.
+                if score <= self.entries[9].1 {
                     wants_10 = false;
                 }
 
@@ -104,13 +104,13 @@ impl Leaderboard {
         // Effectuate the removal/drawing of the #10 position, making sure to only draw if
         // needed.
         if self.has_10_pos && !wants_10 {
-            ctx.draw(2, 12, "   ")?;
+            ctx.draw(2, 12, "..")?;
             self.has_10_pos = false;
         } else if !self.has_10_pos && wants_10 {
             // Note that we don't have to worry about ANSI state here because we buffer the
             // leaderboard to a string and write it all at once below. This means that we can
             // assume the reset state.
-            ctx.draw(2, 12, "10.")?;
+            ctx.draw(2, 12, "10")?;
             self.has_10_pos = true;
         }
 

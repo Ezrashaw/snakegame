@@ -53,8 +53,7 @@ fn main() -> io::Result<()> {
 
             client.handle_packet(&mut leaderboard)?;
 
-            for i in 0..clients.len() {
-                let client = &mut clients[i];
+            for client in &mut clients {
                 client.send_leaderboard(&leaderboard)?;
             }
         }
