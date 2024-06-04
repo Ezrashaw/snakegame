@@ -1,6 +1,6 @@
 mod network;
 
-use std::{io, net::TcpStream};
+use std::{env, io, net::TcpStream};
 
 use oca_io::network::LeaderboardEntries;
 use term::{Box, Draw, DrawCtx};
@@ -15,7 +15,8 @@ pub struct Leaderboard {
 
 impl Leaderboard {
     pub fn init() -> Option<Self> {
-        let (entries, conn) = network::try_tcp().ok()?;
+        let ip = env::var("SNAKE_IP").ok()?;
+        let (entries, conn) = network::connect_tcp(&ip).unwrap();
 
         Some(Self {
             entries,
@@ -160,6 +161,15 @@ impl Draw for &mut Leaderboard {
                 Ok(())
             }
             LeaderboardUpdate::Redraw => self.draw_entries(ctx),
+            LeaderboardUpdate::FillPlayer(name) => {
+                let (you_row, score) = (self.you_row.unwrap(), self.score.unwrap());
+                let name = std::str::from_utf8(&name).unwrap();
+                ctx.draw(
+                    6,
+                    3 + you_row,
+                    format!("\x1B[32m{name} \x1B[1;39m{score:0>3}\x1B[0m"),
+                )
+            }
         }
     }
 }
@@ -168,4 +178,5 @@ pub enum LeaderboardUpdate {
     Score(u8),
     Network(bool, bool),
     Redraw,
+    FillPlayer([u8; 3]),
 }

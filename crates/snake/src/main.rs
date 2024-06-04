@@ -42,7 +42,10 @@ fn snake_main() -> io::Result<()> {
 
         match game_main(&mut ui)? {
             Some(score) => {
-                let needs_lb_update = if ui.lb().is_some() && score > 3 {
+                let needs_lb_update = if let Some(lb) = ui.lb()
+                    && score > lb.entries[9].1.into()
+                    && score > 10
+                {
                     do_highscore(&mut ui, score)?;
                     true
                 } else {
@@ -56,6 +59,7 @@ fn snake_main() -> io::Result<()> {
                     false
                 };
 
+                // TODO: we don't need to do this if `do_highscore` was called
                 if let Some(lb) = ui.lb() {
                     lb.score = None;
                     ui.reset_lb(needs_lb_update)?;
@@ -120,5 +124,6 @@ fn do_highscore(ui: &mut GameUi, score: usize) -> io::Result<()> {
     }
 
     ui.clear_centered(&popup, pos)?;
-    ui.lb().unwrap().send_game(input, score as u8)
+    ui.lb().unwrap().send_game(input, score as u8)?;
+    ui.update_lb(leaderboard::LeaderboardUpdate::FillPlayer(input))
 }

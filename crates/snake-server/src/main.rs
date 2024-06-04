@@ -12,7 +12,7 @@ use oca_io::{
 fn main() -> io::Result<()> {
     let mut leaderboard = Vec::new();
 
-    let server = TcpListener::bind((Ipv4Addr::UNSPECIFIED, 1234))?;
+    let server = TcpListener::bind((Ipv4Addr::UNSPECIFIED, 1111))?;
     let mut clients = Vec::new();
     let mut poll_fds = vec![PollFd::new_read(&server)];
 

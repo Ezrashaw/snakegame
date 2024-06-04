@@ -80,13 +80,8 @@ impl GameUi {
     pub fn update_score(&mut self, score: usize) -> io::Result<()> {
         self.update_stats(StatsUpdate::Score(score))?;
 
-        if let Some(lb) = &mut self.lb {
-            self.term.update(
-                self.cx + (CANVAS_W * 2) + 4,
-                self.cy,
-                lb,
-                LeaderboardUpdate::Score(score.try_into().unwrap()),
-            )?;
+        if self.lb.is_some() {
+            self.update_lb(LeaderboardUpdate::Score(score.try_into().unwrap()))?;
         }
 
         Ok(())
@@ -98,16 +93,9 @@ impl GameUi {
                 .update(self.cx - 16, self.cy + 2, &self.stats, StatsUpdate::Time)?;
         }
 
-        if self.last_tick_update.elapsed() > Duration::from_secs(3) {
+        if self.lb.is_some() && self.last_tick_update.elapsed() > Duration::from_secs(3) {
             self.last_tick_update = Instant::now();
-            if let Some(lb) = &mut self.lb {
-                self.term.update(
-                    self.cx + (CANVAS_W * 2) + 4,
-                    self.cy,
-                    lb,
-                    LeaderboardUpdate::Network(false, false),
-                )?;
-            }
+            self.update_lb(LeaderboardUpdate::Network(false, false))?;
         }
 
         Ok(())
@@ -126,13 +114,8 @@ impl GameUi {
 
     pub fn reset_lb(&mut self, block_lb: bool) -> io::Result<()> {
         self.last_tick_update = Instant::now();
-        if let Some(lb) = &mut self.lb {
-            self.term.update(
-                self.cx + (CANVAS_W * 2) + 4,
-                self.cy,
-                lb,
-                LeaderboardUpdate::Network(block_lb, true),
-            )?;
+        if self.lb.is_some() {
+            self.update_lb(LeaderboardUpdate::Network(block_lb, true))?;
         }
 
         Ok(())
@@ -148,6 +131,15 @@ impl GameUi {
 
     fn update_stats(&mut self, up: StatsUpdate) -> io::Result<()> {
         self.term.update(self.cx - 16, self.cy + 2, &self.stats, up)
+    }
+
+    pub fn update_lb(&mut self, update: LeaderboardUpdate) -> io::Result<()> {
+        self.term.update(
+            self.cx + (CANVAS_W * 2) + 4,
+            self.cy,
+            self.lb.as_mut().unwrap(),
+            update,
+        )
     }
 }
 
