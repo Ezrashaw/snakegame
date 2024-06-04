@@ -8,7 +8,7 @@ Additionally, this program depends only on Rust's `libstd` and `libc` (the
 latter itself a dependency of the former).
 
 ### TODO
-- Continuing work on the leaderboard.
 - Documenting the remainder of the code (everything except `src/snake.rs`).
-- Fixing terminal resize issues :(
-- Some kind of audio feedback.
+- Fixing bugs in leaderboard:
+  - Inserting leaderboard entries isn't always deterministic.
+  - What is happening with the #10 "..." thing?
