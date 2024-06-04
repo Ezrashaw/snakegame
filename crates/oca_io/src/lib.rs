@@ -1,6 +1,3 @@
-#[cfg(not(target_os = "linux"))]
-compile_error!("This program only runs on Linux");
-
 use core::slice;
 use std::{os::fd::AsRawFd, ptr, time::Duration};
 
@@ -23,21 +20,11 @@ pub fn poll_read_fd(fd: &impl AsRawFd, timeout: Option<Duration>) -> bool {
 }
 
 pub fn poll(fds: &mut [PollFd], timeout: Option<Duration>) -> u32 {
-    let time_spec = timeout.map(|tout| libc::timespec {
-        tv_sec: tout.as_secs() as i64,
-        tv_nsec: tout.subsec_nanos().into(),
-    });
-
     let res = unsafe {
-        libc::ppoll(
+        libc::poll(
             fds.as_mut_ptr().cast(),
             fds.len() as libc::nfds_t,
-            // VERY IMPORTANT: take the reference with `as_ref`, not in a closure with
-            // ptr::from_ref because the reference's (represented as a raw pointer) lifetime is
-            // bound to the closure, not the libc call. Otherwise this is UB... oops. This was okay
-            // in debug mode, but release mode optimized it into UB.
-            time_spec.as_ref().map_or(ptr::null(), ptr::from_ref),
-            ptr::null::<libc::sigset_t>(),
+            timeout.map_or(-1, |t| t.as_millis() as i32),
         )
     };
 
@@ -55,7 +42,7 @@ impl PollFd {
     pub fn new_socket(fd: &impl AsRawFd) -> Self {
         Self(libc::pollfd {
             fd: fd.as_raw_fd(),
-            events: libc::POLLIN | libc::POLLRDHUP,
+            events: libc::POLLIN | libc::POLLHUP,
             revents: 0,
         })
     }
@@ -73,7 +60,7 @@ impl PollFd {
     }
 
     pub fn is_sock_closed(&self) -> bool {
-        self.0.revents == (libc::POLLIN | libc::POLLRDHUP)
+        self.0.revents == (libc::POLLIN | libc::POLLHUP)
     }
 
     pub fn is_read(&self) -> bool {
