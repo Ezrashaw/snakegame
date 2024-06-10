@@ -1,5 +1,7 @@
+use core::slice;
 use std::{
-    io, iter,
+    fs, io, iter,
+    mem::ManuallyDrop,
     net::{Ipv4Addr, TcpListener, TcpStream},
     os::fd::AsRawFd,
 };
@@ -10,7 +12,20 @@ use oca_io::{
 };
 
 fn main() -> io::Result<()> {
-    let mut leaderboard = Vec::new();
+    let mut leaderboard = fs::read("games")
+        .ok()
+        .map(|lb| {
+            let mut lb = ManuallyDrop::new(lb);
+            assert!(lb.len() % 4 == 0);
+            unsafe {
+                Vec::from_raw_parts(
+                    lb.as_mut_ptr() as *mut LeaderboardEntry,
+                    lb.len() / 4,
+                    lb.capacity() / 4,
+                )
+            }
+        })
+        .unwrap_or_default();
 
     let server = TcpListener::bind((Ipv4Addr::UNSPECIFIED, 1111))?;
     let mut clients = Vec::new();
@@ -52,7 +67,10 @@ fn main() -> io::Result<()> {
             }
 
             client.handle_packet(&mut leaderboard)?;
-
+            let bytes = unsafe {
+                slice::from_raw_parts(leaderboard.as_ptr() as *const u8, leaderboard.len() * 4)
+            };
+            fs::write("games", bytes)?;
             for client in &mut clients {
                 client.send_leaderboard(&leaderboard)?;
             }
@@ -81,9 +99,9 @@ impl GameClient {
         let (id, packet) = read_packet(&mut self.stream).unwrap();
         assert_eq!(id, 0x1);
 
-        let game = (packet[0..3].try_into().unwrap(), packet[3]);
+        let game = LeaderboardEntry(packet[0..3].try_into().unwrap(), packet[3]);
         let pos = leaderboard
-            .binary_search_by(|(_, score)| game.1.cmp(score))
+            .binary_search_by(|LeaderboardEntry(_, score)| game.1.cmp(score))
             .map(|e| e + 1)
             .unwrap_or_else(|e| e);
 
@@ -98,7 +116,7 @@ impl GameClient {
         let mut lb_packet = [0u8; 40];
         for (idx, entry) in leaderboard
             .iter()
-            .chain(iter::repeat(&(*b"---", 0)))
+            .chain(iter::repeat(&LeaderboardEntry(*b"---", 0)))
             .take(10)
             .enumerate()
         {

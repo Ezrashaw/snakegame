@@ -1,6 +1,9 @@
 use std::io;
 
-pub type LeaderboardEntry = ([u8; 3], u8);
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug)]
+pub struct LeaderboardEntry(pub [u8; 3], pub u8);
+
 pub type LeaderboardEntries = [LeaderboardEntry; 10];
 
 pub fn read_packet(r: &mut impl io::Read) -> io::Result<(u8, Vec<u8>)> {
