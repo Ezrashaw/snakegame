@@ -37,14 +37,15 @@ fn main() -> io::Result<()> {
 
         let poll_fd = poll_fds
             .iter()
-            .find(|fd| fd.is_read() || fd.is_sock_closed())
+            .find(|fd| fd.has_read() || fd.has_socket_close())
             .unwrap();
 
         if poll_fd.fd() == server.as_raw_fd() {
-            assert!(!poll_fd.is_sock_closed());
+            assert!(poll_fd.is_read());
 
             let (stream, _addr) = server.accept()?;
             let mut client = GameClient::new(stream)?;
+
             client.send_leaderboard(&leaderboard)?;
             poll_fds.push(PollFd::new_socket(&client.stream));
             clients.push(client);
@@ -54,8 +55,8 @@ fn main() -> io::Result<()> {
                 .find(|cl| cl.stream.as_raw_fd() == poll_fd.fd())
                 .unwrap();
 
-            if poll_fd.is_sock_closed() {
-                println!("{:?}: DISCONNECT", client.stream.peer_addr()?);
+            if poll_fd.has_socket_close() {
+                println!("{}: DISCONNECT", client.hostname);
                 let fd = client.stream.as_raw_fd();
                 let idx = clients
                     .iter()
@@ -66,13 +67,20 @@ fn main() -> io::Result<()> {
                 continue;
             }
 
-            client.handle_packet(&mut leaderboard)?;
+            assert!(poll_fd.is_read());
+            client.handle_packet(&mut leaderboard).unwrap();
+
             let bytes = unsafe {
                 slice::from_raw_parts(leaderboard.as_ptr() as *const u8, leaderboard.len() * 4)
             };
             fs::write("games", bytes)?;
-            for client in &mut clients {
-                client.send_leaderboard(&leaderboard)?;
+
+            for i in 0..clients.len() {
+                if let Err(_err) = clients[i].send_leaderboard(&leaderboard) {
+                    println!("{}: DISCONNECT (failed packet write)", clients[i].hostname);
+                    clients.remove(i);
+                    poll_fds.remove(i + 1);
+                }
             }
         }
     }
@@ -90,7 +98,7 @@ impl GameClient {
         assert_eq!(connect_id, 0x0);
 
         let hostname = String::from_utf8(connect).unwrap();
-        println!("{:?}: CONNECT {}", stream.peer_addr()?, hostname);
+        println!("{}: CONNECT {:?}", hostname, stream.peer_addr()?);
 
         Ok(Self { stream, hostname })
     }
@@ -108,7 +116,7 @@ impl GameClient {
         leaderboard.insert(pos, game);
 
         let name = std::str::from_utf8(&game.0).unwrap();
-        println!("{:?}: GAME {} {}", self.stream.peer_addr()?, name, game.1);
+        println!("{}: GAME {} {}", self.hostname, name, game.1);
         Ok(())
     }
 

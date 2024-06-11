@@ -68,12 +68,20 @@ impl PollFd {
         })
     }
 
+    pub fn revents(&self) -> i16 {
+        self.0.revents
+    }
+
     pub fn fd(&self) -> i32 {
         self.0.fd
     }
 
-    pub fn is_sock_closed(&self) -> bool {
-        self.0.revents == (libc::POLLIN | libc::POLLRDHUP)
+    pub fn has_socket_close(&self) -> bool {
+        (self.0.revents & libc::POLLRDHUP) != 0
+    }
+
+    pub fn has_read(&self) -> bool {
+        (self.0.revents & libc::POLLIN) != 0
     }
 
     pub fn is_read(&self) -> bool {
