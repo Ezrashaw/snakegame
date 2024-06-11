@@ -46,8 +46,7 @@ fn snake_main() -> io::Result<()> {
                     && score > lb.entries[9].1.into()
                     && score > 10
                 {
-                    do_highscore(&mut ui, score)?;
-                    true
+                    do_highscore(&mut ui, score)?
                 } else {
                     let game_over_text = GAME_OVER_TEXT.replace("000", &format!("{score:0>3}"));
                     let popup = Popup::new(&game_over_text).with_color(Color::Red);
@@ -74,40 +73,45 @@ fn snake_main() -> io::Result<()> {
     Ok(())
 }
 
-fn do_highscore(ui: &mut GameUi, score: usize) -> io::Result<()> {
+fn do_highscore(ui: &mut GameUi, score: usize) -> io::Result<bool> {
     ui.term().clear_input()?;
 
     let game_over_text = ADD_LB_TEXT.replace("000", &format!("{score:0>3}"));
 
     let popup = Popup::new(&game_over_text).with_color(Color::Green);
-    let pos = ui.draw_centered(&popup, true)?;
+    let pos = ui.draw_centered(&popup, false)?;
     let mut colored_left = true;
     let mut next_update = Instant::now() + Duration::from_millis(500);
     let mut cursor_pos = 0;
     let mut input = [0u8; 3];
 
-    loop {
+    let ret = loop {
         match ui
             .term()
             .get_key_timeout(Some(next_update.duration_since(Instant::now())), |k| {
-                matches!(k, Key::Char(_) | Key::Back | Key::Enter)
+                matches!(k, Key::Char(_) | Key::Back | Key::Enter | Key::Esc)
             })? {
             Some(Key::Char(ch)) if cursor_pos < 3 => {
                 let ch = ch.to_ascii_uppercase();
                 input[cursor_pos as usize] = ch;
                 cursor_pos += 1;
                 ui.term().draw(
-                    pos.0 + 9 + cursor_pos,
-                    pos.1 + 5,
+                    pos.0 + 10 + cursor_pos,
+                    pos.1 + 6,
                     format!("\x1B[1m{}\x1B[0m", ch as char),
                 )?;
             }
             Some(Key::Back) if cursor_pos > 0 => {
                 ui.term()
-                    .draw(pos.0 + 9 + cursor_pos, pos.1 + 5, "\x1B[2m-\x1B[0m")?;
+                    .draw(pos.0 + 10 + cursor_pos, pos.1 + 6, "\x1B[2m-\x1B[0m")?;
                 cursor_pos -= 1;
             }
-            Some(Key::Enter) if cursor_pos == 3 => break,
+            Some(Key::Enter) if cursor_pos == 3 => {
+                ui.lb().unwrap().send_game(input, score as u8)?;
+                ui.update_lb(leaderboard::LeaderboardUpdate::FillPlayer(input))?;
+                break true;
+            }
+            Some(Key::Esc) if cursor_pos == 0 => break false,
             _ => (),
         }
 
@@ -117,13 +121,12 @@ fn do_highscore(ui: &mut GameUi, score: usize) -> io::Result<()> {
             } else {
                 "\x1B[32;1mGREAT \x1B[22mSCORE\x1B[0m"
             };
-            ui.term().draw(pos.0 + 11, pos.1 + 1, str)?;
+            ui.term().draw(pos.0 + 12, pos.1 + 1, str)?;
             colored_left = !colored_left;
             next_update = Instant::now() + Duration::from_millis(500);
         }
-    }
+    };
 
     ui.clear_centered(&popup, pos)?;
-    ui.lb().unwrap().send_game(input, score as u8)?;
-    ui.update_lb(leaderboard::LeaderboardUpdate::FillPlayer(input))
+    Ok(ret)
 }

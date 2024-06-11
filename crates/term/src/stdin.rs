@@ -88,6 +88,7 @@ impl Terminal {
                         Some(b'D') => Key::Left,
                         _ => Key::Unknown,
                     },
+                    None => Key::Esc,
                     _ => Key::Unknown,
                 },
                 ch @ (b'A'..=b'Z' | b'a'..=b'z') => Key::Char(ch.to_ascii_lowercase()),
@@ -115,6 +116,7 @@ pub enum Key {
     CrtlC,
     Enter,
     Back,
+    Esc,
     Char(u8),
 
     Up,
