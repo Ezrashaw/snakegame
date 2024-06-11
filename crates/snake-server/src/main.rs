@@ -1,6 +1,6 @@
 use core::slice;
 use std::{
-    fs, io, iter,
+    env, fs, io, iter,
     mem::ManuallyDrop,
     net::{Ipv4Addr, TcpListener, TcpStream},
     os::fd::AsRawFd,
@@ -27,7 +27,10 @@ fn main() -> io::Result<()> {
         })
         .unwrap_or_default();
 
-    let server = TcpListener::bind((Ipv4Addr::UNSPECIFIED, 1111))?;
+    let server = TcpListener::bind((
+        Ipv4Addr::UNSPECIFIED,
+        env::var("SNAKEPORT").unwrap().parse().unwrap(),
+    ))?;
     let mut clients = Vec::new();
     let mut poll_fds = vec![PollFd::new_read(&server)];
 
