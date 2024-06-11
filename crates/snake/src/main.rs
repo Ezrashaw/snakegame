@@ -43,6 +43,7 @@ fn snake_main() -> io::Result<()> {
         match game_main(&mut ui)? {
             Some(score) => {
                 let needs_lb_update = if let Some(lb) = ui.lb()
+                    && lb.has_conn()
                     && score > lb.entries[9].1.into()
                     && score > 10
                 {

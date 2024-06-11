@@ -2,6 +2,7 @@ use std::{
     fs, io,
     net::{SocketAddr, TcpStream},
     str::FromStr,
+    thread,
     time::Duration,
 };
 
@@ -11,18 +12,45 @@ use super::Leaderboard;
 
 impl Leaderboard {
     pub(super) fn read_leaderboard(&mut self, block: bool) -> Option<LeaderboardEntries> {
-        if !block && !oca_io::poll_read_fd(&self.conn, Some(Duration::ZERO)) {
+        let conn = match self.conn.as_mut() {
+            Ok(conn) => conn,
+            Err(thread) => {
+                if thread.as_ref().unwrap().is_finished() {
+                    if let Ok((entries, conn)) = thread.take().unwrap().join().unwrap() {
+                        println!("\x1B[H ");
+                        self.conn = Ok(conn);
+                        return Some(entries);
+                    }
+
+                    let addr = self.addr.clone();
+                    self.conn = Err(Some(thread::spawn(move || connect_tcp(&addr))));
+                }
+                return None;
+            }
+        };
+
+        if !block && !oca_io::poll_read_fd(conn, Some(Duration::ZERO)) {
             return None;
         }
 
-        read_leaderboard(&mut self.conn).ok()
+        read_leaderboard(conn)
+            .inspect_err(|_| {
+                println!("\x1B[H\x1B[1;31m▀\x1B[0m");
+                let addr = self.addr.clone();
+                self.conn = Err(Some(thread::spawn(move || connect_tcp(&addr))));
+            })
+            .ok()
+    }
+
+    pub const fn has_conn(&self) -> bool {
+        self.conn.is_ok()
     }
 
     pub fn send_game(&mut self, name: [u8; 3], score: u8) -> io::Result<()> {
         let mut packet = [0u8; 4];
         packet[0..3].copy_from_slice(&name);
         packet[3] = score;
-        oca_network::write_packet(&mut self.conn, 0x1, &packet)
+        oca_network::write_packet(self.conn.as_mut().unwrap(), 0x1, &packet)
     }
 }
 

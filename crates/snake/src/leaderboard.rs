@@ -1,6 +1,6 @@
 mod network;
 
-use std::{env, io, net::TcpStream, process::exit};
+use std::{env, io, net::TcpStream, process::exit, thread::JoinHandle};
 
 use oca_io::network::LeaderboardEntries;
 use term::{Box, Draw, DrawCtx, Terminal};
@@ -8,7 +8,9 @@ use term::{Box, Draw, DrawCtx, Terminal};
 pub struct Leaderboard {
     pub entries: LeaderboardEntries,
     pub score: Option<u8>,
-    conn: TcpStream,
+    #[allow(clippy::type_complexity)]
+    conn: Result<TcpStream, Option<JoinHandle<io::Result<(LeaderboardEntries, TcpStream)>>>>,
+    addr: String,
     you_row: Option<u16>,
     has_10_pos: bool,
 }
@@ -25,7 +27,8 @@ impl Leaderboard {
         Some(Self {
             entries,
             score: None,
-            conn,
+            conn: Ok(conn),
+            addr,
             you_row: None,
             has_10_pos: true,
         })
