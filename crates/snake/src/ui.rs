@@ -1,7 +1,7 @@
 use std::{
     io::{self, Write},
     process::exit,
-    time::{Duration, Instant},
+    time::Instant,
 };
 
 use term::{ansi_str_len, Box, CenteredStr, Draw, DrawCtx, Rect, Terminal};
@@ -23,7 +23,6 @@ pub struct GameUi {
     lb: Option<Leaderboard>,
     cx: u16,
     cy: u16,
-    last_tick_update: Instant,
 }
 
 impl GameUi {
@@ -54,7 +53,6 @@ impl GameUi {
             lb,
             cx,
             cy,
-            last_tick_update: Instant::now(),
         })
     }
 
@@ -79,12 +77,7 @@ impl GameUi {
 
     pub fn update_score(&mut self, score: usize) -> io::Result<()> {
         self.update_stats(StatsUpdate::Score(score))?;
-
-        if self.lb.is_some() {
-            self.update_lb(LeaderboardUpdate::Score(score.try_into().unwrap()))?;
-        }
-
-        Ok(())
+        self.update_lb(LeaderboardUpdate::Score(score.try_into().unwrap()))
     }
 
     pub fn update_tick(&mut self, stats: bool) -> io::Result<()> {
@@ -93,12 +86,7 @@ impl GameUi {
                 .update(self.cx - 16, self.cy + 2, &self.stats, StatsUpdate::Time)?;
         }
 
-        if self.lb.is_some() && self.last_tick_update.elapsed() > Duration::from_secs(3) {
-            self.last_tick_update = Instant::now();
-            self.update_lb(LeaderboardUpdate::Network(false, false))?;
-        }
-
-        Ok(())
+        self.update_lb(LeaderboardUpdate::Network(false, false))
     }
 
     pub fn clear_canvas(&mut self) -> io::Result<()> {
@@ -113,12 +101,7 @@ impl GameUi {
     }
 
     pub fn reset_lb(&mut self, block_lb: bool) -> io::Result<()> {
-        self.last_tick_update = Instant::now();
-        if self.lb.is_some() {
-            self.update_lb(LeaderboardUpdate::Network(block_lb, true))?;
-        }
-
-        Ok(())
+        self.update_lb(LeaderboardUpdate::Network(block_lb, true))
     }
 
     pub fn lb(&mut self) -> Option<&mut Leaderboard> {
@@ -134,12 +117,12 @@ impl GameUi {
     }
 
     pub fn update_lb(&mut self, update: LeaderboardUpdate) -> io::Result<()> {
-        self.term.update(
-            self.cx + (CANVAS_W * 2) + 4,
-            self.cy,
-            self.lb.as_mut().unwrap(),
-            update,
-        )
+        if let Some(lb) = &mut self.lb {
+            self.term
+                .update(self.cx + (CANVAS_W * 2) + 4, self.cy, lb, update)
+        } else {
+            Ok(())
+        }
     }
 }
 
