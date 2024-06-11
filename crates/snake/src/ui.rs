@@ -41,7 +41,7 @@ impl GameUi {
         let stats = Stats(Instant::now());
         term.draw(cx - 16, cy + 2, &stats)?;
 
-        let lb = if let Some(mut leaderboard) = Leaderboard::init() {
+        let lb = if let Some(mut leaderboard) = Leaderboard::init(&mut term) {
             term.draw(cx + (CANVAS_W * 2) + 4, cy, &mut leaderboard)?;
             Some(leaderboard)
         } else {

@@ -1,9 +1,9 @@
 mod network;
 
-use std::{env, io, net::TcpStream};
+use std::{env, io, net::TcpStream, process::exit};
 
 use oca_io::network::LeaderboardEntries;
-use term::{Box, Draw, DrawCtx};
+use term::{Box, Draw, DrawCtx, Terminal};
 
 pub struct Leaderboard {
     pub entries: LeaderboardEntries,
@@ -14,9 +14,15 @@ pub struct Leaderboard {
 }
 
 impl Leaderboard {
-    pub fn init() -> Option<Self> {
-        let ip = env::var("SNAKE_IP").ok()?;
-        let (entries, conn) = network::connect_tcp(&ip).unwrap();
+    pub fn init(term: &mut Terminal) -> Option<Self> {
+        let addr = env::var("SNAKEADDR").ok()?;
+        let (entries, conn) = if let Ok(val) = network::connect_tcp(&addr) {
+            val
+        } else {
+            unsafe { term.close() };
+            eprintln!("\x1B[1;31merror\x1B[0m: failed to connect to leaderboard server");
+            exit(1)
+        };
 
         Some(Self {
             entries,

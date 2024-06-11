@@ -59,15 +59,25 @@ impl Terminal {
     pub const fn size(&self) -> (u16, u16) {
         self.term_size
     }
-}
 
-impl Drop for Terminal {
-    fn drop(&mut self) {
+    /// Close the terminal.
+    ///
+    /// This type's [`Drop`] implementation calls this function, automatically. This function
+    /// should *NOT* be called manually, except where it is desired that the destructor is run, and
+    /// the structure can not be manually or automatically dropped.
+    // TODO: this should *NOT* take a mutable reference
+    pub unsafe fn close(&mut self) {
         // Don't clear terminal if panicking so that we can see the error message.
         if !thread::panicking() {
             write!(&mut self.file, "\x1B[2J\x1B[H\x1B[?1049l").unwrap();
         }
         write!(&mut self.file, "\x1B[?25h").unwrap();
         termios::restore(self.old_termios);
+    }
+}
+
+impl Drop for Terminal {
+    fn drop(&mut self) {
+        unsafe { self.close() }
     }
 }

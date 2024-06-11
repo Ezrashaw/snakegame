@@ -1,4 +1,9 @@
-use std::{fs, io, net::TcpStream, time::Duration};
+use std::{
+    fs, io,
+    net::{SocketAddr, TcpStream},
+    str::FromStr,
+    time::Duration,
+};
 
 use oca_io::network::{self as oca_network, LeaderboardEntries};
 
@@ -22,7 +27,10 @@ impl Leaderboard {
 }
 
 pub(super) fn connect_tcp(addr: &str) -> io::Result<(LeaderboardEntries, TcpStream)> {
-    let mut conn = TcpStream::connect((addr, 1111))?;
+    let mut conn = TcpStream::connect_timeout(
+        &SocketAddr::from_str(addr).map_err(io::Error::other)?,
+        Duration::from_secs(10),
+    )?;
 
     let hostname = fs::read_to_string("/proc/sys/kernel/hostname")?;
     oca_network::write_packet(&mut conn, 0x0, hostname.trim().as_bytes())?;
