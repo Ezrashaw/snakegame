@@ -16,9 +16,7 @@ pub struct Leaderboard {
 impl Leaderboard {
     pub fn init(term: &mut Terminal) -> Option<Self> {
         let addr = env::var("SNAKEADDR").ok()?;
-        let (entries, conn) = if let Ok(val) = network::connect_tcp(&addr) {
-            val
-        } else {
+        let Ok((entries, conn)) = network::connect_tcp(&addr) else {
             unsafe { term.close() };
             eprintln!("\x1B[1;31merror\x1B[0m: failed to connect to leaderboard server");
             exit(1)

@@ -65,6 +65,11 @@ impl Terminal {
     /// This type's [`Drop`] implementation calls this function, automatically. This function
     /// should *NOT* be called manually, except where it is desired that the destructor is run, and
     /// the structure can not be manually or automatically dropped.
+    ///
+    /// # Safety
+    ///
+    /// This function should not be called twice. This structure should also not be used after
+    /// calling this function.
     // TODO: this should *NOT* take a mutable reference
     pub unsafe fn close(&mut self) {
         // Don't clear terminal if panicking so that we can see the error message.

@@ -48,12 +48,10 @@ pub fn run(ui: &mut GameUi) -> io::Result<bool> {
 
         if left == 0 {
             move_segment += 1;
-            if let Some(segment) = get_dir(move_segment, &mut head) {
-                (dir, left) = segment;
-            } else {
+            (dir, left) = get_dir(move_segment, &mut head).unwrap_or_else(|| {
                 move_segment = 0;
-                (dir, left) = get_dir(move_segment, &mut head).unwrap();
-            }
+                get_dir(move_segment, &mut head).unwrap()
+            });
         }
 
         match ui.term().get_key(|k| k == Key::Enter)? {
