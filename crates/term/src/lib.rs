@@ -23,7 +23,7 @@ use std::{
     fs::File,
     io::{self, Write},
     os::fd::FromRawFd,
-    thread,
+    process, thread,
 };
 
 pub struct Terminal {
@@ -60,18 +60,13 @@ impl Terminal {
         self.term_size
     }
 
-    /// Close the terminal.
-    ///
-    /// This type's [`Drop`] implementation calls this function, automatically. This function
-    /// should *NOT* be called manually, except where it is desired that the destructor is run, and
-    /// the structure can not be manually or automatically dropped.
-    ///
-    /// # Safety
-    ///
-    /// This function should not be called twice. This structure should also not be used after
-    /// calling this function.
-    // TODO: this should *NOT* take a mutable reference
-    pub unsafe fn close(&mut self) {
+    pub fn exit_with_error(&mut self, msg: impl AsRef<str>) -> ! {
+        self.close();
+        eprintln!("\x1B[1;31merror\x1B[0m: {}", msg.as_ref());
+        process::exit(1)
+    }
+
+    fn close(&mut self) {
         // Don't clear terminal if panicking so that we can see the error message.
         if !thread::panicking() {
             write!(&mut self.file, "\x1B[2J\x1B[H\x1B[?1049l").unwrap();
@@ -83,6 +78,6 @@ impl Terminal {
 
 impl Drop for Terminal {
     fn drop(&mut self) {
-        unsafe { self.close() }
+        self.close()
     }
 }

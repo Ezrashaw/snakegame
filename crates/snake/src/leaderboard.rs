@@ -1,6 +1,6 @@
 mod network;
 
-use std::{env, io, net::TcpStream, process::exit, thread::JoinHandle};
+use std::{env, io, net::TcpStream, thread::JoinHandle};
 
 use oca_io::network::LeaderboardEntries;
 use term::{Box, Draw, DrawCtx, Terminal};
@@ -19,9 +19,7 @@ impl Leaderboard {
     pub fn init(term: &mut Terminal) -> Option<Self> {
         let addr = env::var("SNAKEADDR").ok()?;
         let Ok((entries, conn)) = network::connect_tcp(&addr) else {
-            unsafe { term.close() };
-            eprintln!("\x1B[1;31merror\x1B[0m: failed to connect to leaderboard server");
-            exit(1)
+            term.exit_with_error("failed to connect to the leaderboard server")
         };
 
         Some(Self {
