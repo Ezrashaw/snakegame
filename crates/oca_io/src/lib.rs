@@ -6,6 +6,7 @@ use std::{os::fd::AsRawFd, ptr, time::Duration};
 
 mod cbuf;
 pub mod network;
+pub mod signal;
 pub mod termios;
 
 pub use cbuf::CircularBuffer;

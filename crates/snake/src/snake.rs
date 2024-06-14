@@ -94,18 +94,14 @@ pub fn game_main(ui: &mut GameUi) -> io::Result<Option<usize>> {
         thread::sleep(step_time);
 
         // Check for keys, but don't wait for anything (we've already waited).
-        match ui
+        // TODO: instead of this if-let block binding `key`, we want it to bind `direction` so we
+        // don't need the gross unwrap.
+        if let Some(key) = ui
             .term()
             .get_key(|k| direction.change_from_key(k).is_some())?
         {
-            // If we didn't get a key, do nothing.
-            None => (),
-
-            // If CTRL-C is pushed, then exit.
-            Some(Key::CrtlC) => return Ok(None),
-
-            // Otherwise, handle a movement keypress, mapping keys to their respective directions.
-            Some(key) => direction = direction.change_from_key(key).unwrap(),
+            // Handle a movement keypress, mapping keys to their respective directions.
+            direction = direction.change_from_key(key).unwrap();
         }
 
         // Actually move the snake's head position, checking to see if we have hit a wall.
@@ -147,8 +143,12 @@ pub fn game_main(ui: &mut GameUi) -> io::Result<Option<usize>> {
         // Draw the previous head position as the tail colour.
         ui.draw_canvas(old_pos, Pixel::new(Color::Green, false))?;
 
-        // Update the game's UI, currently just the leaderboard and stats panel.
-        ui.update_tick(true)?;
+        // Update the game's UI, currently just the leaderboard and stats panel. This function also
+        // checks for SIGINT and SIGTERM, and if one of these signals is received, then we will
+        // exit here.
+        if ui.update_tick(true)? {
+            return Ok(None);
+        }
     }
 
     // Do a fun little death animation.

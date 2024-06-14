@@ -77,13 +77,14 @@ impl GameUi {
         self.update_lb(LeaderboardUpdate::Score(score.try_into().unwrap()))
     }
 
-    pub fn update_tick(&mut self, stats: bool) -> io::Result<()> {
+    pub fn update_tick(&mut self, stats: bool) -> io::Result<bool> {
         if stats {
             self.term
                 .update(self.cx - 16, self.cy + 2, &self.stats, StatsUpdate::Time)?;
         }
 
-        self.update_lb(LeaderboardUpdate::Network(false, false))
+        self.update_lb(LeaderboardUpdate::Network(false, false))?;
+        self.term.process_signals()
     }
 
     pub fn clear_canvas(&mut self) -> io::Result<()> {

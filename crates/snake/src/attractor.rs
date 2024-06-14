@@ -54,13 +54,13 @@ pub fn run(ui: &mut GameUi) -> io::Result<bool> {
             });
         }
 
-        match ui.term().get_key(|k| k == Key::Enter)? {
-            None => (),
-            Some(Key::CrtlC) => return Ok(true),
-            Some(_) => return Ok(false),
+        if ui.term().get_key(|k| k == Key::Enter)?.is_some() {
+            return Ok(false);
         }
 
-        ui.update_tick(false)?;
+        if ui.update_tick(false)? {
+            return Ok(true);
+        }
     }
 }
 

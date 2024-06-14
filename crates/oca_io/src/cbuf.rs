@@ -13,7 +13,7 @@ impl<T: Copy, const N: usize> CircularBuffer<T, N> {
     pub fn new() -> Self {
         assert!(N > 0);
         Self {
-            // SAFETY: We are never assume uninit'ed memory to be `T`. We are assuming it to be
+            // SAFETY: We never assume uninit'ed memory to be `T`. We are assuming it to be
             //         `MaybeUninit` which is always safe.
             buf: unsafe { MaybeUninit::uninit().assume_init() },
             back: 0,
@@ -43,6 +43,11 @@ impl<T: Copy, const N: usize> CircularBuffer<T, N> {
         let item = unsafe { (self.buf[self.back]).assume_init_read() };
         self.back = (self.back + 1) % N;
         Some(item)
+    }
+
+    pub fn clear(&mut self) {
+        self.full = false;
+        self.back = self.front;
     }
 
     #[allow(clippy::len_without_is_empty)]

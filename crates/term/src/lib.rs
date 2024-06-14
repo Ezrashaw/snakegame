@@ -15,6 +15,7 @@ pub use stdin::{Key, KeyEvent};
 pub use stdout::{ansi_str_len, Color, Rect};
 
 use oca_io::{
+    signal::{Signal, SignalFile},
     termios::{self, Termios},
     CircularBuffer,
 };
@@ -24,11 +25,13 @@ use std::{
     io::{self, Write},
     os::fd::FromRawFd,
     process, thread,
+    time::Duration,
 };
 
 pub struct Terminal {
     file: File,
     kbd_buf: CircularBuffer<Key, 64>,
+    signalfd: SignalFile,
 
     old_termios: Termios,
     term_size: (u16, u16),
@@ -37,7 +40,6 @@ pub struct Terminal {
 impl Terminal {
     pub fn new() -> io::Result<Self> {
         let old_termios = termios::init(|t| {
-            t.set_sig(false);
             t.set_canonical(false);
             t.set_echo(false);
             t.set_ixon(false);
@@ -50,6 +52,11 @@ impl Terminal {
         Ok(Self {
             file,
             kbd_buf: CircularBuffer::new(),
+            signalfd: SignalFile::new(&[
+                Signal::Interrupt,
+                Signal::Terminate,
+                Signal::WindowChange,
+            ]),
             old_termios,
             term_size: oca_io::get_termsize(),
         })
@@ -58,6 +65,18 @@ impl Terminal {
     #[must_use]
     pub const fn size(&self) -> (u16, u16) {
         self.term_size
+    }
+
+    pub fn process_signals(&mut self) -> io::Result<bool> {
+        if oca_io::poll_read_fd(&self.signalfd, Some(Duration::ZERO)) {
+            match self.signalfd.get_signal()? {
+                Signal::Interrupt | Signal::Terminate => return Ok(true),
+                Signal::WindowChange => self.exit_with_error(
+                    "detected that the terminal size changed; this is not supported",
+                ),
+            }
+        }
+        Ok(false)
     }
 
     pub fn exit_with_error(&mut self, msg: impl AsRef<str>) -> ! {

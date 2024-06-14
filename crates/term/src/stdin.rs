@@ -5,22 +5,13 @@ use std::{
 };
 
 impl Terminal {
-    pub fn clear_input(&mut self) -> io::Result<bool> {
+    pub fn clear_input(&mut self) -> io::Result<()> {
         self.pollkey(Some(Duration::ZERO))?;
-
-        while let Some(key) = self.kbd_buf.pop() {
-            if matches!(key, Key::CrtlC) {
-                return Ok(true);
-            }
-        }
-
-        Ok(false)
+        Ok(self.kbd_buf.clear())
     }
 
     pub fn wait_enter(&mut self, timeout: Option<Duration>) -> io::Result<KeyEvent> {
-        if self.clear_input()? {
-            return Ok(KeyEvent::Exit);
-        }
+        self.clear_input()?;
 
         let end_time = timeout.map(|t| Instant::now() + t);
         loop {
@@ -29,7 +20,6 @@ impl Terminal {
             }
 
             match self.kbd_buf.pop() {
-                Some(Key::CrtlC) => return Ok(KeyEvent::Exit),
                 Some(Key::Enter) => return Ok(KeyEvent::Key(Key::Enter)),
                 _ => (),
             };
@@ -48,7 +38,6 @@ impl Terminal {
         self.pollkey(timeout)?;
         loop {
             match self.kbd_buf.pop() {
-                Some(Key::CrtlC) => return Ok(Some(Key::CrtlC)),
                 Some(k) if want_key(k) => return Ok(Some(k)),
                 Some(_) => (),
                 None => return Ok(None),
@@ -77,7 +66,6 @@ impl Terminal {
 
         while let Some(b) = next() {
             self.kbd_buf.push(match b {
-                0x3 => Key::CrtlC,
                 b'\n' => Key::Enter,
                 0x7F => Key::Back,
                 0x1B => match next() {
@@ -113,7 +101,6 @@ pub enum KeyEvent {
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[repr(u8)]
 pub enum Key {
-    CrtlC,
     Enter,
     Back,
     Esc,
