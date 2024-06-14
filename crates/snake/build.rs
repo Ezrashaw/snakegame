@@ -39,6 +39,7 @@ fn main() {
 
 #[must_use]
 pub fn from_pansi(s: &str) -> String {
+    let s = s.trim_end_matches('\n');
     let mut new = String::with_capacity(s.len() * 2);
     let mut i = 0;
     loop {

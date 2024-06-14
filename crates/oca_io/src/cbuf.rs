@@ -50,7 +50,6 @@ impl<T: Copy, const N: usize> CircularBuffer<T, N> {
         self.back = self.front;
     }
 
-    #[allow(clippy::len_without_is_empty)]
     pub const fn len(&self) -> usize {
         if self.full {
             N
@@ -59,6 +58,10 @@ impl<T: Copy, const N: usize> CircularBuffer<T, N> {
         } else {
             self.front - self.back
         }
+    }
+
+    pub const fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     pub const fn iter(&self) -> CBufIter<'_, T, N> {
