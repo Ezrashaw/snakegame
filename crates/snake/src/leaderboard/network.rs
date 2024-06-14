@@ -29,7 +29,7 @@ impl Leaderboard {
             }
         };
 
-        if !block && !oca_io::poll_read_fd(conn, Some(Duration::ZERO)) {
+        if !block && !oca_io::poll::poll_read_fd(conn, Some(Duration::ZERO)) {
             return None;
         }
 

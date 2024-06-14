@@ -1,46 +1,51 @@
-use std::{mem::MaybeUninit, ptr};
+use crate::ioctl::{ioctl, IoctlRequest};
 
 macro_rules! set_bit {
-    (fn $set:ident ($flag:ident) => $bit:ident) => {
+    (fn $set:ident ($flag:ident) => $bit:literal) => {
         pub fn $set(&mut self, x: bool) {
             if x {
-                self.0.$flag |= ::libc::$bit;
+                self.$flag |= $bit;
             } else {
-                self.0.$flag &= !::libc::$bit;
+                self.$flag &= !$bit;
             }
         }
     };
 }
 
 #[derive(Clone, Copy)]
-pub struct Termios(libc::termios);
+#[repr(C)]
+pub struct Termios {
+    iflag: u32,   /* input mode flags */
+    oflag: u32,   /* output mode flags */
+    cflag: u32,   /* control mode flags */
+    lflag: u32,   /* local mode flags */
+    line: u8,     /* line discipline */
+    cc: [u8; 19], /* control characters */
+}
 
 impl Termios {
     pub fn sys_get() -> Self {
-        // SAFETY: `libc::termios` is composed entirely of integer types that can be init'd to zero
-        let mut termios = Self(unsafe { MaybeUninit::zeroed().assume_init() });
-
-        let res = unsafe {
-            libc::ioctl(
-                libc::STDIN_FILENO,
-                libc::TCGETS,
-                ptr::from_mut(&mut termios.0),
-            )
+        let mut termios = Self {
+            iflag: 0,
+            oflag: 0,
+            cflag: 0,
+            lflag: 0,
+            line: 0,
+            cc: [0; 19],
         };
-        assert_eq!(res, 0);
 
+        ioctl(IoctlRequest::GetTermAttr(&mut termios));
         termios
     }
 
     pub fn sys_set(&self) {
-        let res = unsafe { libc::ioctl(libc::STDIN_FILENO, libc::TCSETS, ptr::from_ref(&self.0)) };
-        assert_eq!(res, 0);
+        ioctl(IoctlRequest::SetTermAttr(self));
     }
 
-    set_bit!(fn set_sig(c_lflag) => ISIG);
-    set_bit!(fn set_canonical(c_lflag) => ICANON);
-    set_bit!(fn set_echo(c_lflag) => ECHO);
-    set_bit!(fn set_ixon(c_iflag) => IXON);
+    set_bit!(fn set_sig(lflag) => 0x1);
+    set_bit!(fn set_canonical(lflag) => 0x2);
+    set_bit!(fn set_echo(lflag) => 0x8);
+    set_bit!(fn set_ixon(iflag) => 0x400);
 }
 
 pub fn init(f: impl FnOnce(&mut Termios)) -> Termios {

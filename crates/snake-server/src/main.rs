@@ -8,7 +8,7 @@ use std::{
 
 use oca_io::{
     network::{read_packet, write_packet, LeaderboardEntry},
-    PollFd,
+    poll::PollFd,
 };
 
 fn main() -> io::Result<()> {
@@ -35,7 +35,7 @@ fn main() -> io::Result<()> {
     let mut poll_fds = vec![PollFd::new_read(&server)];
 
     loop {
-        let number_read = oca_io::poll(&mut poll_fds, None);
+        let number_read = oca_io::poll::poll(&mut poll_fds, None);
         assert!(number_read == 1);
 
         let poll_fd = poll_fds

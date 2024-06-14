@@ -68,7 +68,7 @@ impl Terminal {
     }
 
     pub fn process_signals(&mut self) -> io::Result<bool> {
-        if oca_io::poll_read_fd(&self.signalfd, Some(Duration::ZERO)) {
+        if oca_io::poll::poll_read_fd(&self.signalfd, Some(Duration::ZERO)) {
             match self.signalfd.get_signal()? {
                 Signal::Interrupt | Signal::Terminate => return Ok(true),
                 Signal::WindowChange => self.exit_with_error(

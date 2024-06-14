@@ -1,11 +1,12 @@
 use std::{
-    ffi::CString,
     fs::File,
     io::{self, Read},
     mem,
     os::fd::{AsRawFd, FromRawFd, RawFd},
-    process, ptr,
+    ptr,
 };
+
+use crate::syscall::{syscall4, SYS_rt_sigprocmask, SYS_signalfd4};
 
 #[repr(u8)]
 #[derive(Clone, Copy)]
@@ -32,33 +33,26 @@ impl SignalFile {
 
         let mut oldset = 0u64;
         let res = unsafe {
-            libc::syscall(
-                libc::SYS_rt_sigprocmask,
-                libc::SIG_BLOCK,
-                ptr::from_ref(&sigmask),
-                ptr::from_mut(&mut oldset),
-                mem::size_of_val(&sigmask),
+            syscall4(
+                SYS_rt_sigprocmask,
+                0x0, // SIG_BLOCK
+                ptr::from_ref(&sigmask) as u64,
+                ptr::from_mut(&mut oldset) as u64,
+                mem::size_of_val(&sigmask) as u64,
             )
         };
         assert!(oldset == 0);
-        if res != 0 {
-            let msg = CString::new("libc call failed: ").unwrap();
-            unsafe {
-                libc::perror(msg.as_ptr());
-            }
-            process::exit(1);
-        }
         assert!(res == 0);
 
         let signalfd = unsafe {
-            libc::syscall(
-                libc::SYS_signalfd4,
-                -1,
-                &sigmask,
-                mem::size_of_val(&sigmask),
+            syscall4(
+                SYS_signalfd4,
+                (-1i64) as u64,
+                ptr::from_ref(&sigmask) as u64,
+                mem::size_of_val(&sigmask).try_into().unwrap(),
                 0x0,
             )
-        };
+        } as i64;
         assert!(signalfd >= 0);
         let fd = unsafe { File::from_raw_fd(signalfd as i32) };
         Self { fd }
