@@ -1,17 +1,15 @@
 use crate::Terminal;
-use std::{
-    io::{self, Read},
-    time::{Duration, Instant},
-};
+use oca_io::Result;
+use std::time::{Duration, Instant};
 
 impl Terminal {
-    pub fn clear_input(&mut self) -> io::Result<()> {
+    pub fn clear_input(&mut self) -> Result<()> {
         self.pollkey(Some(Duration::ZERO))?;
         self.kbd_buf.clear();
         Ok(())
     }
 
-    pub fn wait_enter(&mut self, timeout: Option<Duration>) -> io::Result<KeyEvent> {
+    pub fn wait_enter(&mut self, timeout: Option<Duration>) -> Result<KeyEvent> {
         self.clear_input()?;
 
         let end_time = timeout.map(|t| Instant::now() + t);
@@ -26,7 +24,7 @@ impl Terminal {
         }
     }
 
-    pub fn get_key(&mut self, want_key: impl Fn(Key) -> bool) -> io::Result<Option<Key>> {
+    pub fn get_key(&mut self, want_key: impl Fn(Key) -> bool) -> Result<Option<Key>> {
         self.get_key_timeout(Some(Duration::ZERO), want_key)
     }
 
@@ -34,7 +32,7 @@ impl Terminal {
         &mut self,
         timeout: Option<Duration>,
         want_key: impl Fn(Key) -> bool,
-    ) -> io::Result<Option<Key>> {
+    ) -> Result<Option<Key>> {
         self.pollkey(timeout)?;
         loop {
             match self.kbd_buf.pop() {
@@ -45,7 +43,7 @@ impl Terminal {
         }
     }
 
-    fn pollkey(&mut self, timeout: Option<Duration>) -> io::Result<bool> {
+    fn pollkey(&mut self, timeout: Option<Duration>) -> Result<bool> {
         if !oca_io::poll::poll_read_fd(&self.file, timeout) {
             // no data received
             return Ok(true);

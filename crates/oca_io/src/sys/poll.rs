@@ -37,7 +37,7 @@ pub fn poll(fds: &mut [PollFd], timeout: Option<Duration>) -> u32 {
         // in debug mode, but release mode optimized it into UB.
         time_spec.as_ref().map_or(ptr::null(), ptr::from_ref) as u64,
         ptr::null::<()>() as u64
-    ) as i64;
+    );
     assert!(res != -1);
 
     res.try_into().unwrap()

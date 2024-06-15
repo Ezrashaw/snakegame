@@ -32,7 +32,6 @@ fn write_psf() {
     let mut psf = PsfFont::try_from(bytes.as_slice()).unwrap();
     txt2psf(lines, &mut psf).unwrap();
     psf.double_size();
-    psf.print_table();
 
     psf.write_to(&mut fs::File::create("patched16x32.psfu").unwrap())
         .unwrap();

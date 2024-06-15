@@ -119,7 +119,7 @@ impl PsfFont {
     }
 
     pub fn print_table(&self) {
-        let per_row = u32::from(oca_io::get_termsize().0) / (self.width + 2);
+        let per_row = u32::from(oca_io::get_termsize().unwrap().0) / (self.width + 2);
         for row in 0..(self.glyph_count / per_row) {
             for g in 0..per_row {
                 let g = g + row * per_row;

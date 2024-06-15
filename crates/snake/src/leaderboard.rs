@@ -3,13 +3,17 @@ mod network;
 use std::{env, io, net::TcpStream, thread::JoinHandle};
 
 use oca_io::network::LeaderboardEntries;
+use oca_io::Result;
 use term::{Box, Draw, DrawCtx, Terminal};
 
 pub struct Leaderboard {
     pub entries: LeaderboardEntries,
     pub score: Option<u8>,
     #[allow(clippy::type_complexity)]
-    conn: Result<TcpStream, Option<JoinHandle<io::Result<(LeaderboardEntries, TcpStream)>>>>,
+    conn: core::result::Result<
+        TcpStream,
+        Option<JoinHandle<io::Result<(LeaderboardEntries, TcpStream)>>>,
+    >,
     addr: String,
     you_row: Option<u16>,
     has_10_pos: bool,
@@ -38,7 +42,7 @@ impl Leaderboard {
     ///
     /// **Note**: there is no need to clear the previous leaderboard: the leaderboard doesn't
     /// change screen-size, so we always overwrite the entire previous leaderboard.
-    fn draw_entries(&mut self, ctx: &mut DrawCtx) -> io::Result<()> {
+    fn draw_entries(&mut self, ctx: &mut DrawCtx) -> Result<()> {
         // We are redrawing all the entries, so we'll re-calculate the position of the "YOU" row.
         self.you_row = None;
 
@@ -130,7 +134,7 @@ impl Draw for &mut Leaderboard {
         (15, 14)
     }
 
-    fn draw(self, ctx: &mut term::DrawCtx) -> io::Result<()> {
+    fn draw(self, ctx: &mut term::DrawCtx) -> Result<()> {
         ctx.draw(0, 0, Box::new(13, 12).with_separator(1))?;
         ctx.draw(2, 1, "\x1B[1;34mLEADERBOARD\x1B[0m")?;
         for i in 1..=10 {
@@ -143,7 +147,7 @@ impl Draw for &mut Leaderboard {
     }
 
     type Update = LeaderboardUpdate;
-    fn update(self, ctx: &mut DrawCtx, update: Self::Update) -> io::Result<()> {
+    fn update(self, ctx: &mut DrawCtx, update: Self::Update) -> Result<()> {
         match update {
             LeaderboardUpdate::Score(score) => {
                 self.score = Some(score);

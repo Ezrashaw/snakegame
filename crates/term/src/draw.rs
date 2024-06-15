@@ -1,18 +1,19 @@
 use crate::{ansi_str_len, Color, Rect};
-use std::io::{self, Write};
+use core::fmt::{self, Write};
+use oca_io::Result;
 
 pub trait Draw: Sized {
     type Update = ();
-    fn update(self, _ctx: &mut DrawCtx, _update: Self::Update) -> io::Result<()> {
+    fn update(self, _ctx: &mut DrawCtx, _update: Self::Update) -> Result<()> {
         unimplemented!()
     }
 
     fn size(&self) -> (u16, u16);
-    fn draw(self, ctx: &mut DrawCtx) -> io::Result<()>;
+    fn draw(self, ctx: &mut DrawCtx) -> Result<()>;
 }
 
 pub struct DrawCtx {
-    out: Vec<u8>,
+    out: String,
     x: u16,
     y: u16,
     w: u16,
@@ -20,7 +21,7 @@ pub struct DrawCtx {
 }
 
 impl DrawCtx {
-    pub fn o(&mut self) -> &mut impl Write {
+    pub fn o(&mut self) -> &mut impl fmt::Write {
         &mut self.out
     }
 
@@ -29,27 +30,28 @@ impl DrawCtx {
         (self.w, self.h)
     }
 
-    pub fn goto(&mut self, x: u16, y: u16) -> io::Result<()> {
+    pub fn goto(&mut self, x: u16, y: u16) -> Result<()> {
         assert!(x <= self.w && y <= self.h);
-        write!(self.out, "\x1B[{};{}H", self.y + y, self.x + x)
+        write!(self.out, "\x1B[{};{}H", self.y + y, self.x + x)?;
+        Ok(())
     }
 
-    pub fn draw(&mut self, x: u16, y: u16, object: impl Draw) -> io::Result<()> {
+    pub fn draw(&mut self, x: u16, y: u16, object: impl Draw) -> Result<()> {
         draw(&mut self.out, object, self.x + x, self.y + y)
     }
 }
 
 fn with_ctx<D: Draw>(
-    out: &mut impl Write,
+    out: &mut impl fmt::Write,
     object: D,
     x: u16,
     y: u16,
-    cb: impl FnOnce(&mut DrawCtx, D) -> io::Result<()>,
-) -> io::Result<()> {
+    cb: impl FnOnce(&mut DrawCtx, D) -> Result<()>,
+) -> Result<()> {
     assert!(x >= 1 && y >= 1);
 
     let (w, h) = object.size();
-    let mut psout = Vec::with_capacity(1024);
+    let mut psout = String::with_capacity(1024);
     write!(psout, "\x1B[{y};{x}H")?;
     let mut ctx = DrawCtx {
         out: psout,
@@ -61,38 +63,37 @@ fn with_ctx<D: Draw>(
 
     cb(&mut ctx, object)?;
 
-    let string: String = String::from_utf8(ctx.out).unwrap();
-    let string = string.replace('\n', &format!("\n\x1B[{x}G"));
-
-    out.write_all(string.as_bytes())
+    let psout = ctx.out.replace('\n', &format!("\n\x1B[{x}G"));
+    out.write_str(&psout)?;
+    Ok(())
 }
 
-pub fn draw(out: &mut impl Write, object: impl Draw, x: u16, y: u16) -> io::Result<()> {
+pub fn draw(out: &mut impl fmt::Write, object: impl Draw, x: u16, y: u16) -> Result<()> {
     with_ctx(out, object, x, y, |ctx, object| object.draw(ctx))
 }
 
 pub fn update<T: Draw>(
-    out: &mut impl Write,
+    out: &mut impl fmt::Write,
     object: T,
     x: u16,
     y: u16,
     update: T::Update,
-) -> io::Result<()> {
+) -> Result<()> {
     with_ctx(out, object, x, y, |ctx, object| object.update(ctx, update))
 }
 
 pub fn draw_centered(
-    out: &mut impl Write,
+    out: &mut impl fmt::Write,
     object: impl Draw,
     rect: Rect,
     allow_hoff: bool,
-) -> io::Result<(u16, u16)> {
+) -> Result<(u16, u16)> {
     let (w, h) = object.size();
     assert!(w <= rect.w && h <= rect.h);
 
     let hoff = (rect.h - h) % 2 != 0;
     if (rect.w - w) % 2 != 0 || (allow_hoff ^ hoff) {
-        let w = oca_io::get_termsize().0;
+        let w = oca_io::get_termsize().unwrap().0;
         draw(out, "\x1B[33;1mWARNING: \x1B[0mfailed to center", w - 25, 1)?;
     }
 
@@ -113,7 +114,7 @@ impl<T: AsRef<str>> Draw for T {
         (max_width, lines)
     }
 
-    fn draw(self, ctx: &mut DrawCtx) -> io::Result<()> {
+    fn draw(self, ctx: &mut DrawCtx) -> Result<()> {
         let str = self.as_ref();
         assert_eq!(str, str.trim_end_matches('\n'));
 
@@ -131,7 +132,7 @@ impl<T: AsRef<str>> Draw for CenteredStr<T> {
         self.0.size()
     }
 
-    fn draw(self, ctx: &mut DrawCtx) -> io::Result<()> {
+    fn draw(self, ctx: &mut DrawCtx) -> Result<()> {
         let str = self.0.as_ref();
         assert_eq!(str, str.trim_end_matches('\n'));
 
@@ -219,7 +220,7 @@ impl Draw for Box {
         (self.w + 2, self.h + 2)
     }
 
-    fn draw(self, ctx: &mut DrawCtx) -> io::Result<()> {
+    fn draw(self, ctx: &mut DrawCtx) -> Result<()> {
         let (w, h) = (self.w as usize, self.h);
         let corners = self.corners.unwrap_or(Self::DEFAULT_CORNERS);
         let sep = self
@@ -259,7 +260,7 @@ impl Draw for Pixel {
         (2, 1)
     }
 
-    fn draw(self, ctx: &mut DrawCtx) -> io::Result<()> {
+    fn draw(self, ctx: &mut DrawCtx) -> Result<()> {
         let o = ctx.o();
         match self {
             Self::Draw { color, bright } => {
@@ -269,10 +270,11 @@ impl Draw for Pixel {
                     color.fg()
                 };
                 write!(o, "\x1B[{}m", Color::to_str(&color))?;
-                write!(o, "██\x1B[0m")
+                write!(o, "██\x1B[0m")?;
             }
-            Self::Clear => write!(o, "  "),
-        }
+            Self::Clear => write!(o, "  ")?,
+        };
+        Ok(())
     }
 }
 
@@ -301,7 +303,7 @@ impl Draw for &Popup<'_> {
         (tw + 4, th + 2)
     }
 
-    fn draw(self, ctx: &mut DrawCtx) -> io::Result<()> {
+    fn draw(self, ctx: &mut DrawCtx) -> Result<()> {
         let (w, h) = ctx.size();
         if let Some(color) = self.color {
             write!(ctx.o(), "\x1B[1;{}m", Color::to_str(&color.fg_bright()))?;

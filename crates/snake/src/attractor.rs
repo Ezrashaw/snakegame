@@ -1,6 +1,6 @@
-use std::{io, thread};
+use std::thread;
 
-use oca_io::CircularBuffer;
+use oca_io::{CircularBuffer, Result};
 use term::{Color, Key, Pixel};
 
 use crate::{
@@ -8,7 +8,7 @@ use crate::{
     ui::{Coord, GameUi},
 };
 
-pub fn run(ui: &mut GameUi) -> io::Result<bool> {
+pub fn run(ui: &mut GameUi) -> Result<bool> {
     let mut head = snake::STARTING_POS;
     let mut tail = CircularBuffer::<Coord, { snake::STARTING_LENGTH * 2 + 1 }>::new();
     let (mut dir, mut left) = get_dir(0, &mut head).unwrap();

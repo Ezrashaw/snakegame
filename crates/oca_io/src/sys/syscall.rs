@@ -8,6 +8,8 @@ pub use aarch64::*;
 
 #[cfg(target_arch = "x86_64")]
 mod x86 {
+    pub const SYS_read: u64 = 0;
+    pub const SYS_write: u64 = 1;
     pub const SYS_rt_sigprocmask: u64 = 14;
     pub const SYS_ioctl: u64 = 16;
     pub const SYS_ppoll: u64 = 271;
@@ -25,7 +27,7 @@ mod x86 {
     /// 4. %r10
     macro_rules! syscall {
         ($id:ident, $arg1:expr, $arg2:expr, $arg3:expr) => {{
-            let mut ret: u64;
+            let mut ret: i64;
             unsafe {
                 core::arch::asm!(
                     "syscall",
@@ -44,7 +46,7 @@ mod x86 {
             ret
         }};
         ($id:ident, $arg1:expr, $arg2:expr, $arg3:expr, $arg4:expr) => {{
-            let mut ret: u64;
+            let mut ret: i64;
             unsafe {
                 core::arch::asm!(
                     "syscall",
@@ -86,7 +88,7 @@ mod aarch64 {
     /// 4. %x3
     macro_rules! syscall {
         ($id:ident, $arg1:expr, $arg2:expr, $arg3:expr) => {{
-            let mut ret: u64;
+            let mut ret: i64;
             unsafe {
                 core::arch::asm!(
                     "svc 0",
@@ -103,7 +105,7 @@ mod aarch64 {
             ret
         }};
         ($id:ident, $arg1:expr, $arg2:expr, $arg3:expr, $arg4:expr) => {{
-            let mut ret: u64;
+            let mut ret: i64;
             unsafe {
                 core::arch::asm!(
                     "svc 0",

@@ -1,11 +1,9 @@
-use std::{
-    io::{self, Write},
-    time::Instant,
-};
+use std::{fmt::Write, time::Instant};
 
 use term::{ansi_str_len, Box, CenteredStr, Draw, DrawCtx, Rect, Terminal};
 
 use crate::leaderboard::{Leaderboard, LeaderboardUpdate};
+use oca_io::Result;
 
 const CREDITS_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/credits.txt"));
 const STATS_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/stats.txt"));
@@ -25,7 +23,7 @@ pub struct GameUi {
 }
 
 impl GameUi {
-    pub fn init() -> io::Result<Self> {
+    pub fn init() -> Result<Self> {
         let mut term = Terminal::new()?;
         let size = term.size();
         if size.0 < 95 || size.1 < 33 {
@@ -53,7 +51,7 @@ impl GameUi {
         })
     }
 
-    pub fn draw_centered(&mut self, object: impl Draw, hoff: bool) -> io::Result<(u16, u16)> {
+    pub fn draw_centered(&mut self, object: impl Draw, hoff: bool) -> Result<(u16, u16)> {
         self.term.draw_centered_hoff(
             object,
             Rect::new(self.cx, self.cy, (CANVAS_W * 2) + 2, CANVAS_H + 2),
@@ -62,22 +60,22 @@ impl GameUi {
     }
 
     #[allow(clippy::needless_pass_by_value)]
-    pub fn clear_centered(&mut self, object: impl Draw, pos: (u16, u16)) -> io::Result<()> {
+    pub fn clear_centered(&mut self, object: impl Draw, pos: (u16, u16)) -> Result<()> {
         let (w, h) = object.size();
         self.term.clear_rect(Rect::new(pos.0, pos.1, w, h))
     }
 
-    pub fn draw_canvas(&mut self, coord: Coord, object: impl Draw) -> io::Result<()> {
+    pub fn draw_canvas(&mut self, coord: Coord, object: impl Draw) -> Result<()> {
         self.term
             .draw(self.cx + (coord.x * 2) + 1, self.cy + coord.y + 1, object)
     }
 
-    pub fn update_score(&mut self, score: usize) -> io::Result<()> {
+    pub fn update_score(&mut self, score: usize) -> Result<()> {
         self.update_stats(StatsUpdate::Score(score))?;
         self.update_lb(LeaderboardUpdate::Score(score.try_into().unwrap()))
     }
 
-    pub fn update_tick(&mut self, stats: bool) -> io::Result<bool> {
+    pub fn update_tick(&mut self, stats: bool) -> Result<bool> {
         if stats {
             self.term
                 .update(self.cx - 16, self.cy + 2, &self.stats, StatsUpdate::Time)?;
@@ -87,18 +85,18 @@ impl GameUi {
         self.term.process_signals()
     }
 
-    pub fn clear_canvas(&mut self) -> io::Result<()> {
+    pub fn clear_canvas(&mut self) -> Result<()> {
         self.term
             .clear_rect(Rect::new(self.cx + 1, self.cy + 1, CANVAS_W * 2, CANVAS_H))
     }
 
-    pub fn reset_stats(&mut self) -> io::Result<()> {
+    pub fn reset_stats(&mut self) -> Result<()> {
         self.stats.0 = Instant::now();
         self.update_stats(StatsUpdate::Time)?;
         self.update_stats(StatsUpdate::Score(0))
     }
 
-    pub fn reset_lb(&mut self, block_lb: bool) -> io::Result<()> {
+    pub fn reset_lb(&mut self, block_lb: bool) -> Result<()> {
         self.update_lb(LeaderboardUpdate::Network(block_lb, true))
     }
 
@@ -110,11 +108,11 @@ impl GameUi {
         &mut self.term
     }
 
-    fn update_stats(&mut self, up: StatsUpdate) -> io::Result<()> {
+    fn update_stats(&mut self, up: StatsUpdate) -> Result<()> {
         self.term.update(self.cx - 16, self.cy + 2, &self.stats, up)
     }
 
-    pub fn update_lb(&mut self, update: LeaderboardUpdate) -> io::Result<()> {
+    pub fn update_lb(&mut self, update: LeaderboardUpdate) -> Result<()> {
         if let Some(lb) = &mut self.lb {
             self.term
                 .update(self.cx + (CANVAS_W * 2) + 4, self.cy, lb, update)
@@ -133,7 +131,7 @@ impl GameUi {
 /// - The SNAKE text (top center);
 /// - The canvas/play area; and
 /// - The help text (beneath canvas).
-fn draw_static(term: &mut Terminal) -> io::Result<(u16, u16)> {
+fn draw_static(term: &mut Terminal) -> Result<(u16, u16)> {
     let (w, h) = term.size();
 
     // Draw the credits text in the bottom left corner of the screen.
@@ -184,7 +182,7 @@ impl Draw for &Stats {
         (15, 4)
     }
 
-    fn draw(self, ctx: &mut DrawCtx) -> io::Result<()> {
+    fn draw(self, ctx: &mut DrawCtx) -> Result<()> {
         ctx.draw(
             0,
             0,
@@ -196,11 +194,11 @@ impl Draw for &Stats {
     }
 
     type Update = StatsUpdate;
-    fn update(self, ctx: &mut DrawCtx, update: Self::Update) -> io::Result<()> {
+    fn update(self, ctx: &mut DrawCtx, update: Self::Update) -> Result<()> {
         match update {
             StatsUpdate::Score(score) => {
                 ctx.goto(12, 3)?;
-                write!(ctx.o(), "{score:0>3}")
+                write!(ctx.o(), "{score:0>3}")?;
             }
             StatsUpdate::Time => {
                 let t = self.0.elapsed();
@@ -208,9 +206,10 @@ impl Draw for &Stats {
                 let secs = t.as_secs() % 60;
 
                 ctx.goto(10, 4)?;
-                write!(ctx.o(), "{mins:0>2}:{secs:0>2}")
+                write!(ctx.o(), "{mins:0>2}:{secs:0>2}")?;
             }
-        }
+        };
+        Ok(())
     }
 }
 

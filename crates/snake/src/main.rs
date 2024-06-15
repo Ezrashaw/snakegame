@@ -7,10 +7,8 @@ mod leaderboard;
 mod snake;
 mod ui;
 
-use std::{
-    io,
-    time::{Duration, Instant},
-};
+use oca_io::Result;
+use std::time::{Duration, Instant};
 
 use snake::game_main;
 use term::{Color, Key, KeyEvent, Popup};
@@ -24,7 +22,7 @@ fn main() {
     snake_main().unwrap();
 }
 
-fn snake_main() -> io::Result<()> {
+fn snake_main() -> Result<()> {
     let mut ui = GameUi::init()?;
 
     loop {
@@ -74,7 +72,7 @@ fn snake_main() -> io::Result<()> {
     Ok(())
 }
 
-fn do_highscore(ui: &mut GameUi, score: usize) -> io::Result<bool> {
+fn do_highscore(ui: &mut GameUi, score: usize) -> Result<bool> {
     ui.term().clear_input()?;
 
     let game_over_text = ADD_LB_TEXT.replace("000", &format!("{score:0>3}"));

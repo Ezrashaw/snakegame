@@ -1,12 +1,13 @@
 use std::{
-    fs::File,
-    io::{self, Read},
     mem,
-    os::fd::{AsRawFd, FromRawFd, RawFd},
+    os::fd::{AsRawFd, RawFd},
     ptr,
 };
 
-use crate::sys::syscall::{syscall, SYS_rt_sigprocmask, SYS_signalfd4};
+use crate::{
+    file::File,
+    sys::syscall::{syscall, SYS_rt_sigprocmask, SYS_signalfd4},
+};
 
 #[repr(u8)]
 #[derive(Clone, Copy)]
@@ -16,9 +17,7 @@ pub enum Signal {
     WindowChange = 28,
 }
 
-pub struct SignalFile {
-    fd: File,
-}
+pub struct SignalFile(File);
 
 impl SignalFile {
     pub fn new(signals: &[Signal]) -> Self {
@@ -48,15 +47,14 @@ impl SignalFile {
             ptr::from_ref(&sigmask) as u64,
             8, // signmask is eight bytes
             0x0
-        ) as i64;
+        );
         assert!(signalfd >= 0);
-        let fd = unsafe { File::from_raw_fd(signalfd as i32) };
-        Self { fd }
+        Self(File::from_fd(signalfd as i32))
     }
 
-    pub fn get_signal(&mut self) -> io::Result<Signal> {
+    pub fn get_signal(&mut self) -> Result<Signal, crate::Error> {
         let mut buf = [0u8; 128];
-        let n = self.fd.read(&mut buf)?;
+        let n = self.0.read(&mut buf)?;
         assert!(n == 128);
         let sig: u8 = u32::from_ne_bytes(buf[0..4].try_into().unwrap())
             .try_into()
@@ -68,6 +66,6 @@ impl SignalFile {
 
 impl AsRawFd for SignalFile {
     fn as_raw_fd(&self) -> RawFd {
-        self.fd.as_raw_fd()
+        self.0.as_raw_fd()
     }
 }

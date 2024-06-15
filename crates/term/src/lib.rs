@@ -15,18 +15,13 @@ pub use stdin::{Key, KeyEvent};
 pub use stdout::{ansi_str_len, Color, Rect};
 
 use oca_io::{
+    file::File,
     signal::{Signal, SignalFile},
     termios::{self, Termios},
-    CircularBuffer,
+    CircularBuffer, Result,
 };
 
-use std::{
-    fs::File,
-    io::{self, Write},
-    os::fd::FromRawFd,
-    process, thread,
-    time::Duration,
-};
+use std::{fmt::Write, process, thread, time::Duration};
 
 pub struct Terminal {
     file: File,
@@ -38,15 +33,14 @@ pub struct Terminal {
 }
 
 impl Terminal {
-    pub fn new() -> io::Result<Self> {
+    pub fn new() -> Result<Self> {
         let old_termios = termios::init(|t| {
             t.set_canonical(false);
             t.set_echo(false);
             t.set_ixon(false);
-        });
+        })?;
 
-        // SAFETY: we can always wrap FD 0 (stdin).
-        let mut file = unsafe { File::from_raw_fd(0) };
+        let mut file = File::stdin().unwrap();
         write!(file, "\x1B[?1049h\x1B[?25l\x1B[2J\x1B[H")?;
 
         Ok(Self {
@@ -58,7 +52,7 @@ impl Terminal {
                 Signal::WindowChange,
             ]),
             old_termios,
-            term_size: oca_io::get_termsize(),
+            term_size: oca_io::get_termsize()?,
         })
     }
 
@@ -67,7 +61,7 @@ impl Terminal {
         self.term_size
     }
 
-    pub fn process_signals(&mut self) -> io::Result<bool> {
+    pub fn process_signals(&mut self) -> Result<bool> {
         if oca_io::poll::poll_read_fd(&self.signalfd, Some(Duration::ZERO)) {
             match self.signalfd.get_signal()? {
                 Signal::Interrupt | Signal::Terminate => return Ok(true),
@@ -91,7 +85,7 @@ impl Terminal {
             write!(&mut self.file, "\x1B[2J\x1B[H\x1B[?1049l").unwrap();
         }
         write!(&mut self.file, "\x1B[?25h").unwrap();
-        self.old_termios.sys_set();
+        self.old_termios.sys_set().unwrap();
     }
 }
 

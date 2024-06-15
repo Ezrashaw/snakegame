@@ -1,16 +1,17 @@
 use crate::{Draw, Terminal};
-use std::io::{self, Write};
+use oca_io::Result;
+use std::fmt::Write;
 
 impl Terminal {
-    pub fn draw(&mut self, x: u16, y: u16, object: impl Draw) -> io::Result<()> {
+    pub fn draw(&mut self, x: u16, y: u16, object: impl Draw) -> Result<()> {
         crate::draw(&mut self.file, object, x, y)
     }
 
-    pub fn update<T: Draw>(&mut self, x: u16, y: u16, object: T, u: T::Update) -> io::Result<()> {
+    pub fn update<T: Draw>(&mut self, x: u16, y: u16, object: T, u: T::Update) -> Result<()> {
         crate::update(&mut self.file, object, x, y, u)
     }
 
-    pub fn draw_centered(&mut self, object: impl Draw, rect: Rect) -> io::Result<(u16, u16)> {
+    pub fn draw_centered(&mut self, object: impl Draw, rect: Rect) -> Result<(u16, u16)> {
         crate::draw_centered(&mut self.file, object, rect, false)
     }
 
@@ -19,11 +20,11 @@ impl Terminal {
         object: impl Draw,
         rect: Rect,
         hoff: bool,
-    ) -> io::Result<(u16, u16)> {
+    ) -> Result<(u16, u16)> {
         crate::draw_centered(&mut self.file, object, rect, hoff)
     }
 
-    pub fn clear_rect(&mut self, rect: Rect) -> io::Result<()> {
+    pub fn clear_rect(&mut self, rect: Rect) -> Result<()> {
         let (x, y, w, h) = (rect.x, rect.y, rect.w as usize, rect.h);
         for i in 0..h {
             write!(&mut self.file, "\x1B[{};{x}H{:w$}", y + i, "")?;

@@ -1,12 +1,12 @@
-use crate::sys::ioctl::{ioctl, IoctlRequest};
+use crate::sys::ioctl::{ioctl, IoctlRequest, STDIN_FD};
 
-pub fn init(f: impl FnOnce(&mut Termios)) -> Termios {
-    let mut termios = Termios::sys_get();
+pub fn init(f: impl FnOnce(&mut Termios)) -> Result<Termios, crate::Error> {
+    let mut termios = Termios::sys_get()?;
     let termios_backup = termios;
     f(&mut termios);
-    termios.sys_set();
+    termios.sys_set()?;
 
-    termios_backup
+    Ok(termios_backup)
 }
 
 macro_rules! set_bit {
@@ -33,16 +33,15 @@ pub struct Termios {
 }
 
 impl Termios {
-    #[must_use]
-    pub fn sys_get() -> Self {
+    pub fn sys_get() -> Result<Self, crate::Error> {
         let mut termios = Self::default();
-        ioctl(IoctlRequest::GetTermAttr(&mut termios));
+        ioctl(STDIN_FD, IoctlRequest::GetTermAttr(&mut termios))?;
 
-        termios
+        Ok(termios)
     }
 
-    pub fn sys_set(&self) {
-        ioctl(IoctlRequest::SetTermAttr(self));
+    pub fn sys_set(&self) -> Result<(), crate::Error> {
+        ioctl(STDIN_FD, IoctlRequest::SetTermAttr(self))
     }
 
     set_bit!(fn set_sig(lflag) => 0x1);

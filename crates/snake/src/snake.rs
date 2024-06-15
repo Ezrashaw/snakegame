@@ -7,14 +7,9 @@
 //! The main entry point for this module is [`game_main`] which expects that the terminal UI has
 //! already been setup. This function runs the game through to completion.
 
-use std::{
-    fs::File,
-    io::{self, Read},
-    thread,
-    time::Duration,
-};
+use std::{fs::File, io::Read, thread, time::Duration};
 
-use oca_io::CircularBuffer;
+use oca_io::{CircularBuffer, Result};
 use term::{Color, Key, Pixel};
 
 use crate::ui::{Coord, GameUi, CANVAS_H, CANVAS_W};
@@ -45,7 +40,7 @@ pub const STARTING_POS: Coord = Coord {
 ///
 /// Returns [`None`] if the game exits because of a user action (Ctrl-C). Otherwise, returns
 /// `Some(score)`.
-pub fn game_main(ui: &mut GameUi) -> io::Result<Option<usize>> {
+pub fn game_main(ui: &mut GameUi) -> Result<Option<usize>> {
     // Open /dev/urandom, a fast source of entropy on Linux systems.
     let mut rng = File::open("/dev/urandom")?;
 
@@ -181,7 +176,7 @@ pub fn game_main(ui: &mut GameUi) -> io::Result<Option<usize>> {
 /// 3. Map the generated index onto the canvas (we iterate over the whole canvas, and only
 ///    increment on free squares).
 /// 4. Place the fruit on the canvas.
-fn gen_fruit(rng: &mut File, ui: &mut GameUi, bitboard: &mut [u64]) -> io::Result<()> {
+fn gen_fruit(rng: &mut File, ui: &mut GameUi, bitboard: &mut [u64]) -> Result<()> {
     // Read eight bytes (a u64) into a buffer.
     let mut rand = [0u8; 8];
     rng.read_exact(&mut rand)?;
