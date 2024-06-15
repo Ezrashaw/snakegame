@@ -91,12 +91,12 @@ impl Terminal {
             write!(&mut self.file, "\x1B[2J\x1B[H\x1B[?1049l").unwrap();
         }
         write!(&mut self.file, "\x1B[?25h").unwrap();
-        termios::restore(self.old_termios);
+        self.old_termios.sys_set();
     }
 }
 
 impl Drop for Terminal {
     fn drop(&mut self) {
-        self.close()
+        self.close();
     }
 }

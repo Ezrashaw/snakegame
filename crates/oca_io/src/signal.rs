@@ -6,7 +6,7 @@ use std::{
     ptr,
 };
 
-use crate::syscall::{syscall4, SYS_rt_sigprocmask, SYS_signalfd4};
+use crate::syscall::{syscall, SYS_rt_sigprocmask, SYS_signalfd4};
 
 #[repr(u8)]
 #[derive(Clone, Copy)]
@@ -21,7 +21,7 @@ pub struct SignalFile {
 }
 
 impl SignalFile {
-    pub fn new(signals: &[Signal]) -> SignalFile {
+    pub fn new(signals: &[Signal]) -> Self {
         assert!(!signals.is_empty());
 
         let mut sigmask = 0u64;
@@ -32,27 +32,23 @@ impl SignalFile {
         }
 
         let mut oldset = 0u64;
-        let res = unsafe {
-            syscall4(
-                SYS_rt_sigprocmask,
-                0x0, // SIG_BLOCK
-                ptr::from_ref(&sigmask) as u64,
-                ptr::from_mut(&mut oldset) as u64,
-                mem::size_of_val(&sigmask) as u64,
-            )
-        };
+        let res = syscall!(
+            SYS_rt_sigprocmask,
+            0x0, // SIG_BLOCK
+            ptr::from_ref(&sigmask) as u64,
+            ptr::from_mut(&mut oldset) as u64,
+            mem::size_of_val(&sigmask) as u64
+        );
         assert!(oldset == 0);
         assert!(res == 0);
 
-        let signalfd = unsafe {
-            syscall4(
-                SYS_signalfd4,
-                (-1i64) as u64,
-                ptr::from_ref(&sigmask) as u64,
-                mem::size_of_val(&sigmask).try_into().unwrap(),
-                0x0,
-            )
-        } as i64;
+        let signalfd = syscall!(
+            SYS_signalfd4,
+            (-1i64) as u64,
+            ptr::from_ref(&sigmask) as u64,
+            8, // signmask is eight bytes
+            0x0
+        ) as i64;
         assert!(signalfd >= 0);
         let fd = unsafe { File::from_raw_fd(signalfd as i32) };
         Self { fd }
@@ -60,12 +56,13 @@ impl SignalFile {
 
     pub fn get_signal(&mut self) -> io::Result<Signal> {
         let mut buf = [0u8; 128];
-        self.fd.read(&mut buf)?;
+        let n = self.fd.read(&mut buf)?;
+        assert!(n == 128);
         let sig: u8 = u32::from_ne_bytes(buf[0..4].try_into().unwrap())
             .try_into()
             .unwrap();
 
-        Ok(unsafe { mem::transmute(sig) })
+        Ok(unsafe { mem::transmute::<u8, Signal>(sig) })
     }
 }
 

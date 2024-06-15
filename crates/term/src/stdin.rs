@@ -7,7 +7,8 @@ use std::{
 impl Terminal {
     pub fn clear_input(&mut self) -> io::Result<()> {
         self.pollkey(Some(Duration::ZERO))?;
-        Ok(self.kbd_buf.clear())
+        self.kbd_buf.clear();
+        Ok(())
     }
 
     pub fn wait_enter(&mut self, timeout: Option<Duration>) -> io::Result<KeyEvent> {
@@ -19,9 +20,8 @@ impl Terminal {
                 break Ok(KeyEvent::Timeout);
             }
 
-            match self.kbd_buf.pop() {
-                Some(Key::Enter) => return Ok(KeyEvent::Key(Key::Enter)),
-                _ => (),
+            if self.kbd_buf.pop() == Some(Key::Enter) {
+                return Ok(KeyEvent::Key(Key::Enter));
             };
         }
     }

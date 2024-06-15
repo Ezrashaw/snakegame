@@ -1,5 +1,14 @@
 use crate::ioctl::{ioctl, IoctlRequest};
 
+pub fn init(f: impl FnOnce(&mut Termios)) -> Termios {
+    let mut termios = Termios::sys_get();
+    let termios_backup = termios;
+    f(&mut termios);
+    termios.sys_set();
+
+    termios_backup
+}
+
 macro_rules! set_bit {
     (fn $set:ident ($flag:ident) => $bit:literal) => {
         pub fn $set(&mut self, x: bool) {
@@ -12,7 +21,7 @@ macro_rules! set_bit {
     };
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 #[repr(C)]
 pub struct Termios {
     iflag: u32,   /* input mode flags */
@@ -24,17 +33,11 @@ pub struct Termios {
 }
 
 impl Termios {
+    #[must_use]
     pub fn sys_get() -> Self {
-        let mut termios = Self {
-            iflag: 0,
-            oflag: 0,
-            cflag: 0,
-            lflag: 0,
-            line: 0,
-            cc: [0; 19],
-        };
-
+        let mut termios = Self::default();
         ioctl(IoctlRequest::GetTermAttr(&mut termios));
+
         termios
     }
 
@@ -46,17 +49,4 @@ impl Termios {
     set_bit!(fn set_canonical(lflag) => 0x2);
     set_bit!(fn set_echo(lflag) => 0x8);
     set_bit!(fn set_ixon(iflag) => 0x400);
-}
-
-pub fn init(f: impl FnOnce(&mut Termios)) -> Termios {
-    let mut termios = Termios::sys_get();
-    let termios_backup = termios;
-    f(&mut termios);
-    termios.sys_set();
-
-    termios_backup
-}
-
-pub fn restore(termios: Termios) {
-    termios.sys_set();
 }

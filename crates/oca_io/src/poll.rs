@@ -1,7 +1,7 @@
 use core::{ptr, slice, time::Duration};
 use std::os::fd::AsRawFd;
 
-use crate::syscall::{syscall4, SYS_ppoll};
+use crate::syscall::{syscall, SYS_ppoll};
 
 pub fn poll_read_fd(fd: &impl AsRawFd, timeout: Option<Duration>) -> bool {
     let mut poll_fd = PollFd::new_read(fd);
@@ -27,19 +27,17 @@ pub fn poll(fds: &mut [PollFd], timeout: Option<Duration>) -> u32 {
         tv_nsec: tout.subsec_nanos().into(),
     });
 
-    let res = unsafe {
-        syscall4(
-            SYS_ppoll,
-            fds.as_mut_ptr() as u64,
-            fds.len() as u64,
-            // VERY IMPORTANT: take the reference with `as_ref`, not in a closure with
-            // ptr::from_ref because the reference's (represented as a raw pointer) lifetime is
-            // bound to the closure, not the libc call. Otherwise this is UB... oops. This was okay
-            // in debug mode, but release mode optimized it into UB.
-            time_spec.as_ref().map_or(ptr::null(), ptr::from_ref) as u64,
-            ptr::null::<()>() as u64,
-        )
-    } as i64;
+    let res = syscall!(
+        SYS_ppoll,
+        fds.as_mut_ptr() as u64,
+        fds.len() as u64,
+        // VERY IMPORTANT: take the reference with `as_ref`, not in a closure with
+        // ptr::from_ref because the reference's (represented as a raw pointer) lifetime is
+        // bound to the closure, not the libc call. Otherwise this is UB... oops. This was okay
+        // in debug mode, but release mode optimized it into UB.
+        time_spec.as_ref().map_or(ptr::null(), ptr::from_ref) as u64,
+        ptr::null::<()>() as u64
+    ) as i64;
     assert!(res != -1);
 
     res.try_into().unwrap()
@@ -73,23 +71,28 @@ impl PollFd {
         }
     }
 
-    pub fn revents(&self) -> u16 {
+    #[must_use]
+    pub const fn revents(&self) -> u16 {
         self.revents
     }
 
-    pub fn fd(&self) -> i32 {
+    #[must_use]
+    pub const fn fd(&self) -> i32 {
         self.fd
     }
 
-    pub fn has_socket_close(&self) -> bool {
+    #[must_use]
+    pub const fn has_socket_close(&self) -> bool {
         (self.revents & Self::RDHUP) != 0
     }
 
-    pub fn has_read(&self) -> bool {
+    #[must_use]
+    pub const fn has_read(&self) -> bool {
         (self.revents & Self::IN) != 0
     }
 
-    pub fn is_read(&self) -> bool {
+    #[must_use]
+    pub const fn is_read(&self) -> bool {
         self.revents == Self::IN
     }
 }

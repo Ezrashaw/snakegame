@@ -10,6 +10,7 @@ pub struct CircularBuffer<T: Copy, const N: usize> {
 
 impl<T: Copy, const N: usize> CircularBuffer<T, N> {
     #[allow(clippy::new_without_default)]
+    #[must_use]
     pub fn new() -> Self {
         assert!(N > 0);
         Self {
@@ -127,7 +128,7 @@ mod tests {
     #[test]
     fn test1() {
         let buf = CircularBuffer::<i32, 35>::new();
-        assert!(buf.len() == 0);
+        assert!(buf.is_empty());
         assert!(buf.iter().count() == 0);
         assert_eq!(size_of::<CircularBuffer::<i32, 35>>(), 160);
     }
