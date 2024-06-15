@@ -3,13 +3,25 @@
 #[cfg(not(target_os = "linux"))]
 compile_error!("This program only runs on Linux");
 
-mod cbuf;
-mod ioctl;
-pub mod network;
-pub mod poll;
-pub mod signal;
-mod syscall;
-pub mod termios;
+mod high;
+mod sys;
+mod term;
 
-pub use cbuf::CircularBuffer;
-pub use ioctl::get_termsize;
+pub mod network {
+    pub use crate::high::network::*;
+}
+
+pub mod poll {
+    pub use crate::sys::poll::*;
+}
+
+pub mod signal {
+    pub use crate::term::signal::*;
+}
+
+pub mod termios {
+    pub use crate::term::termios::*;
+}
+
+pub use high::cbuf::CircularBuffer;
+pub use sys::ioctl::get_termsize;

@@ -1,5 +1,5 @@
 use crate::{
-    syscall::{syscall, SYS_ioctl},
+    sys::syscall::{syscall, SYS_ioctl},
     termios::Termios,
 };
 use core::ptr;

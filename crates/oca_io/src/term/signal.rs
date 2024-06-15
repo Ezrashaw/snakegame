@@ -6,7 +6,7 @@ use std::{
     ptr,
 };
 
-use crate::syscall::{syscall, SYS_rt_sigprocmask, SYS_signalfd4};
+use crate::sys::syscall::{syscall, SYS_rt_sigprocmask, SYS_signalfd4};
 
 #[repr(u8)]
 #[derive(Clone, Copy)]

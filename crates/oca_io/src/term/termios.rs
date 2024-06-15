@@ -1,4 +1,4 @@
-use crate::ioctl::{ioctl, IoctlRequest};
+use crate::sys::ioctl::{ioctl, IoctlRequest};
 
 pub fn init(f: impl FnOnce(&mut Termios)) -> Termios {
     let mut termios = Termios::sys_get();

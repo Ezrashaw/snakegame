@@ -1,7 +1,7 @@
 use core::{ptr, slice, time::Duration};
 use std::os::fd::AsRawFd;
 
-use crate::syscall::{syscall, SYS_ppoll};
+use crate::sys::syscall::{syscall, SYS_ppoll};
 
 pub fn poll_read_fd(fd: &impl AsRawFd, timeout: Option<Duration>) -> bool {
     let mut poll_fd = PollFd::new_read(fd);
