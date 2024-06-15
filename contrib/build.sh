@@ -23,8 +23,8 @@ objcopy -R .eh_frame -R .got.plt -R .comment target/x86_64-unknown-linux-musl/re
 # Create patched 16x32 consolefont.
 cd crates/psf-util
 cargo r
-sudo setfont -d patched8x16.psfu -C /dev/tty63
-sudo setfont -O patched16x32.psfu -C /dev/tty63
-rm patched8x16.psfu
+# sudo setfont -d patched8x16.psfu -C /dev/tty63
+# sudo setfont -O patched16x32.psfu -C /dev/tty63
+# rm patched8x16.psfu
 mv patched16x32.psfu ../../contrib/snake
 cd -

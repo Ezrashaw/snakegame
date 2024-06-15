@@ -1,7 +1,8 @@
 #![warn(clippy::pedantic, clippy::nursery)]
 #![allow(clippy::missing_panics_doc, clippy::missing_errors_doc)]
+#![feature(custom_test_frameworks)]
+#![test_runner(datatest::runner)]
 
-use core::slice;
 use std::{
     io::{self, Write},
     process::{Command, Stdio},
@@ -10,57 +11,58 @@ use std::{
 
 pub const MAGIC_BYTES: u32 = 0x864a_b572;
 
-#[must_use]
-pub fn read_psf(mut psf: &[u8]) -> PsfFont {
-    assert!(psf.len() > 32);
-
-    let mut next_u32 = || {
-        let b4 = &psf[0..4];
-        psf = &psf[4..];
-        u32::from_le_bytes(b4.try_into().unwrap())
-    };
-
-    assert!(next_u32() == MAGIC_BYTES); // magic bytes
-    assert!(next_u32() == 0); // version
-    assert!(next_u32() == 32); // header length in bytes
-    assert!(next_u32() == 1); // flags (has unicode table)
-
-    let glyph_count = next_u32();
-    let bytes_per_glyph = next_u32();
-    let height = next_u32();
-    let width = next_u32();
-    let stride = (width + 7) / 8;
-
-    let total_glyph_bytes = (stride * height * glyph_count) as usize;
-    let glyphs = &psf[0..total_glyph_bytes];
-    psf = &psf[total_glyph_bytes..];
-
-    let mut unicode_table = Vec::with_capacity(glyph_count as usize);
-    for _ in 0..glyph_count {
-        unicode_table.push(UnicodeEntry::read_from_bytes(&mut psf));
-    }
-
-    PsfFont {
-        glyph_count,
-        bytes_per_glyph,
-        height,
-        width,
-        glyphs,
-        unicode_table,
-    }
-}
-
-pub struct PsfFont<'a> {
+pub struct PsfFont {
     glyph_count: u32,
     bytes_per_glyph: u32,
     height: u32,
     width: u32,
-    glyphs: &'a [u8],
+    glyphs: Vec<u8>,
     unicode_table: Vec<UnicodeEntry>,
 }
 
-impl<'a> PsfFont<'a> {
-    pub fn write_psf(&self, w: &mut impl io::Write) -> io::Result<()> {
+impl TryFrom<&[u8]> for PsfFont {
+    type Error = ();
+
+    fn try_from(mut bytes: &[u8]) -> Result<Self, Self::Error> {
+        let mut next_u32 = || {
+            let (val, rest) = bytes.split_at(4);
+            bytes = rest;
+            u32::from_le_bytes(val.try_into().unwrap())
+        };
+
+        assert!(next_u32() == MAGIC_BYTES); // magic bytes
+        assert!(next_u32() == 0); // version
+        assert!(next_u32() == 32); // header length in bytes
+        assert!(next_u32() == 1); // flags (has unicode table)
+
+        let glyph_count = next_u32();
+        let bytes_per_glyph = next_u32();
+        let height = next_u32();
+        let width = next_u32();
+        let stride = (width + 7) / 8;
+
+        let total_glyph_bytes = (stride * height * glyph_count) as usize;
+        let (glyphs, rest) = bytes.split_at(total_glyph_bytes);
+        bytes = rest;
+
+        let mut unicode_table = Vec::with_capacity(glyph_count as usize);
+        for _ in 0..glyph_count {
+            unicode_table.push(UnicodeEntry::read_from_bytes(&mut bytes));
+        }
+
+        Ok(PsfFont {
+            glyph_count,
+            bytes_per_glyph,
+            height,
+            width,
+            glyphs: glyphs.to_vec(),
+            unicode_table,
+        })
+    }
+}
+
+impl PsfFont {
+    pub fn write_to(&self, w: &mut impl io::Write) -> io::Result<()> {
         let mut write_u32 = |val: u32| w.write_all(&val.to_ne_bytes());
 
         write_u32(MAGIC_BYTES)?; // magic bytes
@@ -73,14 +75,37 @@ impl<'a> PsfFont<'a> {
         write_u32(self.height)?;
         write_u32(self.width)?;
 
-        w.write_all(self.glyphs)?;
+        w.write_all(&self.glyphs)?;
 
         for entry in &self.unicode_table {
-            w.write_all(String::from_iter(entry.get_singles()).as_bytes())?;
+            w.write_all(String::from_iter(entry.singles()).as_bytes())?;
             w.write_all(&[0xFF])?;
         }
 
         Ok(())
+    }
+
+    pub fn double_size(&mut self) {
+        assert!(self.width == 8);
+        let mut glyphs = Vec::with_capacity((self.bytes_per_glyph * self.glyph_count * 4) as usize);
+        for glyph in self.glyphs.chunks(self.height as usize) {
+            for row in glyph {
+                let mut doubled = 0u16;
+                for i in 0..8 {
+                    let bit = (row >> (7 - i)) & 1;
+                    doubled |= (bit as u16) << ((7 - i) * 2 + 1);
+                    doubled |= (bit as u16) << ((7 - i) * 2);
+                }
+
+                glyphs.extend_from_slice(&doubled.to_be_bytes());
+                glyphs.extend_from_slice(&doubled.to_be_bytes());
+            }
+        }
+
+        self.width *= 2;
+        self.height *= 2;
+        self.bytes_per_glyph *= 4;
+        self.glyphs = glyphs;
     }
 
     #[must_use]
@@ -127,7 +152,7 @@ impl<'a> PsfFont<'a> {
             println!();
         }
         let table = &self.unicode_table[g as usize];
-        for uni in table.get_singles() {
+        for uni in table.singles() {
             print!(" {}", uni.escape_debug());
         }
         println!();
@@ -155,67 +180,45 @@ impl<'a> PsfFont<'a> {
         print!("\x1B[0m");
     }
 
-    fn get_glyph(&self, i: u32) -> &[u8] {
-        assert!(i <= self.glyph_count);
-
+    pub fn get_glyph(&self, i: u32) -> &[u8] {
         let offset = (self.bytes_per_glyph * i) as usize;
         &self.glyphs[offset..(offset + self.bytes_per_glyph as usize)]
+    }
+
+    pub fn get_glyph_mut(&mut self, i: u32) -> &mut [u8] {
+        let offset = (self.bytes_per_glyph * i) as usize;
+        &mut self.glyphs[offset..(offset + self.bytes_per_glyph as usize)]
     }
 }
 
 pub struct UnicodeEntry {
-    singles: [char; 16],
-    singles_count: usize,
+    singles: Vec<char>,
 }
 
 impl UnicodeEntry {
     #[must_use]
-    pub fn get_singles(&self) -> &[char] {
-        &self.singles[0..self.singles_count]
+    pub fn singles(&self) -> &[char] {
+        &self.singles
     }
 
     fn read_from_bytes(bytes: &mut &[u8]) -> Self {
-        let mut singles = ['\0'; 16];
-        let mut singles_count = 0;
-        while bytes[0] != 0xFE && bytes[0] != 0xFF {
-            let boundary = find_utf8_boundary(bytes);
-            singles[singles_count] = std::str::from_utf8(&bytes[0..boundary])
-                .unwrap()
-                .chars()
-                .next()
-                .unwrap();
-            singles_count += 1;
-            *bytes = &bytes[boundary..];
-        }
+        let end_pos = bytes.iter().position(|b| matches!(b, 0xFE | 0xFF)).unwrap();
+        let (singles, rest) = bytes.split_at(end_pos);
+        *bytes = rest;
+
+        let singles = std::str::from_utf8(singles)
+            .unwrap()
+            .chars()
+            .collect::<Vec<char>>();
 
         if bytes[0] == 0xFE {
-            println!("WARNING: unsupported unicode character sequence");
-            while bytes[0] != 0xFF {
-                *bytes = &bytes[1..];
-            }
+            panic!("WARNING: unsupported unicode character sequence");
         }
 
+        // Skip the final 0xFF.
         *bytes = &bytes[1..];
 
-        Self {
-            singles,
-            singles_count,
-        }
-    }
-}
-
-const fn find_utf8_boundary(bytes: &[u8]) -> usize {
-    if bytes[0] & 0b1000_0000 == 0 {
-        1
-    } else {
-        let mut i = 1;
-        loop {
-            if bytes[i] >> 6 != 0b10 {
-                break i;
-            }
-
-            i += 1;
-        }
+        Self { singles }
     }
 }
 
@@ -239,7 +242,7 @@ pub fn psf2txt(w: &mut impl io::Write, filename: &str, psf: &PsfFont) -> io::Res
     for i in 0..psf.glyph_count {
         writeln!(w, "character {i:#04x}")?;
         write!(w, "unicode")?;
-        for ch in psf.unicode_table[i as usize].get_singles() {
+        for ch in psf.unicode_table[i as usize].singles() {
             write!(w, " '{}'", ch.escape_debug())?;
         }
         writeln!(w)?;
@@ -289,16 +292,12 @@ pub fn txt2psf(mut lines: Lines, psf: &mut PsfFont) -> io::Result<()> {
         };
 
         let table = &mut psf.unicode_table[char as usize];
-        table.singles_count = 0;
+        table.singles.clear();
         for char in unicode.split("' '") {
-            let ch = char.chars().next().unwrap();
-            table.singles[table.singles_count] = ch;
-            table.singles_count += 1;
+            table.singles.push(char.chars().next().unwrap());
         }
 
-        let data = psf.get_glyph(char);
-        // SAFETY: no no no no no (but it works ;)
-        let data = unsafe { slice::from_raw_parts_mut(data.as_ptr().cast_mut(), data.len()) };
+        let data = psf.get_glyph_mut(char);
         assert!(data.len() == height as usize); // TODO: one of the many things to fix
 
         for h in 0..height {
@@ -325,18 +324,19 @@ pub fn txt2psf(mut lines: Lines, psf: &mut PsfFont) -> io::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
+    #[datatest::files("/usr/share/kbd/consolefonts/", { input in r"^(.*).psfu.gz" })]
+    fn test_font(input: &[u8]) {
+        let bytes = super::ungzip(&input);
+        // ignore the test if it is version 1 PSF
+        if u16::from_le_bytes(bytes[0..2].try_into().unwrap()) == 0x0436 {
+            return;
+        }
 
-    #[test]
-    fn test_default_font() {
-        let bytes =
-            super::ungzip(&fs::read("/usr/share/kbd/consolefonts/default8x16.psfu.gz").unwrap());
-
-        let font = super::read_psf(&bytes);
+        let font = super::PsfFont::try_from(bytes.as_slice()).unwrap();
 
         let mut buf = Vec::with_capacity(bytes.len());
-        font.write_psf(&mut buf).unwrap();
+        font.write_to(&mut buf).unwrap();
 
-        assert_eq!(bytes, buf);
+        assert_eq!(bytes, buf)
     }
 }

@@ -1,6 +1,6 @@
 use std::fs;
 
-use psf_util::{psf2txt, read_psf, txt2psf, ungzip};
+use psf_util::{psf2txt, txt2psf, ungzip, PsfFont};
 
 const DEFAULT_FONT: &str = "/usr/share/kbd/consolefonts/default8x16.psfu.gz";
 
@@ -11,7 +11,7 @@ fn main() {
 #[allow(unused)]
 fn read_psf_totxt() {
     let bytes = ungzip(&fs::read(DEFAULT_FONT).unwrap());
-    let psf = read_psf(&bytes);
+    let psf = PsfFont::try_from(bytes.as_slice()).unwrap();
     psf.print_table();
     psf2txt(
         &mut fs::File::create("default8x16.psftxt").unwrap(),
@@ -29,9 +29,11 @@ fn write_psf() {
     };
 
     let bytes = ungzip(&fs::read(loadfile).unwrap());
-    let mut psf = read_psf(&bytes);
+    let mut psf = PsfFont::try_from(bytes.as_slice()).unwrap();
     txt2psf(lines, &mut psf).unwrap();
+    psf.double_size();
+    psf.print_table();
 
-    psf.write_psf(&mut fs::File::create("patched8x16.psfu").unwrap())
+    psf.write_to(&mut fs::File::create("patched16x32.psfu").unwrap())
         .unwrap();
 }
