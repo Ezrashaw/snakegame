@@ -1,12 +1,10 @@
-use std::{
-    mem,
-    os::fd::{AsRawFd, RawFd},
-    ptr,
-};
+use core::{mem, ptr};
+use std::os::fd::{AsRawFd, RawFd};
 
 use crate::{
     file::File,
     sys::syscall::{syscall, SYS_rt_sigprocmask, SYS_signalfd4},
+    Result,
 };
 
 #[repr(u8)]
@@ -20,7 +18,7 @@ pub enum Signal {
 pub struct SignalFile(File);
 
 impl SignalFile {
-    pub fn new(signals: &[Signal]) -> Self {
+    pub fn new(signals: &[Signal]) -> Result<Self> {
         assert!(!signals.is_empty());
 
         let mut sigmask = 0u64;
@@ -38,8 +36,8 @@ impl SignalFile {
             ptr::from_mut(&mut oldset) as u64,
             mem::size_of_val(&sigmask) as u64
         );
+        crate::Error::from_syscall_ret(res)?;
         assert!(oldset == 0);
-        assert!(res == 0);
 
         let signalfd = syscall!(
             SYS_signalfd4,
@@ -48,11 +46,12 @@ impl SignalFile {
             8, // signmask is eight bytes
             0x0
         );
-        assert!(signalfd >= 0);
-        Self(File::from_fd(signalfd as i32))
+        crate::Error::from_syscall_ret(signalfd)?;
+
+        Ok(Self(File::from_fd(signalfd as i32)))
     }
 
-    pub fn get_signal(&mut self) -> Result<Signal, crate::Error> {
+    pub fn get_signal(&mut self) -> Result<Signal> {
         let mut buf = [0u8; 128];
         let n = self.0.read(&mut buf)?;
         assert!(n == 128);

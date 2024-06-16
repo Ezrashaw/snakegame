@@ -1,6 +1,6 @@
 mod network;
 
-use std::{env, io, net::TcpStream, thread::JoinHandle};
+use std::{env, net::TcpStream, thread::JoinHandle};
 
 use oca_io::network::LeaderboardEntries;
 use oca_io::Result;
@@ -12,7 +12,7 @@ pub struct Leaderboard {
     #[allow(clippy::type_complexity)]
     conn: core::result::Result<
         TcpStream,
-        Option<JoinHandle<io::Result<(LeaderboardEntries, TcpStream)>>>,
+        Option<JoinHandle<Result<(LeaderboardEntries, TcpStream)>>>,
     >,
     addr: String,
     you_row: Option<u16>,

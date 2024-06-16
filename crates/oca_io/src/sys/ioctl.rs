@@ -1,6 +1,7 @@
 use crate::{
     sys::syscall::{syscall, SYS_ioctl},
     termios::Termios,
+    Result,
 };
 use core::ptr;
 
@@ -15,8 +16,8 @@ pub enum IoctlRequest<'a> {
     GetWinSize(&'a mut WinSize),
 }
 
-pub fn ioctl(fd: i32, req: IoctlRequest) -> Result<(), crate::Error> {
-    let res = match req {
+pub fn ioctl(fd: i32, req: IoctlRequest) -> Result<()> {
+    let syscall_ret = match req {
         IoctlRequest::SetTermAttr(termios) => {
             syscall!(SYS_ioctl, fd, TCSETS, ptr::from_ref(termios) as u64)
         }
@@ -28,11 +29,7 @@ pub fn ioctl(fd: i32, req: IoctlRequest) -> Result<(), crate::Error> {
         }
     };
 
-    if res != 0 {
-        Err(crate::Error::Syscall(res.unsigned_abs()))
-    } else {
-        Ok(())
-    }
+    crate::Error::from_syscall_ret(syscall_ret).map(|_| ())
 }
 
 pub fn isatty(fd: i32) -> bool {
@@ -49,7 +46,7 @@ pub struct WinSize {
     ypixels: u16,
 }
 
-pub fn get_termsize() -> Result<(u16, u16), crate::Error> {
+pub fn get_termsize() -> Result<(u16, u16)> {
     let mut winsize = WinSize::default();
     ioctl(STDIN_FD, IoctlRequest::GetWinSize(&mut winsize))?;
 

@@ -1,21 +1,22 @@
 use core::{ptr, slice, time::Duration};
 use std::os::fd::AsRawFd;
 
-use crate::sys::syscall::{syscall, SYS_ppoll};
+use super::syscall::{syscall, SYS_ppoll};
+use crate::Result;
 
-pub fn poll_read_fd(fd: &impl AsRawFd, timeout: Option<Duration>) -> bool {
+pub fn poll_read_fd(fd: &impl AsRawFd, timeout: Option<Duration>) -> Result<bool> {
     let mut poll_fd = PollFd::new_read(fd);
-    match poll(slice::from_mut(&mut poll_fd), timeout) {
-        0 => false,
+    match poll(slice::from_mut(&mut poll_fd), timeout)? {
+        0 => Ok(false),
         1 => {
             assert!(poll_fd.is_read());
-            true
+            Ok(true)
         }
         _ => unreachable!(),
     }
 }
 
-pub fn poll(fds: &mut [PollFd], timeout: Option<Duration>) -> u32 {
+pub fn poll(fds: &mut [PollFd], timeout: Option<Duration>) -> Result<u64> {
     #[repr(C)]
     struct TimeSpec {
         tv_sec: u64,
@@ -38,9 +39,8 @@ pub fn poll(fds: &mut [PollFd], timeout: Option<Duration>) -> u32 {
         time_spec.as_ref().map_or(ptr::null(), ptr::from_ref) as u64,
         ptr::null::<()>() as u64
     );
-    assert!(res != -1);
 
-    res.try_into().unwrap()
+    crate::Error::from_syscall_ret(res)
 }
 
 #[repr(C)]

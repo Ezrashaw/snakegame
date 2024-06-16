@@ -22,7 +22,7 @@ fn read_psf_totxt() {
 }
 
 fn write_psf() {
-    let psfscript = fs::read_to_string("../../contrib/default8x16.psftxt").unwrap();
+    let psfscript = fs::read_to_string("contrib/default8x16.psftxt").unwrap();
     let mut lines = psfscript.lines();
     let Some(("load", loadfile)) = lines.next().unwrap().split_once(' ') else {
         panic!("expected \"load <filename>\"");

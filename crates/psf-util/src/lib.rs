@@ -50,7 +50,7 @@ impl TryFrom<&[u8]> for PsfFont {
             unicode_table.push(UnicodeEntry::read_from_bytes(&mut bytes));
         }
 
-        Ok(PsfFont {
+        Ok(Self {
             glyph_count,
             bytes_per_glyph,
             height,
@@ -93,8 +93,8 @@ impl PsfFont {
                 let mut doubled = 0u16;
                 for i in 0..8 {
                     let bit = (row >> (7 - i)) & 1;
-                    doubled |= (bit as u16) << ((7 - i) * 2 + 1);
-                    doubled |= (bit as u16) << ((7 - i) * 2);
+                    doubled |= u16::from(bit) << ((7 - i) * 2 + 1);
+                    doubled |= u16::from(bit) << ((7 - i) * 2);
                 }
 
                 glyphs.extend_from_slice(&doubled.to_be_bytes());
@@ -180,7 +180,7 @@ impl PsfFont {
         print!("\x1B[0m");
     }
 
-    pub fn get_glyph(&self, i: u32) -> &[u8] {
+    #[must_use] pub fn get_glyph(&self, i: u32) -> &[u8] {
         let offset = (self.bytes_per_glyph * i) as usize;
         &self.glyphs[offset..(offset + self.bytes_per_glyph as usize)]
     }
@@ -211,9 +211,7 @@ impl UnicodeEntry {
             .chars()
             .collect::<Vec<char>>();
 
-        if bytes[0] == 0xFE {
-            panic!("WARNING: unsupported unicode character sequence");
-        }
+        assert!(bytes[0] != 0xFE, "WARNING: unsupported unicode character sequence");
 
         // Skip the final 0xFF.
         *bytes = &bytes[1..];
@@ -326,7 +324,7 @@ pub fn txt2psf(mut lines: Lines, psf: &mut PsfFont) -> io::Result<()> {
 mod tests {
     #[datatest::files("/usr/share/kbd/consolefonts/", { input in r"^(.*).psfu.gz" })]
     fn test_font(input: &[u8]) {
-        let bytes = super::ungzip(&input);
+        let bytes = super::ungzip(input);
         // ignore the test if it is version 1 PSF
         if u16::from_le_bytes(bytes[0..2].try_into().unwrap()) == 0x0436 {
             return;
@@ -337,6 +335,6 @@ mod tests {
         let mut buf = Vec::with_capacity(bytes.len());
         font.write_to(&mut buf).unwrap();
 
-        assert_eq!(bytes, buf)
+        assert_eq!(bytes, buf);
     }
 }

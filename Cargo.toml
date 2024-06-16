@@ -1,7 +1,6 @@
 [workspace]
 resolver = "2"
 members = ["crates/*"]
-default-members = ["crates/snake"]
 
 [profile.release]
 strip = true  # Automatically strip symbols from the binary.

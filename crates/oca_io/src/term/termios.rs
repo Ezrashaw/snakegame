@@ -1,6 +1,9 @@
-use crate::sys::ioctl::{ioctl, IoctlRequest, STDIN_FD};
+use crate::{
+    sys::ioctl::{ioctl, IoctlRequest, STDIN_FD},
+    Result,
+};
 
-pub fn init(f: impl FnOnce(&mut Termios)) -> Result<Termios, crate::Error> {
+pub fn init(f: impl FnOnce(&mut Termios)) -> Result<Termios> {
     let mut termios = Termios::sys_get()?;
     let termios_backup = termios;
     f(&mut termios);
@@ -33,14 +36,14 @@ pub struct Termios {
 }
 
 impl Termios {
-    pub fn sys_get() -> Result<Self, crate::Error> {
+    pub fn sys_get() -> Result<Self> {
         let mut termios = Self::default();
         ioctl(STDIN_FD, IoctlRequest::GetTermAttr(&mut termios))?;
 
         Ok(termios)
     }
 
-    pub fn sys_set(&self) -> Result<(), crate::Error> {
+    pub fn sys_set(&self) -> Result<()> {
         ioctl(STDIN_FD, IoctlRequest::SetTermAttr(self))
     }
 

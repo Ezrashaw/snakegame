@@ -7,6 +7,19 @@ pub enum Error {
     Io(std::io::Error),
 }
 
+impl Error {
+    pub(crate) const fn from_syscall_ret(val: i64) -> crate::Result<u64> {
+        let abs = val.unsigned_abs();
+        if val < 0 {
+            // Wrap negative values into our `Error::Syscall` wrapper, remembering to normalize the
+            // error value.
+            Err(Self::Syscall(abs))
+        } else {
+            Ok(abs)
+        }
+    }
+}
+
 impl From<fmt::Error> for Error {
     fn from(_: fmt::Error) -> Self {
         Self::Fmt
@@ -20,6 +33,7 @@ impl From<std::io::Error> for Error {
 }
 
 impl fmt::Debug for Error {
+    #[allow(clippy::too_many_lines)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Fmt => write!(f, "Error::Fmt"),

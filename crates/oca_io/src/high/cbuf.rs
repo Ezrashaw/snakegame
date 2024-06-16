@@ -65,6 +65,7 @@ impl<T: Copy, const N: usize> CircularBuffer<T, N> {
         self.len() == 0
     }
 
+    #[allow(clippy::iter_without_into_iter)]
     pub const fn iter(&self) -> CBufIter<'_, T, N> {
         CBufIter {
             buf: self,

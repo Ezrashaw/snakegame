@@ -1,6 +1,9 @@
+#![warn(clippy::pedantic)]
+#![allow(clippy::missing_errors_doc, clippy::missing_panics_doc)]
+
 use core::slice;
 use std::{
-    env, fs, io, iter,
+    env, fs, iter,
     mem::ManuallyDrop,
     net::{Ipv4Addr, TcpListener, TcpStream},
     os::fd::AsRawFd,
@@ -9,21 +12,16 @@ use std::{
 use oca_io::{
     network::{read_packet, write_packet, LeaderboardEntry},
     poll::PollFd,
+    Result,
 };
 
-fn main() -> io::Result<()> {
+fn main() -> Result<()> {
     let mut leaderboard = fs::read("games")
         .ok()
         .map(|lb| {
             let mut lb = ManuallyDrop::new(lb);
             assert!(lb.len() % 4 == 0);
-            unsafe {
-                Vec::from_raw_parts(
-                    lb.as_mut_ptr() as *mut LeaderboardEntry,
-                    lb.len() / 4,
-                    lb.capacity() / 4,
-                )
-            }
+            unsafe { Vec::from_raw_parts(lb.as_mut_ptr().cast(), lb.len() / 4, lb.capacity() / 4) }
         })
         .unwrap_or_default();
 
@@ -35,7 +33,7 @@ fn main() -> io::Result<()> {
     let mut poll_fds = vec![PollFd::new_read(&server)];
 
     loop {
-        let number_read = oca_io::poll::poll(&mut poll_fds, None);
+        let number_read = oca_io::poll::poll(&mut poll_fds, None)?;
         assert!(number_read == 1);
 
         let poll_fd = poll_fds
@@ -74,7 +72,7 @@ fn main() -> io::Result<()> {
             client.handle_packet(&mut leaderboard).unwrap();
 
             let bytes = unsafe {
-                slice::from_raw_parts(leaderboard.as_ptr() as *const u8, leaderboard.len() * 4)
+                slice::from_raw_parts(leaderboard.as_ptr().cast(), leaderboard.len() * 4)
             };
             fs::write("games", bytes)?;
 
@@ -96,7 +94,7 @@ pub struct GameClient {
 }
 
 impl GameClient {
-    pub fn new(mut stream: TcpStream) -> io::Result<Self> {
+    pub fn new(mut stream: TcpStream) -> Result<Self> {
         let (connect_id, connect) = read_packet(&mut stream)?;
         assert_eq!(connect_id, 0x0);
 
@@ -106,15 +104,14 @@ impl GameClient {
         Ok(Self { stream, hostname })
     }
 
-    pub fn handle_packet(&mut self, leaderboard: &mut Vec<LeaderboardEntry>) -> io::Result<()> {
+    pub fn handle_packet(&mut self, leaderboard: &mut Vec<LeaderboardEntry>) -> Result<()> {
         let (id, packet) = read_packet(&mut self.stream).unwrap();
         assert_eq!(id, 0x1);
 
         let game = LeaderboardEntry(packet[0..3].try_into().unwrap(), packet[3]);
         let pos = leaderboard
             .binary_search_by(|LeaderboardEntry(_, score)| game.1.cmp(score))
-            .map(|e| e + 1)
-            .unwrap_or_else(|e| e);
+            .map_or_else(|e| e, |e| e + 1);
 
         leaderboard.insert(pos, game);
 
@@ -123,7 +120,7 @@ impl GameClient {
         Ok(())
     }
 
-    pub fn send_leaderboard(&mut self, leaderboard: &[LeaderboardEntry]) -> io::Result<()> {
+    pub fn send_leaderboard(&mut self, leaderboard: &[LeaderboardEntry]) -> Result<()> {
         let mut lb_packet = [0u8; 40];
         for (idx, entry) in leaderboard
             .iter()

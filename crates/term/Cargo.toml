@@ -4,4 +4,4 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-oca_io = { path = "../oca_io" }
+oca_io = { path = "../oca_io", default-features = false }

@@ -6,7 +6,10 @@ use std::{
     time::Duration,
 };
 
-use oca_io::network::{self as oca_network, LeaderboardEntries};
+use oca_io::{
+    network::{self as oca_network, LeaderboardEntries},
+    Result,
+};
 
 use super::Leaderboard;
 
@@ -29,7 +32,8 @@ impl Leaderboard {
             }
         };
 
-        if !block && !oca_io::poll::poll_read_fd(conn, Some(Duration::ZERO)) {
+        // TODO: there is no sane reason to unwrap this
+        if !block && !oca_io::poll::poll_read_fd(conn, Some(Duration::ZERO)).unwrap() {
             return None;
         }
 
@@ -46,7 +50,7 @@ impl Leaderboard {
         self.conn.is_ok()
     }
 
-    pub fn send_game(&mut self, name: [u8; 3], score: u8) -> io::Result<()> {
+    pub fn send_game(&mut self, name: [u8; 3], score: u8) -> Result<()> {
         let mut packet = [0u8; 4];
         packet[0..3].copy_from_slice(&name);
         packet[3] = score;
@@ -54,7 +58,7 @@ impl Leaderboard {
     }
 }
 
-pub(super) fn connect_tcp(addr: &str) -> io::Result<(LeaderboardEntries, TcpStream)> {
+pub(super) fn connect_tcp(addr: &str) -> Result<(LeaderboardEntries, TcpStream)> {
     let mut conn = TcpStream::connect_timeout(
         &SocketAddr::from_str(addr).map_err(io::Error::other)?,
         Duration::from_secs(10),
@@ -68,7 +72,7 @@ pub(super) fn connect_tcp(addr: &str) -> io::Result<(LeaderboardEntries, TcpStre
     Ok((lb, conn))
 }
 
-fn read_leaderboard(stream: &mut TcpStream) -> io::Result<LeaderboardEntries> {
+fn read_leaderboard(stream: &mut TcpStream) -> Result<LeaderboardEntries> {
     let (packet_id, packet) = oca_network::read_packet(stream)?;
     assert_eq!(packet_id, 0x0);
     assert_eq!(packet.len(), 40);

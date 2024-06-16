@@ -4,8 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-oca_io = { path = "../oca_io" }
+oca_io = { path = "../oca_io", default-features = false }
 term = { path = "../term" }
 
 [build-dependencies]
 term = { path = "../term" }
+
+[features]
+default = ["errno"]
+errno = ["oca_io/errno"]

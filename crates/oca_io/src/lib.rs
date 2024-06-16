@@ -1,4 +1,11 @@
-#![warn(clippy::nursery)]
+#![warn(clippy::nursery, clippy::pedantic)]
+#![allow(
+    clippy::missing_panics_doc,
+    clippy::missing_errors_doc,
+    clippy::module_name_repetitions,
+    clippy::cast_sign_loss,
+    clippy::cast_possible_truncation
+)]
 
 #[cfg(not(target_os = "linux"))]
 compile_error!("This program only runs on Linux");
