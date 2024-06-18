@@ -1,6 +1,6 @@
 use std::{fmt::Write, time::Instant};
 
-use term::{ansi_str_len, Box, CenteredStr, Draw, DrawCtx, Rect, Terminal};
+use term::{ansi_str_len, Box, CenteredStr, Clear, Draw, DrawCtx, Rect, Terminal};
 
 use crate::leaderboard::{Leaderboard, LeaderboardUpdate};
 use oca_io::Result;
@@ -62,7 +62,7 @@ impl GameUi {
     #[allow(clippy::needless_pass_by_value)]
     pub fn clear_centered(&mut self, object: impl Draw, pos: (u16, u16)) -> Result<()> {
         let (w, h) = object.size();
-        self.term.clear_rect(Rect::new(pos.0, pos.1, w, h))
+        self.term.draw(pos.0, pos.1, Clear(w, h))
     }
 
     pub fn draw_canvas(&mut self, coord: Coord, object: impl Draw) -> Result<()> {
@@ -87,7 +87,7 @@ impl GameUi {
 
     pub fn clear_canvas(&mut self) -> Result<()> {
         self.term
-            .clear_rect(Rect::new(self.cx + 1, self.cy + 1, CANVAS_W * 2, CANVAS_H))
+            .draw(self.cx + 1, self.cy + 1, Clear(CANVAS_W * 2, CANVAS_H))
     }
 
     pub fn reset_stats(&mut self) -> Result<()> {

@@ -312,3 +312,18 @@ impl Draw for &Popup<'_> {
         ctx.draw(2, 1, CenteredStr(self.text))
     }
 }
+
+pub struct Clear(pub u16, pub u16);
+
+impl Draw for Clear {
+    fn size(&self) -> (u16, u16) {
+        (self.0, self.1)
+    }
+
+    fn draw(self, ctx: &mut DrawCtx) -> Result<()> {
+        for _ in 0..self.1 {
+            writeln!(ctx.o(), "{:1$}", "", self.0 as usize)?;
+        }
+        Ok(())
+    }
+}

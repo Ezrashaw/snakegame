@@ -1,6 +1,5 @@
 use crate::{Draw, Terminal};
 use oca_io::Result;
-use std::fmt::Write;
 
 impl Terminal {
     pub fn draw(&mut self, x: u16, y: u16, object: impl Draw) -> Result<()> {
@@ -22,14 +21,6 @@ impl Terminal {
         hoff: bool,
     ) -> Result<(u16, u16)> {
         crate::draw_centered(&mut self.file, object, rect, hoff)
-    }
-
-    pub fn clear_rect(&mut self, rect: Rect) -> Result<()> {
-        let (x, y, w, h) = (rect.x, rect.y, rect.w as usize, rect.h);
-        for i in 0..h {
-            write!(&mut self.file, "\x1B[{};{x}H{:w$}", y + i, "")?;
-        }
-        Ok(())
     }
 }
 

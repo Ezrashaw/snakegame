@@ -10,7 +10,7 @@ mod draw;
 mod stdin;
 mod stdout;
 
-pub use draw::{draw, draw_centered, update, Box, CenteredStr, Draw, DrawCtx, Pixel, Popup};
+pub use draw::{draw, draw_centered, update, Box, CenteredStr, Clear, Draw, DrawCtx, Pixel, Popup};
 pub use stdin::{Key, KeyEvent};
 pub use stdout::{ansi_str_len, Color, Rect};
 
