@@ -94,8 +94,9 @@ pub struct GameClient {
 }
 
 impl GameClient {
-    pub fn new(mut stream: TcpStream) -> Result<Self> {
-        let (connect_id, connect) = read_packet(&mut stream)?;
+    pub fn new(stream: TcpStream) -> Result<Self> {
+        let (connect_id, connect) =
+            read_packet(&mut oca_io::file::File::from_fd(stream.as_raw_fd()))?;
         assert_eq!(connect_id, 0x0);
 
         let hostname = String::from_utf8(connect).unwrap();
@@ -105,7 +106,7 @@ impl GameClient {
     }
 
     pub fn handle_packet(&mut self, leaderboard: &mut Vec<LeaderboardEntry>) -> Result<()> {
-        let (id, packet) = read_packet(&mut self.stream).unwrap();
+        let (id, packet) = read_packet(&mut oca_io::file::File::from_fd(self.stream.as_raw_fd()))?;
         assert_eq!(id, 0x1);
 
         let game = LeaderboardEntry(packet[0..3].try_into().unwrap(), packet[3]);
@@ -133,6 +134,10 @@ impl GameClient {
             lb_packet[idx + 3] = entry.1;
         }
 
-        write_packet(&mut self.stream, 0x0, &lb_packet)
+        write_packet(
+            &mut oca_io::file::File::from_fd(self.stream.as_raw_fd()),
+            0x0,
+            &lb_packet,
+        )
     }
 }

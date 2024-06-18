@@ -6,12 +6,23 @@ pub use x86::*;
 #[cfg(target_arch = "aarch64")]
 pub use aarch64::*;
 
+macro_rules! syscall_res {
+    ($($tok:tt)*) => {
+        crate::Error::from_syscall_ret(crate::sys::syscall::syscall!($($tok)*))
+    };
+}
+
+pub(crate) use syscall_res;
+
 #[cfg(target_arch = "x86_64")]
 mod x86 {
     pub const SYS_read: u64 = 0;
     pub const SYS_write: u64 = 1;
+    pub const SYS_close: u64 = 3;
     pub const SYS_rt_sigprocmask: u64 = 14;
     pub const SYS_ioctl: u64 = 16;
+    pub const SYS_socket: u64 = 41;
+    pub const SYS_connect: u64 = 42;
     pub const SYS_ppoll: u64 = 271;
     pub const SYS_signalfd4: u64 = 289;
 
@@ -26,6 +37,23 @@ mod x86 {
     /// 3. %rdx
     /// 4. %r10
     macro_rules! syscall {
+        ($id:ident, $arg1:expr) => {{
+            let mut ret: i64;
+            unsafe {
+                core::arch::asm!(
+                    "syscall",
+                    in("rax") $id,
+
+                    in("rdi") $arg1,
+
+                    out("rcx") _, // the kernel clobbers %rcx and r11
+                    out("r11") _, // ^^^
+                    lateout("rax") ret,
+                    options(nostack, preserves_flags)
+                );
+            }
+            ret
+        }};
         ($id:ident, $arg1:expr, $arg2:expr, $arg3:expr) => {{
             let mut ret: i64;
             unsafe {

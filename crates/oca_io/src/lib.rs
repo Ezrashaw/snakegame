@@ -35,6 +35,10 @@ pub mod file {
     pub use crate::sys::file::*;
 }
 
+pub mod socket {
+    pub use crate::sys::socket::*;
+}
+
 pub type Result<T> = core::result::Result<T, error::Error>;
 
 pub use error::Error;

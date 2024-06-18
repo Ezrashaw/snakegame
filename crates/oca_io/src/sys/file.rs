@@ -1,13 +1,44 @@
 #![warn(clippy::pedantic, clippy::nursery)]
 
-use core::fmt;
+use core::{
+    fmt,
+    ops::{Deref, DerefMut},
+};
 use std::os::fd::AsRawFd;
 
 use super::{
     ioctl::{self, STDIN_FD},
-    syscall::{syscall, SYS_read, SYS_write},
+    syscall::{syscall, SYS_close, SYS_read, SYS_write},
 };
 use crate::{Error, Result};
+
+pub struct OwnedFile(File);
+
+impl OwnedFile {
+    pub unsafe fn from_fd(fd: i32) -> Self {
+        Self(File(fd))
+    }
+}
+
+impl Drop for OwnedFile {
+    fn drop(&mut self) {
+        syscall!(SYS_close, self.0.as_fd());
+    }
+}
+
+impl Deref for OwnedFile {
+    type Target = File;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for OwnedFile {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 
 /// A handle to a Unix file.
 ///
@@ -63,6 +94,11 @@ impl File {
     #[must_use]
     pub const fn from_fd(fd: i32) -> Self {
         Self(fd)
+    }
+
+    #[must_use]
+    pub const fn as_fd(&self) -> i32 {
+        self.0
     }
 
     /// Write the specified bytes into the [`File`].

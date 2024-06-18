@@ -1,39 +1,37 @@
 mod network;
 
-use std::{env, net::TcpStream, thread::JoinHandle};
+use std::env;
 
-use oca_io::network::LeaderboardEntries;
 use oca_io::Result;
-use term::{Box, Draw, DrawCtx, Terminal};
+use oca_io::{network::LeaderboardEntries, socket::Socket};
+use term::{Box, Draw, DrawCtx};
 
 pub struct Leaderboard {
     pub entries: LeaderboardEntries,
     pub score: Option<u8>,
-    #[allow(clippy::type_complexity)]
-    conn: core::result::Result<
-        TcpStream,
-        Option<JoinHandle<Result<(LeaderboardEntries, TcpStream)>>>,
-    >,
+    conn: Socket,
+    #[allow(dead_code)]
     addr: String,
     you_row: Option<u16>,
     has_10_pos: bool,
 }
 
 impl Leaderboard {
-    pub fn init(term: &mut Terminal) -> Option<Self> {
+    pub fn init() -> Option<Result<Self>> {
         let addr = env::var("SNAKEADDR").ok()?;
-        let Ok((entries, conn)) = network::connect_tcp(&addr) else {
-            term.exit_with_error("failed to connect to the leaderboard server")
+        let (entries, conn) = match network::connect_tcp(&addr) {
+            Ok(val) => val,
+            Err(err) => return Some(Err(err)),
         };
 
-        Some(Self {
+        Some(Ok(Self {
             entries,
             score: None,
-            conn: Ok(conn),
+            conn,
             addr,
             you_row: None,
             has_10_pos: true,
-        })
+        }))
     }
 
     /// Redraw all the leaderboard entries, using the provided [`DrawCtx`].
