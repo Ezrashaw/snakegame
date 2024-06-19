@@ -31,17 +31,17 @@ impl SignalFile {
         syscall_res!(
             SYS_rt_sigprocmask,
             0x0, // SIG_BLOCK
-            ptr::from_ref(&sigmask) as u64,
-            ptr::from_mut(&mut oldset) as u64,
-            mem::size_of_val(&sigmask) as u64
+            ptr::from_ref(&sigmask),
+            ptr::from_mut(&mut oldset),
+            mem::size_of_val(&sigmask)
         )?;
         assert!(oldset == 0);
 
         let signalfd = syscall_res!(
             SYS_signalfd4,
-            (-1i64) as u64,
-            ptr::from_ref(&sigmask) as u64,
-            8, // signmask is eight bytes
+            -1,
+            ptr::from_ref(&sigmask),
+            8, // sigmask is eight bytes
             0x0
         )?;
 
@@ -59,7 +59,8 @@ impl SignalFile {
         Ok(unsafe { mem::transmute::<u8, Signal>(sig) })
     }
 
-    pub fn as_file(&self) -> &File {
+    #[must_use]
+    pub const fn as_file(&self) -> &File {
         &self.0
     }
 }

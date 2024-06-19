@@ -6,11 +6,9 @@ pub struct StaticVec<T: Copy, const N: usize> {
 }
 
 impl<T: Copy, const N: usize> StaticVec<T, N> {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
-            // SAFETY: We never assume uninit'ed memory to be `T`. We are assuming it to be
-            //         `MaybeUninit` which is always safe.
-            buf: unsafe { MaybeUninit::uninit().assume_init() },
+            buf: [MaybeUninit::uninit(); N],
             len: 0,
         }
     }
@@ -34,7 +32,7 @@ impl<T: Copy, const N: usize> StaticVec<T, N> {
         }
     }
 
-    pub fn len(&self) -> usize {
+    pub const fn len(&self) -> usize {
         self.len
     }
 

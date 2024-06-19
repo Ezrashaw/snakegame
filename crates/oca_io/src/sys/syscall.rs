@@ -6,6 +6,12 @@ pub use x86::*;
 #[cfg(target_arch = "aarch64")]
 pub use aarch64::*;
 
+/// Perform a syscall call using native assembly instructions. Return a
+/// [`oca_io::Result`](`crate::Result`) representing the result of the syscall (negative values
+/// are errors, positive values are success).
+///
+/// This macro calls into the platform-specific [`syscall`] macro, and wraps the result with
+/// [`oca_io::Error::from_syscall_ret`](`crate::Error::from_syscall_ret`).
 macro_rules! syscall_res {
     ($($tok:tt)*) => {
         crate::Error::from_syscall_ret(crate::sys::syscall::syscall!($($tok)*))

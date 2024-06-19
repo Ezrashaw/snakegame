@@ -3,6 +3,7 @@ use core::fmt;
 pub enum Error {
     Syscall(usize),
     Fmt,
+    BufferFull,
 }
 
 impl Error {
@@ -29,6 +30,7 @@ impl fmt::Debug for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Fmt => write!(f, "Error::Fmt"),
+            Self::BufferFull => write!(f, "Error::BufferFull"),
 
             #[cfg(not(feature = "errno"))]
             Self::Syscall(errno) => write!(f, "Error::Syscall({errno})"),

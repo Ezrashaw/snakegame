@@ -14,9 +14,7 @@ impl<T: Copy, const N: usize> CircularBuffer<T, N> {
     pub fn new() -> Self {
         assert!(N > 0);
         Self {
-            // SAFETY: We never assume uninit'ed memory to be `T`. We are assuming it to be
-            //         `MaybeUninit` which is always safe.
-            buf: unsafe { MaybeUninit::uninit().assume_init() },
+            buf: [MaybeUninit::uninit(); N],
             back: 0,
             front: 0,
             full: false,

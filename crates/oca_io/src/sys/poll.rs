@@ -52,6 +52,7 @@ impl PollFd {
     const IN: u16 = 0x1;
     const RDHUP: u16 = 0x2000;
 
+    #[must_use]
     pub fn new_socket(fd: &File) -> Self {
         Self {
             fd: fd.as_fd(),
@@ -60,6 +61,7 @@ impl PollFd {
         }
     }
 
+    #[must_use]
     pub fn new_read(fd: &File) -> Self {
         Self {
             fd: fd.as_fd(),

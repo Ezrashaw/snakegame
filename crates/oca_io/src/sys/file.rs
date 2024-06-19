@@ -9,11 +9,12 @@ use super::{
     ioctl::{self, STDIN_FD},
     syscall::{syscall, syscall_res, SYS_close, SYS_read, SYS_write},
 };
-use crate::{high::svec::StaticVec, Result};
+use crate::{high::svec::StaticVec, Error, Result};
 
 pub struct OwnedFile(File);
 
 impl OwnedFile {
+    #[must_use]
     pub unsafe fn from_fd(fd: i32) -> Self {
         Self(File(fd))
     }
@@ -75,14 +76,10 @@ impl File {
     pub fn stdin() -> Option<Self> {
         // Check to see if stdin is a tty. This might not be true if stdin has been closed or
         // redirected to a file. Note also that closing stdin doesn't preclude the current process
-        // from still having a controlling terminal (we could open("/dev/tty") and check that file
-        // descriptor instead of stdin), but this approach is *probably* what the user expects.
-        if !ioctl::isatty(STDIN_FD) {
-            return None;
-        }
-
-        // If stdin is a terminal, then return a wrapped file descriptor.
-        Some(Self(STDIN_FD))
+        // from still having a controlling terminal (we could open /dev/tty instead of this) and
+        // check that file descriptor instead of stdin), but this approach is *probably* what the
+        // user expects.
+        ioctl::isatty(STDIN_FD).then_some(Self(STDIN_FD))
     }
 
     /// Constructs a handle representing the given file descriptor.
@@ -95,6 +92,7 @@ impl File {
         Self(fd)
     }
 
+    /// Returns the raw file descriptor that underlies this structure.
     #[must_use]
     pub const fn as_fd(&self) -> i32 {
         self.0
@@ -106,10 +104,9 @@ impl File {
     ///
     /// # Errors
     ///
-    /// This function may return a [`Error::Syscall`](`crate::Error::Syscall`). Callers should be
-    /// prepared for *any* value within [`Error::Syscall`](`crate::Error::Syscall`), however
-    /// programs can reasonably expect (but not rely on) the error value being sane. See your
-    /// `write(2)` manpage for possible values.
+    /// This function may return a [`Error::Syscall`]. Callers should be prepared for *any* value
+    /// within [`Error::Syscall`], however programs can reasonably expect (but not rely on) the
+    /// error value being sane. See your `write(2)` manpage for possible values.
     pub fn write(&mut self, bytes: &[u8]) -> Result<usize> {
         // Use the write syscall to write `bytes` (with length) to our file descriptor.
         syscall_res!(SYS_write, self.0, bytes.as_ptr(), bytes.len())
@@ -121,23 +118,35 @@ impl File {
     ///
     /// # Errors
     ///
-    /// This function may return a [`Error::Syscall`](`crate::Error::Syscall`). Callers should be
-    /// prepared for *any* value within [`Error::Syscall`](`crate::Error::Syscall`), however
-    /// programs can reasonably expect (but not rely on) the error value being sane. See your
-    /// `read(2)` manpage for possible values.
+    /// This function may return a [`Error::Syscall`]. Callers should be prepared for *any* value
+    /// within [`Error::Syscall`], however programs can reasonably expect (but not rely on) the
+    /// error value being sane. See your `read(2)` manpage for possible values.
     pub fn read(&mut self, bytes: &mut [u8]) -> Result<usize> {
         // Use the read syscall to read from our file descriptor into `bytes` (making sure not to
         // overrun).
         syscall_res!(SYS_read, self.0, bytes.as_ptr(), bytes.len())
     }
 
+    /// Read up to `count` bytes (from the file descriptor) into the uninitialized region of a
+    /// [`StaticVec`].
+    ///
+    /// # Errors
+    ///
+    /// This function may return a [`Error::Syscall`]. Callers should be prepared for *any* value
+    /// within [`Error::Syscall`], however programs can reasonably expect (but not rely on) the
+    /// error value being sane. See your `read(2)` manpage for possible values.
+    ///
+    /// Additionally, this function will return [`Error::BufferFull`] if `count` is less than the
+    /// remaining space in the [`StaticVec`].
     pub fn read_uninit<const N: usize>(
         &mut self,
         bytes: &mut StaticVec<u8, N>,
         count: usize,
     ) -> Result<usize> {
         let remaining = bytes.remaining_mut();
-        assert!(count <= remaining.len());
+        if count > remaining.len() {
+            return Err(Error::BufferFull);
+        }
         let len = syscall_res!(SYS_read, self.0, remaining.as_ptr(), count)?;
         // SAFETY: This is safe because all the bytes were written by the `read` syscall.
         unsafe { bytes.set_len(bytes.len() + len) };

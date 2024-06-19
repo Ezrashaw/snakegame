@@ -56,7 +56,7 @@ impl Terminal {
         let mut i = 0;
         let mut next = || {
             #[allow(clippy::cast_possible_truncation)]
-            let item = (i < n).then(|| buf[i as usize]);
+            let item = (i < n).then(|| buf[i]);
             if item.is_some() {
                 i += 1;
             }
