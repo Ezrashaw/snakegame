@@ -1,10 +1,9 @@
 use core::{ptr, slice, time::Duration};
-use std::os::fd::AsRawFd;
 
-use super::syscall::{syscall, SYS_ppoll};
-use crate::Result;
+use super::syscall::{syscall_res, SYS_ppoll};
+use crate::{file::File, Result};
 
-pub fn poll_read_fd(fd: &impl AsRawFd, timeout: Option<Duration>) -> Result<bool> {
+pub fn poll_read_fd(fd: &File, timeout: Option<Duration>) -> Result<bool> {
     let mut poll_fd = PollFd::new_read(fd);
     match poll(slice::from_mut(&mut poll_fd), timeout)? {
         0 => Ok(false),
@@ -16,7 +15,7 @@ pub fn poll_read_fd(fd: &impl AsRawFd, timeout: Option<Duration>) -> Result<bool
     }
 }
 
-pub fn poll(fds: &mut [PollFd], timeout: Option<Duration>) -> Result<u64> {
+pub fn poll(fds: &mut [PollFd], timeout: Option<Duration>) -> Result<usize> {
     #[repr(C)]
     struct TimeSpec {
         tv_sec: u64,
@@ -28,7 +27,7 @@ pub fn poll(fds: &mut [PollFd], timeout: Option<Duration>) -> Result<u64> {
         tv_nsec: tout.subsec_nanos().into(),
     });
 
-    let res = syscall!(
+    syscall_res!(
         SYS_ppoll,
         fds.as_mut_ptr() as u64,
         fds.len() as u64,
@@ -38,9 +37,7 @@ pub fn poll(fds: &mut [PollFd], timeout: Option<Duration>) -> Result<u64> {
         // in debug mode, but release mode optimized it into UB.
         time_spec.as_ref().map_or(ptr::null(), ptr::from_ref) as u64,
         ptr::null::<()>() as u64
-    );
-
-    crate::Error::from_syscall_ret(res)
+    )
 }
 
 #[repr(C)]
@@ -55,17 +52,17 @@ impl PollFd {
     const IN: u16 = 0x1;
     const RDHUP: u16 = 0x2000;
 
-    pub fn new_socket(fd: &impl AsRawFd) -> Self {
+    pub fn new_socket(fd: &File) -> Self {
         Self {
-            fd: fd.as_raw_fd(),
+            fd: fd.as_fd(),
             events: Self::IN | Self::RDHUP,
             revents: 0,
         }
     }
 
-    pub fn new_read(fd: &impl AsRawFd) -> Self {
+    pub fn new_read(fd: &File) -> Self {
         Self {
-            fd: fd.as_raw_fd(),
+            fd: fd.as_fd(),
             events: Self::IN,
             revents: 0,
         }

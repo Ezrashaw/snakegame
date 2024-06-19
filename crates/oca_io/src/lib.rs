@@ -1,3 +1,4 @@
+#![feature(maybe_uninit_slice)]
 #![warn(clippy::nursery, clippy::pedantic)]
 #![allow(
     clippy::missing_panics_doc,
@@ -6,6 +7,7 @@
     clippy::cast_sign_loss,
     clippy::cast_possible_truncation
 )]
+#![no_std]
 
 #[cfg(not(target_os = "linux"))]
 compile_error!("This program only runs on Linux");

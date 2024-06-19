@@ -38,7 +38,7 @@ mod x86 {
     /// 4. %r10
     macro_rules! syscall {
         ($id:ident, $arg1:expr) => {{
-            let mut ret: i64;
+            let mut ret: isize;
             unsafe {
                 core::arch::asm!(
                     "syscall",
@@ -55,7 +55,7 @@ mod x86 {
             ret
         }};
         ($id:ident, $arg1:expr, $arg2:expr, $arg3:expr) => {{
-            let mut ret: i64;
+            let mut ret: isize;
             unsafe {
                 core::arch::asm!(
                     "syscall",
@@ -74,7 +74,7 @@ mod x86 {
             ret
         }};
         ($id:ident, $arg1:expr, $arg2:expr, $arg3:expr, $arg4:expr) => {{
-            let mut ret: i64;
+            let mut ret: isize;
             unsafe {
                 core::arch::asm!(
                     "syscall",

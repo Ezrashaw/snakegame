@@ -4,13 +4,12 @@ use core::{
     fmt,
     ops::{Deref, DerefMut},
 };
-use std::os::fd::AsRawFd;
 
 use super::{
     ioctl::{self, STDIN_FD},
-    syscall::{syscall, SYS_close, SYS_read, SYS_write},
+    syscall::{syscall, syscall_res, SYS_close, SYS_read, SYS_write},
 };
-use crate::{Error, Result};
+use crate::{high::svec::StaticVec, Result};
 
 pub struct OwnedFile(File);
 
@@ -111,13 +110,9 @@ impl File {
     /// prepared for *any* value within [`Error::Syscall`](`crate::Error::Syscall`), however
     /// programs can reasonably expect (but not rely on) the error value being sane. See your
     /// `write(2)` manpage for possible values.
-    pub fn write(&mut self, bytes: &[u8]) -> Result<u64> {
+    pub fn write(&mut self, bytes: &[u8]) -> Result<usize> {
         // Use the write syscall to write `bytes` (with length) to our file descriptor.
-        let res = syscall!(SYS_write, self.0, bytes.as_ptr(), bytes.len());
-
-        // The write syscall returns either a positive value representing the number of bytes
-        // written, or a negative value representing an error.
-        Error::from_syscall_ret(res)
+        syscall_res!(SYS_write, self.0, bytes.as_ptr(), bytes.len())
     }
 
     /// Read up to the specified number of bytes from the [`File`].
@@ -130,26 +125,28 @@ impl File {
     /// prepared for *any* value within [`Error::Syscall`](`crate::Error::Syscall`), however
     /// programs can reasonably expect (but not rely on) the error value being sane. See your
     /// `read(2)` manpage for possible values.
-    pub fn read(&mut self, bytes: &mut [u8]) -> Result<u64> {
+    pub fn read(&mut self, bytes: &mut [u8]) -> Result<usize> {
         // Use the read syscall to read from our file descriptor into `bytes` (making sure not to
         // overrun).
-        let res = syscall!(SYS_read, self.0, bytes.as_ptr(), bytes.len());
+        syscall_res!(SYS_read, self.0, bytes.as_ptr(), bytes.len())
+    }
 
-        // The read syscall returns either a positive value representing the number of bytes read,
-        // or a negative value representing an error.
-        Error::from_syscall_ret(res)
+    pub fn read_uninit<const N: usize>(
+        &mut self,
+        bytes: &mut StaticVec<u8, N>,
+        count: usize,
+    ) -> Result<usize> {
+        let remaining = bytes.remaining_mut();
+        assert!(count <= remaining.len());
+        let len = syscall_res!(SYS_read, self.0, remaining.as_ptr(), count)?;
+        // SAFETY: This is safe because all the bytes were written by the `read` syscall.
+        unsafe { bytes.set_len(bytes.len() + len) };
+        Ok(len)
     }
 }
 
 impl fmt::Write for File {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         self.write(s.as_bytes()).map(|_| ()).map_err(|_| fmt::Error)
-    }
-}
-
-// TODO: get rid of this
-impl AsRawFd for File {
-    fn as_raw_fd(&self) -> std::os::unix::prelude::RawFd {
-        self.0
     }
 }

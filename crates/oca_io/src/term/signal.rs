@@ -1,9 +1,8 @@
 use core::{mem, ptr};
-use std::os::fd::{AsRawFd, RawFd};
 
 use crate::{
     file::File,
-    sys::syscall::{syscall, SYS_rt_sigprocmask, SYS_signalfd4},
+    sys::syscall::{syscall_res, SYS_rt_sigprocmask, SYS_signalfd4},
     Result,
 };
 
@@ -29,24 +28,22 @@ impl SignalFile {
         }
 
         let mut oldset = 0u64;
-        let res = syscall!(
+        syscall_res!(
             SYS_rt_sigprocmask,
             0x0, // SIG_BLOCK
             ptr::from_ref(&sigmask) as u64,
             ptr::from_mut(&mut oldset) as u64,
             mem::size_of_val(&sigmask) as u64
-        );
-        crate::Error::from_syscall_ret(res)?;
+        )?;
         assert!(oldset == 0);
 
-        let signalfd = syscall!(
+        let signalfd = syscall_res!(
             SYS_signalfd4,
             (-1i64) as u64,
             ptr::from_ref(&sigmask) as u64,
             8, // signmask is eight bytes
             0x0
-        );
-        crate::Error::from_syscall_ret(signalfd)?;
+        )?;
 
         Ok(Self(File::from_fd(signalfd as i32)))
     }
@@ -61,10 +58,8 @@ impl SignalFile {
 
         Ok(unsafe { mem::transmute::<u8, Signal>(sig) })
     }
-}
 
-impl AsRawFd for SignalFile {
-    fn as_raw_fd(&self) -> RawFd {
-        self.0.as_raw_fd()
+    pub fn as_file(&self) -> &File {
+        &self.0
     }
 }

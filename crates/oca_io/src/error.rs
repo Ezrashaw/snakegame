@@ -1,14 +1,12 @@
 use core::fmt;
 
 pub enum Error {
-    Syscall(u64),
+    Syscall(usize),
     Fmt,
-    // TODO: get rid of this
-    Io(std::io::Error),
 }
 
 impl Error {
-    pub(crate) const fn from_syscall_ret(val: i64) -> crate::Result<u64> {
+    pub(crate) const fn from_syscall_ret(val: isize) -> crate::Result<usize> {
         let abs = val.unsigned_abs();
         if val < 0 {
             // Wrap negative values into our `Error::Syscall` wrapper, remembering to normalize the
@@ -26,18 +24,11 @@ impl From<fmt::Error> for Error {
     }
 }
 
-impl From<std::io::Error> for Error {
-    fn from(val: std::io::Error) -> Self {
-        Self::Io(val)
-    }
-}
-
 impl fmt::Debug for Error {
     #[allow(clippy::too_many_lines)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Fmt => write!(f, "Error::Fmt"),
-            Self::Io(err) => write!(f, "Error:Io({err:?})"),
 
             #[cfg(not(feature = "errno"))]
             Self::Syscall(errno) => write!(f, "Error::Syscall({errno})"),

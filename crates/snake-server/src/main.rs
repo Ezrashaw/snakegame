@@ -10,6 +10,7 @@ use std::{
 };
 
 use oca_io::{
+    file::File,
     network::{read_packet, write_packet, LeaderboardEntry},
     poll::PollFd,
     Result,
@@ -28,9 +29,10 @@ fn main() -> Result<()> {
     let server = TcpListener::bind((
         Ipv4Addr::UNSPECIFIED,
         env::var("SNAKEPORT").unwrap().parse().unwrap(),
-    ))?;
+    ))
+    .unwrap();
     let mut clients = Vec::new();
-    let mut poll_fds = vec![PollFd::new_read(&server)];
+    let mut poll_fds = vec![PollFd::new_read(&File::from_fd(server.as_raw_fd()))];
 
     loop {
         let number_read = oca_io::poll::poll(&mut poll_fds, None)?;
@@ -44,11 +46,13 @@ fn main() -> Result<()> {
         if poll_fd.fd() == server.as_raw_fd() {
             assert!(poll_fd.is_read());
 
-            let (stream, _addr) = server.accept()?;
+            let (stream, _addr) = server.accept().unwrap();
             let mut client = GameClient::new(stream)?;
 
             client.send_leaderboard(&leaderboard)?;
-            poll_fds.push(PollFd::new_socket(&client.stream));
+            poll_fds.push(PollFd::new_socket(&File::from_fd(
+                client.stream.as_raw_fd(),
+            )));
             clients.push(client);
         } else {
             let client = clients
@@ -74,7 +78,7 @@ fn main() -> Result<()> {
             let bytes = unsafe {
                 slice::from_raw_parts(leaderboard.as_ptr().cast(), leaderboard.len() * 4)
             };
-            fs::write("games", bytes)?;
+            fs::write("games", bytes).unwrap();
 
             for i in 0..clients.len() {
                 if let Err(_err) = clients[i].send_leaderboard(&leaderboard) {
@@ -99,8 +103,8 @@ impl GameClient {
             read_packet(&mut oca_io::file::File::from_fd(stream.as_raw_fd()))?;
         assert_eq!(connect_id, 0x0);
 
-        let hostname = String::from_utf8(connect).unwrap();
-        println!("{}: CONNECT {:?}", hostname, stream.peer_addr()?);
+        let hostname = String::from_utf8(connect.to_vec()).unwrap();
+        println!("{}: CONNECT {:?}", hostname, stream.peer_addr().unwrap());
 
         Ok(Self { stream, hostname })
     }

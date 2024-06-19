@@ -42,7 +42,7 @@ pub const STARTING_POS: Coord = Coord {
 /// `Some(score)`.
 pub fn game_main(ui: &mut GameUi) -> Result<Option<usize>> {
     // Open /dev/urandom, a fast source of entropy on Linux systems.
-    let mut rng = File::open("/dev/urandom")?;
+    let mut rng = File::open("/dev/urandom").unwrap();
 
     // -- snake state --
     // Initialize the snake's initial head position.
@@ -179,7 +179,7 @@ pub fn game_main(ui: &mut GameUi) -> Result<Option<usize>> {
 fn gen_fruit(rng: &mut File, ui: &mut GameUi, bitboard: &mut [u64]) -> Result<()> {
     // Read eight bytes (a u64) into a buffer.
     let mut rand = [0u8; 8];
-    rng.read_exact(&mut rand)?;
+    rng.read_exact(&mut rand).unwrap();
     let rand = usize::from_le_bytes(rand);
 
     // Calculate how many filled and free squares there are.

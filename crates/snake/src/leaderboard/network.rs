@@ -1,6 +1,7 @@
 use std::{fs, io, net::SocketAddrV4, str::FromStr, time::Duration};
 
 use oca_io::{
+    file::File,
     network::{self as oca_network, LeaderboardEntries},
     socket::Socket,
     Result,
@@ -28,7 +29,9 @@ impl Leaderboard {
         // };
 
         // TODO: there is no sane reason to unwrap this
-        if !block && !oca_io::poll::poll_read_fd(&self.conn.as_fd(), Some(Duration::ZERO)).unwrap()
+        if !block
+            && !oca_io::poll::poll_read_fd(&File::from_fd(self.conn.as_fd()), Some(Duration::ZERO))
+                .unwrap()
         {
             return None;
         }
@@ -61,9 +64,13 @@ pub(super) fn connect_tcp(addr: &str) -> Result<(LeaderboardEntries, Socket)> {
     //     &SocketAddr::from_str(addr).map_err(io::Error::other)?,
     //     Duration::from_secs(10),
     // )?;
-    let mut conn = Socket::connect(SocketAddrV4::from_str(addr).map_err(io::Error::other)?)?;
+    let mut conn = Socket::connect(
+        SocketAddrV4::from_str(addr)
+            .map_err(io::Error::other)
+            .unwrap(),
+    )?;
 
-    let hostname = fs::read_to_string("/proc/sys/kernel/hostname")?;
+    let hostname = fs::read_to_string("/proc/sys/kernel/hostname").unwrap();
     oca_network::write_packet(&mut conn, 0x0, hostname.trim().as_bytes())?;
 
     let lb = read_leaderboard(&mut conn)?;

@@ -1,4 +1,4 @@
-use std::mem::MaybeUninit;
+use core::mem::MaybeUninit;
 
 /// A circular buffer implementation.
 pub struct CircularBuffer<T: Copy, const N: usize> {
@@ -122,7 +122,9 @@ impl<T: Copy, const N: usize> DoubleEndedIterator for CBufIter<'_, T, N> {
 
 #[cfg(test)]
 mod tests {
-    use std::{fmt::Debug, mem::size_of};
+    extern crate std;
+    use core::{fmt::Debug, mem::size_of};
+    use std::{println, vec::Vec};
 
     use crate::CircularBuffer;
 
