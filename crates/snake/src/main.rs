@@ -19,7 +19,9 @@ const ADD_LB_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/add-lb.txt"));
 const WELCOME_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/welcome.txt"));
 
 fn main() {
-    snake_main().unwrap();
+    if let Err(err) = snake_main() {
+        println!("\x1B[1;31mBUG\x1B[0m: {err:?}");
+    }
 }
 
 fn snake_main() -> Result<()> {

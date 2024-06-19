@@ -180,7 +180,8 @@ impl PsfFont {
         print!("\x1B[0m");
     }
 
-    #[must_use] pub fn get_glyph(&self, i: u32) -> &[u8] {
+    #[must_use]
+    pub fn get_glyph(&self, i: u32) -> &[u8] {
         let offset = (self.bytes_per_glyph * i) as usize;
         &self.glyphs[offset..(offset + self.bytes_per_glyph as usize)]
     }
@@ -211,7 +212,10 @@ impl UnicodeEntry {
             .chars()
             .collect::<Vec<char>>();
 
-        assert!(bytes[0] != 0xFE, "WARNING: unsupported unicode character sequence");
+        assert!(
+            bytes[0] != 0xFE,
+            "WARNING: unsupported unicode character sequence"
+        );
 
         // Skip the final 0xFF.
         *bytes = &bytes[1..];
