@@ -120,7 +120,7 @@ pub fn game_main(ui: &mut GameUi) -> Result<Option<usize>> {
             }
 
             // ...otherwise, we have eaten a fruit.
-            len += 1;
+            len += 4;
 
             // Speed the snake up a little.
             step_time -= Duration::from_millis(1);
@@ -132,7 +132,7 @@ pub fn game_main(ui: &mut GameUi) -> Result<Option<usize>> {
 
             // Tell the game's UI that we have a new score, this updates the leaderboard
             // statistics panel.
-            ui.update_score(len - STARTING_LENGTH)?;
+            ui.update_score((len - STARTING_LENGTH) / 4)?;
         }
 
         // Draw the previous head position as the tail colour.
@@ -156,7 +156,7 @@ pub fn game_main(ui: &mut GameUi) -> Result<Option<usize>> {
     thread::sleep(Duration::from_millis(500));
 
     // Return the score, calculated as the difference between the initial and current length.
-    Ok(Some(len - STARTING_LENGTH))
+    Ok(Some((len - STARTING_LENGTH) / 4))
 }
 
 /// Creates a fruit at a random position on the canvas, accounting for other fruits and the snake.
