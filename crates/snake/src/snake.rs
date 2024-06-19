@@ -17,7 +17,7 @@ use crate::ui::{Coord, GameUi, CANVAS_H, CANVAS_W};
 /// Defines the time between each movement of the snake. Over the couse of the game, this value
 /// will decrease. During this time, if a key is pressed, then we process the key event, and wait
 /// for the remainer of the time.
-pub const STARTING_STEP_TIME: Duration = Duration::from_millis(140);
+pub const STARTING_STEP_TIME: Duration = Duration::from_millis(120);
 
 /// Defines the starting length of the snake. Note that the snake does not actualy start at this
 /// length, but slowly expands out of a single point.
@@ -123,7 +123,7 @@ pub fn game_main(ui: &mut GameUi) -> Result<Option<usize>> {
             len += 1;
 
             // Speed the snake up a little.
-            step_time -= Duration::from_micros(500);
+            step_time -= Duration::from_millis(1);
 
             // Generate another fruit to replace that one we just ate. Note that we needn't remove
             // fruit from the bitboard because we ate it and will "digest" it (the normal snake
