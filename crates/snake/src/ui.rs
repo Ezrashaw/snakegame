@@ -1,6 +1,6 @@
 use std::{fmt::Write, time::Instant};
 
-use term::{ansi_str_len, Box, CenteredStr, Clear, Draw, DrawCtx, Rect, Terminal};
+use term::{Box, CenteredStr, Clear, Draw, DrawCtx, Rect, Terminal};
 
 use crate::leaderboard::{Leaderboard, LeaderboardUpdate};
 use oca_io::Result;
@@ -9,6 +9,7 @@ const CREDITS_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/credits.txt")
 const STATS_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/stats.txt"));
 const SNAKE_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/snake.txt"));
 const HELP_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/help.txt"));
+#[cfg(debug_assertions)]
 const GIT_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/git.txt"));
 
 pub const CANVAS_W: u16 = 28;
@@ -138,9 +139,13 @@ fn draw_static(term: &mut Terminal) -> Result<(u16, u16)> {
     // Draw the credits text in the bottom left corner of the screen.
     term.draw(1, h - 3, CREDITS_TEXT)?;
 
-    // Draw the git commit text in the bottom right corner of the screen.
-    let git_width = ansi_str_len(GIT_TEXT.split_once('\n').unwrap().0);
-    term.draw(w - git_width, h - 1, GIT_TEXT)?;
+    // Draw the git commit text in the bottom right corner of the screen, but only when compiling
+    // for debug mode.
+    #[cfg(debug_assertions)]
+    {
+        let git_width = term::ansi_str_len(GIT_TEXT.split_once('\n').unwrap().0);
+        term.draw(w - git_width, h - 1, GIT_TEXT)?;
+    }
 
     // Draw the SNAKE title text in the top center of the screen.
     term.draw_centered(SNAKE_TEXT, Rect::new(1, 1, w, 4))?;
