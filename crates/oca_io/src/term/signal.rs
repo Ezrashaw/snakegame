@@ -1,7 +1,7 @@
 use core::{mem, ptr};
 
 use crate::{
-    file::File,
+    file::{File, OwnedFile},
     sys::syscall::{syscall_res, SYS_rt_sigprocmask, SYS_signalfd4},
     Result,
 };
@@ -14,7 +14,7 @@ pub enum Signal {
     WindowChange = 28,
 }
 
-pub struct SignalFile(File);
+pub struct SignalFile(OwnedFile);
 
 impl SignalFile {
     pub fn new(signals: &[Signal]) -> Result<Self> {
@@ -45,7 +45,7 @@ impl SignalFile {
             0x0
         )?;
 
-        Ok(Self(File::from_fd(signalfd as i32)))
+        Ok(Self(unsafe { OwnedFile::from_fd(signalfd as i32) }))
     }
 
     pub fn get_signal(&mut self) -> Result<Signal> {
@@ -60,7 +60,7 @@ impl SignalFile {
     }
 
     #[must_use]
-    pub const fn as_file(&self) -> &File {
+    pub fn as_file(&self) -> &File {
         &self.0
     }
 }

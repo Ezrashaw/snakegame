@@ -29,6 +29,10 @@ pub mod signal {
     pub use crate::term::signal::*;
 }
 
+pub mod timer {
+    pub use crate::term::timer::*;
+}
+
 pub mod termios {
     pub use crate::term::termios::*;
 }

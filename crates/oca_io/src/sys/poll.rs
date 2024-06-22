@@ -1,7 +1,7 @@
 use core::{ptr, slice, time::Duration};
 
 use super::syscall::{syscall_res, SYS_ppoll};
-use crate::{file::File, Result};
+use crate::{file::File, term::timer::TimeSpec, Result};
 
 pub fn poll_read_fd(fd: &File, timeout: Option<Duration>) -> Result<bool> {
     let mut poll_fd = PollFd::new_read(fd);
@@ -16,17 +16,6 @@ pub fn poll_read_fd(fd: &File, timeout: Option<Duration>) -> Result<bool> {
 }
 
 pub fn poll(fds: &mut [PollFd], timeout: Option<Duration>) -> Result<usize> {
-    #[repr(C)]
-    struct TimeSpec {
-        tv_sec: u64,
-        tv_nsec: u64,
-    }
-
-    let time_spec = timeout.map(|tout| TimeSpec {
-        tv_sec: tout.as_secs(),
-        tv_nsec: tout.subsec_nanos().into(),
-    });
-
     syscall_res!(
         SYS_ppoll,
         fds.as_mut_ptr() as u64,
@@ -35,7 +24,10 @@ pub fn poll(fds: &mut [PollFd], timeout: Option<Duration>) -> Result<usize> {
         // ptr::from_ref because the reference's (represented as a raw pointer) lifetime is
         // bound to the closure, not the libc call. Otherwise this is UB... oops. This was okay
         // in debug mode, but release mode optimized it into UB.
-        time_spec.as_ref().map_or(ptr::null(), ptr::from_ref) as u64,
+        timeout
+            .map(TimeSpec::from)
+            .as_ref()
+            .map_or(ptr::null(), ptr::from_ref) as u64,
         ptr::null::<()>() as u64
     )
 }
@@ -53,7 +45,7 @@ impl PollFd {
     const RDHUP: u16 = 0x2000;
 
     #[must_use]
-    pub fn new_socket(fd: &File) -> Self {
+    pub const fn new_socket(fd: &File) -> Self {
         Self {
             fd: fd.as_fd(),
             events: Self::IN | Self::RDHUP,
@@ -62,7 +54,7 @@ impl PollFd {
     }
 
     #[must_use]
-    pub fn new_read(fd: &File) -> Self {
+    pub const fn new_read(fd: &File) -> Self {
         Self {
             fd: fd.as_fd(),
             events: Self::IN,

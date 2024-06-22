@@ -30,6 +30,8 @@ mod x86 {
     pub const SYS_socket: u64 = 41;
     pub const SYS_connect: u64 = 42;
     pub const SYS_ppoll: u64 = 271;
+    pub const SYS_timerfd_create: u64 = 283;
+    pub const SYS_timerfd_settime: u64 = 286;
     pub const SYS_signalfd4: u64 = 289;
 
     /// Syscall on x86-64 Linux.
@@ -51,6 +53,24 @@ mod x86 {
                     in("rax") $id,
 
                     in("rdi") $arg1,
+
+                    out("rcx") _, // the kernel clobbers %rcx and r11
+                    out("r11") _, // ^^^
+                    lateout("rax") ret,
+                    options(nostack, preserves_flags)
+                );
+            }
+            ret
+        }};
+        ($id:ident, $arg1:expr, $arg2:expr) => {{
+            let mut ret: isize;
+            unsafe {
+                core::arch::asm!(
+                    "syscall",
+                    in("rax") $id,
+
+                    in("rdi") $arg1,
+                    in("rsi") $arg2,
 
                     out("rcx") _, // the kernel clobbers %rcx and r11
                     out("r11") _, // ^^^
