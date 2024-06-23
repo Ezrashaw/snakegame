@@ -1,4 +1,8 @@
-use core::{mem::MaybeUninit, ops::Deref};
+use core::{
+    mem::MaybeUninit,
+    ops::{Deref, DerefMut},
+    slice,
+};
 
 pub struct StaticVec<T: Copy, const N: usize> {
     buf: [MaybeUninit<T>; N],
@@ -6,6 +10,8 @@ pub struct StaticVec<T: Copy, const N: usize> {
 }
 
 impl<T: Copy, const N: usize> StaticVec<T, N> {
+    #[must_use]
+    #[allow(clippy::new_without_default)]
     pub const fn new() -> Self {
         Self {
             buf: [MaybeUninit::uninit(); N],
@@ -32,8 +38,22 @@ impl<T: Copy, const N: usize> StaticVec<T, N> {
         }
     }
 
+    pub fn as_slice(&self) -> &[T] {
+        // FIX: write a safety comment
+        unsafe { MaybeUninit::slice_assume_init_ref(&self.buf[0..self.len]) }
+    }
+
+    pub fn as_mut_slice(&mut self) -> &mut [T] {
+        // FIX: write a safety comment
+        unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf[0..self.len]) }
+    }
+
     pub const fn len(&self) -> usize {
         self.len
+    }
+
+    pub const fn is_empty(&self) -> bool {
+        self.len == 0
     }
 
     pub fn remaining_mut(&mut self) -> &mut [MaybeUninit<T>] {
@@ -54,11 +74,22 @@ impl<T: Copy, const N: usize> Deref for StaticVec<T, N> {
     type Target = [T];
 
     fn deref(&self) -> &Self::Target {
-        // FIX: write a safety comment
-        unsafe { MaybeUninit::slice_assume_init_ref(&self.buf[0..self.len]) }
+        self.as_slice()
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//
+impl<T: Copy, const N: usize> DerefMut for StaticVec<T, N> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.as_mut_slice()
+    }
+}
+
+impl<'a, T: Copy, const N: usize> IntoIterator for &'a StaticVec<T, N> {
+    type Item = &'a T;
+
+    type IntoIter = slice::Iter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.as_slice().iter()
+    }
+}
