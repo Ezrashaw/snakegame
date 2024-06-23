@@ -4,7 +4,7 @@ use super::syscall::{syscall_res, SYS_ppoll};
 use crate::{file::File, term::timer::TimeSpec, Result};
 
 pub fn poll_read_fd(fd: &File, timeout: Option<Duration>) -> Result<bool> {
-    let mut poll_fd = PollFd::new_read(fd);
+    let mut poll_fd = PollFd::new(fd.as_fd(), PollFd::IN);
     match poll(slice::from_mut(&mut poll_fd), timeout)? {
         0 => Ok(false),
         1 => {
@@ -33,7 +33,7 @@ pub fn poll(fds: &mut [PollFd], timeout: Option<Duration>) -> Result<usize> {
 }
 
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct PollFd {
     fd: i32,
     events: u16,
@@ -41,23 +41,14 @@ pub struct PollFd {
 }
 
 impl PollFd {
-    const IN: u16 = 0x1;
-    const RDHUP: u16 = 0x2000;
+    pub const IN: u16 = 0x1;
+    pub const RDHUP: u16 = 0x2000;
 
     #[must_use]
-    pub const fn new_socket(fd: &File) -> Self {
+    pub const fn new(fd: i32, events: u16) -> Self {
         Self {
-            fd: fd.as_fd(),
-            events: Self::IN | Self::RDHUP,
-            revents: 0,
-        }
-    }
-
-    #[must_use]
-    pub const fn new_read(fd: &File) -> Self {
-        Self {
-            fd: fd.as_fd(),
-            events: Self::IN,
+            fd,
+            events,
             revents: 0,
         }
     }
@@ -85,5 +76,10 @@ impl PollFd {
     #[must_use]
     pub const fn is_read(&self) -> bool {
         self.revents == Self::IN
+    }
+
+    #[must_use]
+    pub const fn is_error(&self) -> bool {
+        self.revents != Self::IN && self.revents != 0
     }
 }

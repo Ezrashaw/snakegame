@@ -48,5 +48,5 @@ pub mod socket {
 pub type Result<T> = core::result::Result<T, error::Error>;
 
 pub use error::Error;
-pub use high::cbuf::CircularBuffer;
+pub use high::{cbuf::CircularBuffer, svec::StaticVec};
 pub use sys::ioctl::get_termsize;

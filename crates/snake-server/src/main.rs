@@ -32,7 +32,7 @@ fn main() -> Result<()> {
     ))
     .unwrap();
     let mut clients = Vec::new();
-    let mut poll_fds = vec![PollFd::new_read(&File::from_fd(server.as_raw_fd()))];
+    let mut poll_fds = vec![PollFd::new(server.as_raw_fd(), PollFd::IN | PollFd::RDHUP)];
 
     loop {
         let number_read = oca_io::poll::poll(&mut poll_fds, None)?;
@@ -50,9 +50,10 @@ fn main() -> Result<()> {
             let mut client = GameClient::new(stream)?;
 
             client.send_leaderboard(&leaderboard)?;
-            poll_fds.push(PollFd::new_socket(&File::from_fd(
+            poll_fds.push(PollFd::new(
                 client.stream.as_raw_fd(),
-            )));
+                PollFd::IN | PollFd::RDHUP,
+            ));
             clients.push(client);
         } else {
             let client = clients

@@ -5,10 +5,10 @@ use core::{
 };
 
 use super::{
-    file::File,
+    super::Result,
+    file::{File, OwnedFile},
     syscall::{syscall_res, SYS_connect, SYS_socket},
 };
-use crate::{file::OwnedFile, Result};
 
 const AF_INET: u64 = 2;
 const SOCK_STREAM: u64 = 1;

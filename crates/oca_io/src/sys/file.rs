@@ -15,7 +15,7 @@ pub struct OwnedFile(File);
 
 impl OwnedFile {
     #[must_use]
-    pub unsafe fn from_fd(fd: i32) -> Self {
+    pub const unsafe fn from_fd(fd: i32) -> Self {
         Self(File(fd))
     }
 }
