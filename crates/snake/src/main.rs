@@ -30,6 +30,8 @@ fn snake_main() -> Result<()> {
     loop {
         let popup = Popup::new(WELCOME_TEXT);
         let pos = ui.draw_centered(&popup, false)?;
+        ui.flush()?;
+
         if attractor::run(&mut ui)? {
             break;
         }
@@ -53,6 +55,8 @@ fn snake_main() -> Result<()> {
                         GAME_OVER_TEXT.replace("000", &format!(len 3, "{score:0>3}"));
                     let popup = Popup::new(&game_over_text).with_color(Color::Red);
                     let pos = ui.draw_centered(&popup, true)?;
+
+                    ui.flush()?;
                     if ui.term().wait_enter(Some(Duration::from_secs(10)))? == KeyEvent::Exit {
                         break;
                     }
@@ -88,6 +92,7 @@ fn do_highscore(ui: &mut GameUi, score: usize) -> Result<bool> {
     let mut input = [0u8; 3];
 
     let ret = loop {
+        ui.flush()?;
         match ui
             .term()
             .get_key_timeout(Some(next_update - Instant::now()?), |k| {

@@ -34,6 +34,7 @@ pub fn run(ui: &mut GameUi) -> Result<bool> {
             ui.draw_canvas(fruit, Pixel::new(Color::Yellow, true))?;
         }
 
+        ui.flush()?;
         thread::sleep(snake::STARTING_STEP_TIME);
 
         ui.draw_canvas(head, Pixel::new(Color::Green, false))?;

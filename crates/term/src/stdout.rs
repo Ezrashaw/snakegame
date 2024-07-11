@@ -3,15 +3,15 @@ use oca_io::Result;
 
 impl Terminal {
     pub fn draw(&mut self, x: u16, y: u16, object: impl Draw) -> Result<()> {
-        crate::draw(&mut self.file, object, x, y)
+        crate::draw(&mut self.out_buf, object, x, y)
     }
 
     pub fn update<T: Draw>(&mut self, x: u16, y: u16, object: T, u: T::Update) -> Result<()> {
-        crate::update(&mut self.file, object, x, y, u)
+        crate::update(&mut self.out_buf, object, x, y, u)
     }
 
     pub fn draw_centered(&mut self, object: impl Draw, rect: Rect) -> Result<(u16, u16)> {
-        crate::draw_centered(&mut self.file, object, rect, false)
+        crate::draw_centered(&mut self.out_buf, object, rect, false)
     }
 
     pub fn draw_centered_hoff(
@@ -20,7 +20,13 @@ impl Terminal {
         rect: Rect,
         hoff: bool,
     ) -> Result<(u16, u16)> {
-        crate::draw_centered(&mut self.file, object, rect, hoff)
+        crate::draw_centered(&mut self.out_buf, object, rect, hoff)
+    }
+
+    pub fn flush(&mut self) -> Result<()> {
+        self.file.write(self.out_buf.as_bytes())?;
+        self.out_buf.clear();
+        Ok(())
     }
 }
 

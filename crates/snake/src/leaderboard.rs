@@ -1,5 +1,6 @@
 mod network;
 
+use core::fmt;
 use std::env;
 
 use oca_io::Result;
@@ -40,7 +41,7 @@ impl Leaderboard {
     ///
     /// **Note**: there is no need to clear the previous leaderboard: the leaderboard doesn't
     /// change screen-size, so we always overwrite the entire previous leaderboard.
-    fn draw_entries(&mut self, ctx: &mut DrawCtx) -> Result<()> {
+    fn draw_entries<W: fmt::Write>(&mut self, ctx: &mut DrawCtx<W>) -> Result<()> {
         // We are redrawing all the entries, so we'll re-calculate the position of the "YOU" row.
         self.you_row = None;
 
@@ -132,7 +133,7 @@ impl Draw for &mut Leaderboard {
         (15, 14)
     }
 
-    fn draw(self, ctx: &mut term::DrawCtx) -> Result<()> {
+    fn draw<W: fmt::Write>(self, ctx: &mut term::DrawCtx<W>) -> Result<()> {
         ctx.draw(0, 0, Box::new(13, 12).with_separator(1))?;
         ctx.draw(2, 1, "\x1B[1;34mLEADERBOARD\x1B[0m")?;
         for i in 1..=10 {
@@ -145,7 +146,7 @@ impl Draw for &mut Leaderboard {
     }
 
     type Update = LeaderboardUpdate;
-    fn update(self, ctx: &mut DrawCtx, update: Self::Update) -> Result<()> {
+    fn update<W: fmt::Write>(self, ctx: &mut DrawCtx<W>, update: Self::Update) -> Result<()> {
         match update {
             LeaderboardUpdate::Score(score) => {
                 self.score = Some(score);

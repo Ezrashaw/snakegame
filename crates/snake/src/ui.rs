@@ -1,6 +1,6 @@
-use core::fmt::Write;
+use core::fmt;
 
-use term::{Box, CenteredStr, Clear, Draw, DrawCtx, Rect, Terminal};
+use term::{draw, Box, CenteredStr, Clear, Draw, DrawCtx, Rect, Terminal};
 
 use crate::leaderboard::{Leaderboard, LeaderboardUpdate};
 use oca_io::{timer::Instant, Result};
@@ -122,6 +122,10 @@ impl GameUi {
             Ok(())
         }
     }
+
+    pub fn flush(&mut self) -> Result<()> {
+        self.term.flush()
+    }
 }
 
 /// This function draws all the "static" elements to the screen. These elements do not change or
@@ -188,7 +192,7 @@ impl Draw for &Stats {
         (15, 4)
     }
 
-    fn draw(self, ctx: &mut DrawCtx) -> Result<()> {
+    fn draw<W: fmt::Write>(self, ctx: &mut DrawCtx<W>) -> Result<()> {
         ctx.draw(
             0,
             0,
@@ -200,11 +204,11 @@ impl Draw for &Stats {
     }
 
     type Update = StatsUpdate;
-    fn update(self, ctx: &mut DrawCtx, update: Self::Update) -> Result<()> {
+    fn update<W: fmt::Write>(self, ctx: &mut DrawCtx<W>, update: Self::Update) -> Result<()> {
         match update {
             StatsUpdate::Score(score) => {
                 ctx.goto(12, 3)?;
-                write!(ctx.o(), "{score:0>3}")?;
+                draw!(ctx, "{score:0>3}")?;
             }
             StatsUpdate::Time => {
                 let t = Instant::now()? - self.0;
@@ -212,7 +216,7 @@ impl Draw for &Stats {
                 let secs = t.as_secs() % 60;
 
                 ctx.goto(10, 4)?;
-                write!(ctx.o(), "{mins:0>2}:{secs:0>2}")?;
+                draw!(ctx, "{mins:0>2}:{secs:0>2}")?;
             }
         };
         Ok(())

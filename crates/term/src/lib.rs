@@ -19,13 +19,14 @@ use oca_io::{
     file::File,
     signal::{Signal, SignalFile},
     termios::{self, Termios},
-    CircularBuffer, Result,
+    CircularBuffer, Result, StaticString,
 };
 
 use core::{fmt::Write, time::Duration};
 
 pub struct Terminal {
     file: File,
+    out_buf: StaticString<4096>,
     kbd_buf: CircularBuffer<Key, 64>,
     signalfd: SignalFile,
 
@@ -46,6 +47,7 @@ impl Terminal {
 
         Ok(Self {
             file,
+            out_buf: StaticString::new(),
             kbd_buf: CircularBuffer::new(),
             signalfd: SignalFile::new(&[
                 Signal::Interrupt,

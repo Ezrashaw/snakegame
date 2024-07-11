@@ -87,6 +87,7 @@ pub fn game_main(ui: &mut GameUi) -> Result<Option<usize>> {
         ui.draw_canvas(head, Pixel::new(Color::Green, true))?;
 
         // Sleep for the current step time, so that the snake doesn't move instantly.
+        ui.flush()?;
         thread::sleep(step_time);
 
         // Check for keys, but don't wait for anything (we've already waited).
@@ -150,10 +151,12 @@ pub fn game_main(ui: &mut GameUi) -> Result<Option<usize>> {
     // Do a fun little death animation.
     for coord in tail.iter().rev().skip(1) {
         ui.draw_canvas(coord, Pixel::new(Color::Red, false))?;
+        ui.flush()?;
         thread::sleep(Duration::from_millis(50));
     }
     thread::sleep(Duration::from_millis(150));
     ui.draw_canvas(head, Pixel::new(Color::Red, true))?;
+    ui.flush()?;
     thread::sleep(Duration::from_millis(500));
 
     // Return the score, calculated as the difference between the initial and current length.

@@ -1,28 +1,55 @@
 use crate::{ansi_str_len, Color, Rect};
 use core::fmt::{self, Write};
-use oca_io::{Result, StaticString};
+use oca_io::Result;
+
+#[macro_export]
+macro_rules! drawln {
+    ($ctx:ident, $($fmt:tt)+) => {{
+        use ::core::fmt::Write as _;
+        let res = write!($ctx.o(), $($fmt)+);
+        res.and_then(|_| drawln!($ctx))
+    }};
+    ($ctx:ident) => {{
+        use ::core::fmt::Write as _;
+        let x = $ctx.x();
+        write!($ctx.o(), "\n\x1B[{x}G")
+    }};
+}
+
+#[macro_export]
+macro_rules! draw {
+    ($ctx:ident, $($fmt:tt)+) => {{
+        use ::core::fmt::Write as _;
+        write!($ctx.o(), $($fmt)+)
+    }};
+}
 
 pub trait Draw: Sized {
     type Update = ();
-    fn update(self, _ctx: &mut DrawCtx, _update: Self::Update) -> Result<()> {
+    fn update<W: fmt::Write>(self, _ctx: &mut DrawCtx<W>, _update: Self::Update) -> Result<()> {
         unimplemented!()
     }
 
     fn size(&self) -> (u16, u16);
-    fn draw(self, ctx: &mut DrawCtx) -> Result<()>;
+    fn draw<W: fmt::Write>(self, ctx: &mut DrawCtx<W>) -> Result<()>;
 }
 
-pub struct DrawCtx {
-    out: StaticString<2048>,
+pub struct DrawCtx<'a, W: fmt::Write> {
+    out: &'a mut W,
     x: u16,
     y: u16,
     w: u16,
     h: u16,
 }
 
-impl DrawCtx {
-    pub fn o(&mut self) -> &mut impl fmt::Write {
-        &mut self.out
+impl<'a, W: fmt::Write> DrawCtx<'a, W> {
+    pub fn o(&mut self) -> &mut (impl fmt::Write + 'a) {
+        self.out
+    }
+
+    #[must_use]
+    pub const fn x(&self) -> u16 {
+        self.x
     }
 
     #[must_use]
@@ -41,32 +68,21 @@ impl DrawCtx {
     }
 }
 
-fn with_ctx<D: Draw>(
-    out: &mut impl fmt::Write,
+fn with_ctx<D: Draw, W: fmt::Write>(
+    out: &mut W,
     object: D,
     x: u16,
     y: u16,
-    cb: impl FnOnce(&mut DrawCtx, D) -> Result<()>,
+    cb: impl FnOnce(&mut DrawCtx<W>, D) -> Result<()>,
 ) -> Result<()> {
     assert!(x >= 1 && y >= 1);
 
+    write!(out, "\x1B[{y};{x}H")?;
     let (w, h) = object.size();
-    let mut psout = StaticString::new();
-    write!(psout, "\x1B[{y};{x}H")?;
-    let mut ctx = DrawCtx {
-        out: psout,
-        x,
-        y,
-        w,
-        h,
-    };
+    let mut ctx = DrawCtx { out, x, y, w, h };
 
     cb(&mut ctx, object)?;
 
-    let psout = ctx
-        .out
-        .replace(b'\n', &oca_io::format!(len 7, "\n\x1B[{x}G"));
-    out.write_str(psout.as_str())?;
     Ok(())
 }
 
@@ -116,12 +132,15 @@ impl<T: AsRef<str>> Draw for T {
         (max_width, lines)
     }
 
-    fn draw(self, ctx: &mut DrawCtx) -> Result<()> {
+    fn draw<W: fmt::Write>(self, ctx: &mut DrawCtx<W>) -> Result<()> {
         let str = self.as_ref();
         assert_eq!(str, str.trim_end_matches('\n'));
 
         for (idx, line) in str.lines().enumerate() {
-            write!(ctx.o(), "{}{line}", if idx == 0 { "" } else { "\n" })?;
+            if idx != 0 {
+                drawln!(ctx)?;
+            }
+            ctx.o().write_str(line)?;
         }
 
         Ok(())
@@ -134,16 +153,15 @@ impl<T: AsRef<str>> Draw for CenteredStr<T> {
         self.0.size()
     }
 
-    fn draw(self, ctx: &mut DrawCtx) -> Result<()> {
+    fn draw<W: fmt::Write>(self, ctx: &mut DrawCtx<W>) -> Result<()> {
         let str = self.0.as_ref();
         assert_eq!(str, str.trim_end_matches('\n'));
 
         let w = self.size().0;
-        let o = ctx.o();
 
         for (idx, line) in str.lines().enumerate() {
             if idx != 0 {
-                writeln!(o)?;
+                drawln!(ctx)?;
             }
 
             let line_w = ansi_str_len(line);
@@ -151,9 +169,9 @@ impl<T: AsRef<str>> Draw for CenteredStr<T> {
             assert!(line_w == 0 || (w - line_w) % 2 == 0, "{idx}");
 
             if x > 0 {
-                write!(o, "\x1B[{x}C")?;
+                draw!(ctx, "\x1B[{x}C")?;
             }
-            write!(o, "{line}")?;
+            draw!(ctx, "{line}")?;
         }
 
         Ok(())
@@ -222,24 +240,24 @@ impl Draw for Box {
         (self.w + 2, self.h + 2)
     }
 
-    fn draw(self, ctx: &mut DrawCtx) -> Result<()> {
+    fn draw<W: fmt::Write>(self, ctx: &mut DrawCtx<W>) -> Result<()> {
         let (w, h) = (self.w as usize, self.h);
         let corners = self.corners.unwrap_or(Self::DEFAULT_CORNERS);
         let sep = self
             .sep
             .map(|s| (h.strict_add_signed(s) - u16::from(s < 0)) % h);
 
-        writeln!(ctx.o(), "{}{:─<w$}{}", corners[0], "", corners[1])?;
+        drawln!(ctx, "{}{:─<w$}{}", corners[0], "", corners[1])?;
         for i in 0..h {
             if sep.is_some_and(|sep| i == sep) {
-                writeln!(ctx.o(), "├{:─<w$}┤", "")?;
+                drawln!(ctx, "├{:─<w$}┤", "")?;
             } else if self.clear {
-                writeln!(ctx.o(), "│{:w$}│", "")?;
+                drawln!(ctx, "│{:w$}│", "")?;
             } else {
-                writeln!(ctx.o(), "│\x1B[{w}C│")?;
+                drawln!(ctx, "│\x1B[{w}C│")?;
             }
         }
-        write!(ctx.o(), "{}{:─<w$}{}", corners[2], "", corners[3])?;
+        draw!(ctx, "{}{:─<w$}{}", corners[2], "", corners[3])?;
 
         Ok(())
     }
@@ -262,8 +280,7 @@ impl Draw for Pixel {
         (2, 1)
     }
 
-    fn draw(self, ctx: &mut DrawCtx) -> Result<()> {
-        let o = ctx.o();
+    fn draw<W: fmt::Write>(self, ctx: &mut DrawCtx<W>) -> Result<()> {
         match self {
             Self::Draw { color, bright } => {
                 let color = if bright {
@@ -271,10 +288,9 @@ impl Draw for Pixel {
                 } else {
                     color.fg()
                 };
-                write!(o, "\x1B[{}m", Color::to_str(&color))?;
-                write!(o, "██\x1B[0m")?;
+                draw!(ctx, "\x1B[{}m██\x1B[0m", Color::to_str(&color))?;
             }
-            Self::Clear => write!(o, "  ")?,
+            Self::Clear => draw!(ctx, "  ")?,
         };
         Ok(())
     }
@@ -305,10 +321,10 @@ impl Draw for &Popup<'_> {
         (tw + 4, th + 2)
     }
 
-    fn draw(self, ctx: &mut DrawCtx) -> Result<()> {
+    fn draw<W: fmt::Write>(self, ctx: &mut DrawCtx<W>) -> Result<()> {
         let (w, h) = ctx.size();
         if let Some(color) = self.color {
-            write!(ctx.o(), "\x1B[1;{}m", Color::to_str(&color.fg_bright()))?;
+            draw!(ctx, "\x1B[1;{}m", Color::to_str(&color.fg_bright()))?;
         }
         ctx.draw(0, 0, Box::new(w - 2, h - 2).with_clear())?;
         ctx.draw(2, 1, CenteredStr(self.text))
@@ -322,9 +338,9 @@ impl Draw for Clear {
         (self.0, self.1)
     }
 
-    fn draw(self, ctx: &mut DrawCtx) -> Result<()> {
+    fn draw<W: fmt::Write>(self, ctx: &mut DrawCtx<W>) -> Result<()> {
         for _ in 0..self.1 {
-            writeln!(ctx.o(), "{:1$}", "", self.0 as usize)?;
+            drawln!(ctx, "{:1$}", "", self.0 as usize)?;
         }
         Ok(())
     }

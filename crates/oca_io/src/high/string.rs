@@ -1,8 +1,4 @@
-use core::{
-    fmt::{self, Write as _},
-    mem::MaybeUninit,
-    ops::Deref,
-};
+use core::{fmt, mem::MaybeUninit, ops::Deref};
 
 use crate::StaticVec;
 
@@ -24,18 +20,8 @@ impl<const N: usize> StaticString<N> {
         Self(StaticVec::new())
     }
 
-    #[must_use]
-    pub fn replace(&self, from: u8, to: &str) -> Self {
-        let mut new = Self::new();
-        for &byte in &self.0 {
-            if byte == from {
-                let _ = new.write_str(to);
-            } else {
-                new.0.push(byte);
-            }
-        }
-
-        new
+    pub fn clear(&mut self) {
+        unsafe { self.0.set_len(0) };
     }
 
     #[must_use]
