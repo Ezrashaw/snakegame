@@ -33,6 +33,10 @@ impl Instant {
         // SAFETY: The `clock_gettime` syscall is guaranteed to initalize this structure.
         Ok(unsafe { spec.assume_init() })
     }
+
+    pub fn elapsed(&self) -> Result<Duration> {
+        Ok(Self::now()? - *self)
+    }
 }
 
 impl Add<Duration> for Instant {

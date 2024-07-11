@@ -61,7 +61,7 @@ impl<T: Copy, const N: usize> StaticVec<T, N> {
     }
 
     pub unsafe fn set_len(&mut self, len: usize) -> bool {
-        if len < N {
+        if len <= N {
             self.len = len;
             true
         } else {

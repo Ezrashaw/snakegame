@@ -63,10 +63,9 @@ fn with_ctx<D: Draw>(
 
     cb(&mut ctx, object)?;
 
-    let mut nl = StaticString::<7>::new();
-    write!(nl, "\n\x1B[{x}G")?;
-
-    let psout = ctx.out.replace(b'\n', nl.as_str());
+    let psout = ctx
+        .out
+        .replace(b'\n', &oca_io::format!(len 7, "\n\x1B[{x}G"));
     out.write_str(psout.as_str())?;
     Ok(())
 }

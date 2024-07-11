@@ -7,8 +7,8 @@ mod leaderboard;
 mod snake;
 mod ui;
 
-use core::time::Duration;
-use oca_io::{timer::Instant, Result};
+use core::{fmt::Write as _, time::Duration};
+use oca_io::{file::File, format, timer::Instant, Result};
 
 use snake::game_main;
 use term::{Color, Key, KeyEvent, Popup};
@@ -20,7 +20,7 @@ const WELCOME_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/welcome.txt")
 
 fn main() {
     if let Err(err) = snake_main() {
-        println!("\x1B[1;31mBUG\x1B[0m: {err:?}");
+        writeln!(File::from_fd(2), "\x1B[1;31mBUG\x1B[0m: {err:?}").unwrap();
     }
 }
 
@@ -49,7 +49,8 @@ fn snake_main() -> Result<()> {
                 {
                     do_highscore(&mut ui, score)?
                 } else {
-                    let game_over_text = GAME_OVER_TEXT.replace("000", &format!("{score:0>3}"));
+                    let game_over_text =
+                        GAME_OVER_TEXT.replace("000", &format!(len 3, "{score:0>3}"));
                     let popup = Popup::new(&game_over_text).with_color(Color::Red);
                     let pos = ui.draw_centered(&popup, true)?;
                     if ui.term().wait_enter(Some(Duration::from_secs(10)))? == KeyEvent::Exit {
@@ -77,7 +78,7 @@ fn snake_main() -> Result<()> {
 fn do_highscore(ui: &mut GameUi, score: usize) -> Result<bool> {
     ui.term().clear_input()?;
 
-    let game_over_text = ADD_LB_TEXT.replace("000", &format!("{score:0>3}"));
+    let game_over_text = ADD_LB_TEXT.replace("000", &format!(len 3, "{score:0>3}"));
 
     let popup = Popup::new(&game_over_text).with_color(Color::Green);
     let pos = ui.draw_centered(&popup, false)?;
@@ -99,7 +100,7 @@ fn do_highscore(ui: &mut GameUi, score: usize) -> Result<bool> {
                 ui.term().draw(
                     pos.0 + 10 + cursor_pos,
                     pos.1 + 6,
-                    format!("\x1B[1m{}\x1B[0m", ch as char),
+                    format!(len 9, "\x1B[1m{}\x1B[0m", ch as char).as_str(),
                 )?;
             }
             Some(Key::Back) if cursor_pos > 0 => {

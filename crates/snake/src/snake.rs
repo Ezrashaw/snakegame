@@ -7,7 +7,8 @@
 //! The main entry point for this module is [`game_main`] which expects that the terminal UI has
 //! already been setup. This function runs the game through to completion.
 
-use std::{fs::File, io::Read, thread, time::Duration};
+use core::time::Duration;
+use std::{fs::File, io::Read as _, thread};
 
 use oca_io::{CircularBuffer, Result};
 use term::{Color, Key, Pixel};

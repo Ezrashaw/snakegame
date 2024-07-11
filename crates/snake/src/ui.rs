@@ -1,4 +1,4 @@
-use std::fmt::Write;
+use core::fmt::Write;
 
 use term::{Box, CenteredStr, Clear, Draw, DrawCtx, Rect, Terminal};
 
