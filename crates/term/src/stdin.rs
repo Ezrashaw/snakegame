@@ -1,6 +1,6 @@
 use crate::Terminal;
-use oca_io::Result;
-use std::time::{Duration, Instant};
+use core::time::Duration;
+use oca_io::{timer::TimeSpec, Result};
 
 impl Terminal {
     pub fn clear_input(&mut self) -> Result<()> {
@@ -12,9 +12,9 @@ impl Terminal {
     pub fn wait_enter(&mut self, timeout: Option<Duration>) -> Result<KeyEvent> {
         self.clear_input()?;
 
-        let end_time = timeout.map(|t| Instant::now() + t);
+        let end_time = timeout.map(|t| TimeSpec::now().unwrap() + t);
         loop {
-            if self.pollkey(end_time.map(|end| (end - Instant::now())))? {
+            if self.pollkey(end_time.map(|end| (end - TimeSpec::now().unwrap())))? {
                 break Ok(KeyEvent::Timeout);
             }
 

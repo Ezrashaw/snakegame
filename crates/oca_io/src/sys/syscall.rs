@@ -29,6 +29,8 @@ mod x86 {
     pub const SYS_ioctl: u64 = 16;
     pub const SYS_socket: u64 = 41;
     pub const SYS_connect: u64 = 42;
+    pub const SYS_exit: u64 = 60;
+    pub const SYS_clock_gettime: u64 = 228;
     pub const SYS_ppoll: u64 = 271;
     pub const SYS_timerfd_create: u64 = 283;
     pub const SYS_timerfd_settime: u64 = 286;

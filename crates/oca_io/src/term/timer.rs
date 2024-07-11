@@ -1,17 +1,34 @@
-use core::{ptr, time::Duration};
+use core::{
+    mem::MaybeUninit,
+    ops::{Add, Sub},
+    ptr,
+    time::Duration,
+};
 
 use crate::{
     file::{File, OwnedFile},
-    sys::syscall::{syscall_res, SYS_timerfd_create, SYS_timerfd_settime},
+    sys::syscall::{syscall_res, SYS_clock_gettime, SYS_timerfd_create, SYS_timerfd_settime},
     Result,
 };
 
 const CLOCK_MONOTONIC: usize = 1;
+const NSEC_PER_SEC: u64 = 1_000_000_000;
 
 #[repr(C)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct TimeSpec {
     seconds: u64,
     nanoseconds: u64,
+}
+
+impl TimeSpec {
+    pub fn now() -> Result<Self> {
+        let mut spec = MaybeUninit::<Self>::uninit();
+        syscall_res!(SYS_clock_gettime, CLOCK_MONOTONIC, ptr::from_mut(&mut spec))?;
+
+        // SAFETY: The `clock_gettime` syscall is guaranteed to initalize this structure.
+        Ok(unsafe { spec.assume_init() })
+    }
 }
 
 impl From<Duration> for TimeSpec {
@@ -20,6 +37,45 @@ impl From<Duration> for TimeSpec {
             seconds: value.as_secs(),
             nanoseconds: value.subsec_nanos().into(),
         }
+    }
+}
+
+impl Add<Duration> for TimeSpec {
+    type Output = Self;
+
+    fn add(self, rhs: Duration) -> Self::Output {
+        let mut seconds = self.seconds + rhs.as_secs();
+
+        let mut nanoseconds = u64::from(rhs.subsec_nanos()) + self.nanoseconds;
+        if nanoseconds >= NSEC_PER_SEC {
+            nanoseconds -= NSEC_PER_SEC;
+            seconds += 1;
+        }
+
+        Self {
+            seconds,
+            nanoseconds,
+        }
+    }
+}
+
+impl Sub<Self> for TimeSpec {
+    type Output = Duration;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        if rhs >= self {
+            return Duration::ZERO;
+        }
+
+        let (nsec, overflow) = self.nanoseconds.overflowing_sub(rhs.nanoseconds);
+        let nsec = if overflow {
+            NSEC_PER_SEC - (u64::MAX - nsec + 1)
+        } else {
+            nsec
+        };
+        let seconds = self.seconds - rhs.seconds;
+
+        Duration::new(seconds, nsec as u32)
     }
 }
 

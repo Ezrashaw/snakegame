@@ -1,6 +1,6 @@
 use crate::{ansi_str_len, Color, Rect};
 use core::fmt::{self, Write};
-use oca_io::Result;
+use oca_io::{Result, StaticString};
 
 pub trait Draw: Sized {
     type Update = ();
@@ -13,7 +13,7 @@ pub trait Draw: Sized {
 }
 
 pub struct DrawCtx {
-    out: String,
+    out: StaticString<2048>,
     x: u16,
     y: u16,
     w: u16,
@@ -51,7 +51,7 @@ fn with_ctx<D: Draw>(
     assert!(x >= 1 && y >= 1);
 
     let (w, h) = object.size();
-    let mut psout = String::with_capacity(1024);
+    let mut psout = StaticString::new();
     write!(psout, "\x1B[{y};{x}H")?;
     let mut ctx = DrawCtx {
         out: psout,
@@ -63,8 +63,11 @@ fn with_ctx<D: Draw>(
 
     cb(&mut ctx, object)?;
 
-    let psout = ctx.out.replace('\n', &format!("\n\x1B[{x}G"));
-    out.write_str(&psout)?;
+    let mut nl = StaticString::<7>::new();
+    write!(nl, "\n\x1B[{x}G")?;
+
+    let psout = ctx.out.replace(b'\n', nl.as_str());
+    out.write_str(psout.as_str())?;
     Ok(())
 }
 

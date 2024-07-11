@@ -1,4 +1,4 @@
-#![feature(maybe_uninit_slice)]
+#![feature(maybe_uninit_slice, maybe_uninit_write_slice)]
 #![warn(clippy::nursery, clippy::pedantic)]
 #![allow(
     clippy::missing_panics_doc,
@@ -48,5 +48,6 @@ pub mod socket {
 pub type Result<T> = core::result::Result<T, error::Error>;
 
 pub use error::Error;
-pub use high::{cbuf::CircularBuffer, svec::StaticVec};
+pub use high::{cbuf::CircularBuffer, string::StaticString, svec::StaticVec};
+pub use sys::exit;
 pub use sys::ioctl::get_termsize;

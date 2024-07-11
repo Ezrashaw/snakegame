@@ -5,6 +5,7 @@
     clippy::missing_panics_doc,
     clippy::module_name_repetitions
 )]
+#![cfg_attr(not(feature = "std"), no_std)]
 
 mod draw;
 mod stdin;
@@ -21,7 +22,7 @@ use oca_io::{
     CircularBuffer, Result,
 };
 
-use std::{fmt::Write, process, thread, time::Duration};
+use core::{fmt::Write, time::Duration};
 
 pub struct Terminal {
     file: File,
@@ -75,16 +76,23 @@ impl Terminal {
 
     pub fn exit_with_error(&mut self, msg: impl AsRef<str>) -> ! {
         self.close();
-        eprintln!("\x1B[1;31merror\x1B[0m: {}", msg.as_ref());
-        process::exit(1)
+        write!(File::from_fd(2), "\x1B[1;31merror\x1B[0m: {}", msg.as_ref()).unwrap();
+        oca_io::exit(1)
     }
 
     fn close(&mut self) {
-        // Don't clear terminal if panicking so that we can see the error message.
-        if !thread::panicking() {
-            write!(&mut self.file, "\x1B[2J\x1B[H\x1B[?1049l").unwrap();
+        #[cfg(feature = "std")]
+        {
+            // Don't clear terminal if panicking so that we can see the error message.
+            if !std::thread::panicking() {
+                write!(&mut self.file, "\x1B[2J\x1B[H\x1B[?1049l").unwrap();
+            }
+            write!(&mut self.file, "\x1B[?25h").unwrap();
         }
-        write!(&mut self.file, "\x1B[?25h").unwrap();
+        #[cfg(not(feature = "std"))]
+        {
+            write!(&mut self.file, "\x1B[2J\x1B[H\x1B[?1049l\x1B[?25h").unwrap();
+        }
         self.old_termios.sys_set().unwrap();
     }
 }

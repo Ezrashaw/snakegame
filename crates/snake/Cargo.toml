@@ -11,5 +11,6 @@ term = { path = "../term" }
 term = { path = "../term" }
 
 [features]
-default = ["errno"]
+default = ["errno", "std"]
 errno = ["oca_io/errno"]
+std = ["term/std"]

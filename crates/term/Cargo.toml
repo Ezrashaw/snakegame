@@ -5,3 +5,6 @@ edition = "2021"
 
 [dependencies]
 oca_io = { path = "../oca_io", default-features = false }
+
+[features]
+std = []
