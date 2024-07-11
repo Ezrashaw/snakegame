@@ -16,12 +16,16 @@ const NSEC_PER_SEC: u64 = 1_000_000_000;
 
 #[repr(C)]
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-pub struct TimeSpec {
+pub(crate) struct TimeSpec {
     seconds: u64,
     nanoseconds: u64,
 }
 
-impl TimeSpec {
+#[repr(transparent)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+pub struct Instant(TimeSpec);
+
+impl Instant {
     pub fn now() -> Result<Self> {
         let mut spec = MaybeUninit::<Self>::uninit();
         syscall_res!(SYS_clock_gettime, CLOCK_MONOTONIC, ptr::from_mut(&mut spec))?;
@@ -31,35 +35,40 @@ impl TimeSpec {
     }
 }
 
-impl From<Duration> for TimeSpec {
-    fn from(value: Duration) -> Self {
-        Self {
-            seconds: value.as_secs(),
-            nanoseconds: value.subsec_nanos().into(),
-        }
-    }
-}
-
-impl Add<Duration> for TimeSpec {
+impl Add<Duration> for Instant {
     type Output = Self;
 
     fn add(self, rhs: Duration) -> Self::Output {
-        let mut seconds = self.seconds + rhs.as_secs();
+        let mut seconds = self.0.seconds + rhs.as_secs();
 
-        let mut nanoseconds = u64::from(rhs.subsec_nanos()) + self.nanoseconds;
+        let mut nanoseconds = u64::from(rhs.subsec_nanos()) + self.0.nanoseconds;
         if nanoseconds >= NSEC_PER_SEC {
             nanoseconds -= NSEC_PER_SEC;
             seconds += 1;
         }
 
-        Self {
+        Self(TimeSpec {
             seconds,
             nanoseconds,
-        }
+        })
     }
 }
 
-impl Sub<Self> for TimeSpec {
+impl Sub<Duration> for Instant {
+    type Output = Self;
+
+    fn sub(self, rhs: Duration) -> Self::Output {
+        let dur = self
+            - Self(TimeSpec {
+                seconds: rhs.as_secs(),
+                nanoseconds: rhs.subsec_nanos().into(),
+            });
+
+        Self(dur.into())
+    }
+}
+
+impl Sub<Self> for Instant {
     type Output = Duration;
 
     fn sub(self, rhs: Self) -> Self::Output {
@@ -67,15 +76,24 @@ impl Sub<Self> for TimeSpec {
             return Duration::ZERO;
         }
 
-        let (nsec, overflow) = self.nanoseconds.overflowing_sub(rhs.nanoseconds);
+        let (nsec, overflow) = self.0.nanoseconds.overflowing_sub(rhs.0.nanoseconds);
         let nsec = if overflow {
             NSEC_PER_SEC - (u64::MAX - nsec + 1)
         } else {
             nsec
         };
-        let seconds = self.seconds - rhs.seconds;
+        let seconds = self.0.seconds - rhs.0.seconds;
 
         Duration::new(seconds, nsec as u32)
+    }
+}
+
+impl From<Duration> for TimeSpec {
+    fn from(value: Duration) -> Self {
+        Self {
+            seconds: value.as_secs(),
+            nanoseconds: value.subsec_nanos().into(),
+        }
     }
 }
 

@@ -10,7 +10,6 @@ use std::{
 };
 
 use oca_io::{
-    file::File,
     network::{read_packet, write_packet, LeaderboardEntry},
     poll::PollFd,
     Result,

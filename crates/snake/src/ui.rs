@@ -1,9 +1,9 @@
-use std::{fmt::Write, time::Instant};
+use std::fmt::Write;
 
 use term::{Box, CenteredStr, Clear, Draw, DrawCtx, Rect, Terminal};
 
 use crate::leaderboard::{Leaderboard, LeaderboardUpdate};
-use oca_io::Result;
+use oca_io::{timer::Instant, Result};
 
 const CREDITS_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/credits.txt"));
 const STATS_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/stats.txt"));
@@ -33,7 +33,7 @@ impl GameUi {
 
         let (cx, cy) = draw_static(&mut term)?;
 
-        let stats = Stats(Instant::now());
+        let stats = Stats(Instant::now()?);
         term.draw(cx - 16, cy + 2, &stats)?;
 
         let lb = if let Some(leaderboard) = Leaderboard::init() {
@@ -93,7 +93,7 @@ impl GameUi {
     }
 
     pub fn reset_stats(&mut self) -> Result<()> {
-        self.stats.0 = Instant::now();
+        self.stats.0 = Instant::now()?;
         self.update_stats(StatsUpdate::Time)?;
         self.update_stats(StatsUpdate::Score(0))
     }
@@ -207,7 +207,7 @@ impl Draw for &Stats {
                 write!(ctx.o(), "{score:0>3}")?;
             }
             StatsUpdate::Time => {
-                let t = self.0.elapsed();
+                let t = Instant::now()? - self.0;
                 let mins = t.as_secs() / 60;
                 let secs = t.as_secs() % 60;
 

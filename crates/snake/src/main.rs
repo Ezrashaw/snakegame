@@ -7,8 +7,8 @@ mod leaderboard;
 mod snake;
 mod ui;
 
-use oca_io::Result;
-use std::time::{Duration, Instant};
+use core::time::Duration;
+use oca_io::{timer::Instant, Result};
 
 use snake::game_main;
 use term::{Color, Key, KeyEvent, Popup};
@@ -82,14 +82,14 @@ fn do_highscore(ui: &mut GameUi, score: usize) -> Result<bool> {
     let popup = Popup::new(&game_over_text).with_color(Color::Green);
     let pos = ui.draw_centered(&popup, false)?;
     let mut colored_left = true;
-    let mut next_update = Instant::now() + Duration::from_millis(500);
+    let mut next_update = Instant::now()? + Duration::from_millis(500);
     let mut cursor_pos = 0;
     let mut input = [0u8; 3];
 
     let ret = loop {
         match ui
             .term()
-            .get_key_timeout(Some(next_update.duration_since(Instant::now())), |k| {
+            .get_key_timeout(Some(next_update - Instant::now()?), |k| {
                 matches!(k, Key::Char(_) | Key::Back | Key::Enter | Key::Esc)
             })? {
             Some(Key::Char(ch)) if cursor_pos < 3 => {
@@ -116,7 +116,8 @@ fn do_highscore(ui: &mut GameUi, score: usize) -> Result<bool> {
             _ => (),
         }
 
-        if Instant::now() > next_update {
+        let now = Instant::now()?;
+        if now > next_update {
             let str = if colored_left {
                 "\x1B[32mGREAT \x1B[1mSCORE\x1B[0m"
             } else {
@@ -124,7 +125,7 @@ fn do_highscore(ui: &mut GameUi, score: usize) -> Result<bool> {
             };
             ui.term().draw(pos.0 + 12, pos.1 + 1, str)?;
             colored_left = !colored_left;
-            next_update = Instant::now() + Duration::from_millis(500);
+            next_update = now + Duration::from_millis(500);
         }
     };
 
