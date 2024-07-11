@@ -38,6 +38,14 @@ impl<T: Copy, const N: usize> StaticVec<T, N> {
         }
     }
 
+    pub fn push_slice(&mut self, s: &[T]) {
+        let remaining = self.remaining_mut();
+        assert!(s.len() <= remaining.len());
+
+        MaybeUninit::copy_from_slice(&mut remaining[0..s.len()], s);
+        unsafe { self.set_len(self.len() + s.len()) };
+    }
+
     pub fn as_slice(&self) -> &[T] {
         // FIX: write a safety comment
         unsafe { MaybeUninit::slice_assume_init_ref(&self.buf[0..self.len]) }

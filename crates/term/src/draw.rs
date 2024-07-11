@@ -1,6 +1,9 @@
 use crate::{ansi_str_len, Color, Rect};
-use core::fmt::{self, Write};
-use oca_io::Result;
+use core::{
+    fmt::{self, Write},
+    iter,
+};
+use oca_io::{Result, StaticString};
 
 #[macro_export]
 macro_rules! drawln {
@@ -178,15 +181,16 @@ impl<T: AsRef<str>> Draw for CenteredStr<T> {
     }
 }
 
-pub struct Box {
+pub struct Box<'a> {
     w: u16,
     h: u16,
-    sep: Option<i16>,
+    hseps: Option<&'a [i16]>,
+    vseps: Option<&'a [i16]>,
     corners: Option<[char; 4]>,
-    clear: bool,
+    fastdraw: bool,
 }
 
-impl Box {
+impl<'a> Box<'a> {
     const DEFAULT_CORNERS: [char; 4] = ['┌', '┐', '└', '┘'];
 
     #[must_use]
@@ -194,10 +198,16 @@ impl Box {
         Self {
             w,
             h,
-            sep: None,
+            hseps: None,
+            vseps: None,
             corners: None,
-            clear: false,
+            fastdraw: false,
         }
+    }
+
+    #[must_use]
+    pub const fn new_tuple(size: (u16, u16)) -> Self {
+        Self::new(size.0, size.1)
     }
 
     /// Adds a seperator line into the [`Box`].
@@ -210,13 +220,41 @@ impl Box {
     /// - If `sep == 0`, then this this function panics
     /// - If the absolute value of `sep` is more than the height of the box, then this function
     ///   panics.
+    // FIX: these docs are out-of-date.
     #[must_use]
-    pub const fn with_separator(mut self, sep: i16) -> Self {
-        assert!(self.sep.is_none());
-        assert!(sep != 0);
-        assert!(sep.unsigned_abs() < self.h);
+    pub fn with_horz_lines(mut self, seps: &'a [i16]) -> Self {
+        assert!(self.hseps.is_none());
+        assert!(!self.fastdraw);
+        for &sep in seps {
+            assert!(sep != 0);
+            assert!(sep.unsigned_abs() < self.h);
+        }
 
-        self.sep = Some(sep);
+        self.hseps = Some(seps);
+        self
+    }
+
+    /// Adds a seperator line into the [`Box`].
+    ///
+    /// Value represents the number of lines before the seperator. A negative number positions the
+    /// separator from the bottom, rather than the top.
+    ///
+    /// # Panics
+    ///
+    /// - If `sep == 0`, then this this function panics
+    /// - If the absolute value of `sep` is more than the height of the box, then this function
+    ///   panics.
+    // FIX: these docs are out-of-date.
+    #[must_use]
+    pub fn with_vert_lines(mut self, seps: &'a [i16]) -> Self {
+        assert!(self.vseps.is_none());
+        assert!(!self.fastdraw);
+        for &sep in seps {
+            assert!(sep != 0);
+            assert!(sep.unsigned_abs() < self.h);
+        }
+
+        self.vseps = Some(seps);
         self
     }
 
@@ -228,14 +266,14 @@ impl Box {
     }
 
     #[must_use]
-    pub const fn with_clear(mut self) -> Self {
-        assert!(!self.clear);
-        self.clear = true;
+    pub const fn with_fastdraw(mut self) -> Self {
+        assert!(!self.fastdraw);
+        self.fastdraw = true;
         self
     }
 }
 
-impl Draw for Box {
+impl Draw for Box<'_> {
     fn size(&self) -> (u16, u16) {
         (self.w + 2, self.h + 2)
     }
@@ -243,21 +281,52 @@ impl Draw for Box {
     fn draw<W: fmt::Write>(self, ctx: &mut DrawCtx<W>) -> Result<()> {
         let (w, h) = (self.w as usize, self.h);
         let corners = self.corners.unwrap_or(Self::DEFAULT_CORNERS);
-        let sep = self
-            .sep
-            .map(|s| (h.strict_add_signed(s) - u16::from(s < 0)) % h);
 
-        drawln!(ctx, "{}{:─<w$}{}", corners[0], "", corners[1])?;
-        for i in 0..h {
-            if sep.is_some_and(|sep| i == sep) {
-                drawln!(ctx, "├{:─<w$}┤", "")?;
-            } else if self.clear {
-                drawln!(ctx, "│{:w$}│", "")?;
+        let gen_line = |corners: (char, char), chars: (char, char)| {
+            let mut s = StaticString::<256>::new();
+            s.push(corners.0);
+            if let Some(seps) = self.vseps {
+                'outer: for i in 0..w {
+                    for &sep in seps {
+                        let sep = (w.strict_add_signed(sep.into()) - usize::from(sep < 0)) % w;
+                        if sep == i {
+                            s.push(chars.1);
+                            continue 'outer;
+                        }
+                    }
+                    s.push(chars.0);
+                }
             } else {
+                s.extend(iter::repeat_n(chars.0, w));
+            };
+
+            s.push(corners.1);
+            s
+        };
+
+        drawln!(ctx, "{}", gen_line((corners[0], corners[1]), ('─', '┬')))?;
+
+        let empty = gen_line(('│', '│'), (' ', '│'));
+        let horizontal = gen_line(('├', '┤'), ('─', '┼'));
+
+        'screen: for i in 0..h {
+            if let Some(hseps) = self.hseps {
+                for &hsep in hseps {
+                    let hsep = (h.strict_add_signed(hsep) - u16::from(hsep < 0)) % h;
+                    if hsep == i {
+                        drawln!(ctx, "{horizontal}")?;
+                        continue 'screen;
+                    }
+                }
+            }
+            if self.fastdraw {
                 drawln!(ctx, "│\x1B[{w}C│")?;
+            } else {
+                drawln!(ctx, "{empty}")?;
             }
         }
-        draw!(ctx, "{}{:─<w$}{}", corners[2], "", corners[3])?;
+
+        drawln!(ctx, "{}", gen_line((corners[2], corners[3]), ('─', '┴')))?;
 
         Ok(())
     }
@@ -326,7 +395,7 @@ impl Draw for &Popup<'_> {
         if let Some(color) = self.color {
             draw!(ctx, "\x1B[1;{}m", Color::to_str(&color.fg_bright()))?;
         }
-        ctx.draw(0, 0, Box::new(w - 2, h - 2).with_clear())?;
+        ctx.draw(0, 0, Box::new(w - 2, h - 2))?;
         ctx.draw(2, 1, CenteredStr(self.text))
     }
 }

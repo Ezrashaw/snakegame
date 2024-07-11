@@ -1,4 +1,4 @@
-use core::{fmt, mem::MaybeUninit, ops::Deref};
+use core::{fmt, ops::Deref};
 
 use crate::StaticVec;
 
@@ -22,6 +22,22 @@ impl<const N: usize> StaticString<N> {
 
     pub fn clear(&mut self) {
         unsafe { self.0.set_len(0) };
+    }
+
+    // modified from Rust source
+    pub fn push(&mut self, ch: char) {
+        match ch.len_utf8() {
+            1 => {
+                self.0.push(ch as u8);
+            }
+            _ => self.0.push_slice(ch.encode_utf8(&mut [0; 4]).as_bytes()),
+        }
+    }
+
+    pub fn extend(&mut self, iter: impl Iterator<Item = char>) {
+        for ch in iter {
+            self.push(ch);
+        }
     }
 
     #[must_use]
@@ -48,14 +64,21 @@ impl<const N: usize> Deref for StaticString<N> {
     }
 }
 
+impl<const N: usize> fmt::Display for StaticString<N> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl<const N: usize> fmt::Debug for StaticString<N> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self.as_str())
+    }
+}
+
 impl<const N: usize> fmt::Write for StaticString<N> {
     fn write_str(&mut self, s: &str) -> fmt::Result {
-        let remaining = self.0.remaining_mut();
-        assert!(s.len() <= remaining.len());
-
-        MaybeUninit::copy_from_slice(&mut remaining[0..s.len()], s.as_bytes());
-        unsafe { self.0.set_len(self.0.len() + s.len()) };
-
+        self.0.push_slice(s.as_bytes());
         Ok(())
     }
 }

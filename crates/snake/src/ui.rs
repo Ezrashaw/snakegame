@@ -158,7 +158,7 @@ fn draw_static(term: &mut Terminal) -> Result<(u16, u16)> {
     // given back to calculate the position of the help text, and the leaderboard + stats panel
     // but the latter are in other places.
     let (cx, cy) = term.draw_centered_hoff(
-        Box::new(CANVAS_W * 2, CANVAS_H + 3).with_separator(-2),
+        Box::new(CANVAS_W * 2, CANVAS_H + 3).with_horz_lines(&[-2]),
         Rect::new(1, 1, w, h),
         true,
     )?;
@@ -197,7 +197,7 @@ impl Draw for &Stats {
             0,
             0,
             Box::new(15, 4)
-                .with_separator(1)
+                .with_horz_lines(&[1])
                 .with_corners(['┌', '┤', '└', '┤']),
         )?;
         ctx.draw(2, 1, STATS_TEXT)
