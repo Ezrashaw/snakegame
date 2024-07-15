@@ -1,5 +1,6 @@
 use crate::{Draw, Terminal};
-use oca_io::Result;
+use core::fmt::Write as _;
+use oca_io::{file::File, Result};
 
 impl Terminal {
     pub fn draw(&mut self, x: u16, y: u16, object: impl Draw) -> Result<()> {
@@ -23,11 +24,63 @@ impl Terminal {
         crate::draw_centered(&mut self.out_buf, object, rect, hoff)
     }
 
+    pub fn set_cursor(&mut self, cursor: Option<(u16, u16)>) -> Result<()> {
+        match (self.cursor, cursor) {
+            (None, None) => panic!("didn't actually change cursor"),
+            (None, Some(_)) => Self::set_cursor_vis(&mut self.file, true),
+            (Some(_), None) => Self::set_cursor_vis(&mut self.file, false),
+            (Some(_), Some(_)) => Ok(()),
+        }?;
+
+        self.cursor = cursor;
+        Ok(())
+    }
+
+    pub fn move_cursor(&mut self, dir: Direction) -> Result<()> {
+        let cursor = self.cursor.as_mut().unwrap();
+        match dir {
+            Direction::Up => {
+                write!(self.file, "\x1B[1A")?;
+                cursor.1 -= 1;
+            }
+            Direction::Down => {
+                write!(self.file, "\x1B[1B")?;
+                cursor.1 += 1;
+            }
+            Direction::Right => {
+                write!(self.file, "\x1B[1C")?;
+                cursor.0 += 1;
+            }
+            Direction::Left => {
+                write!(self.file, "\x1B[1D")?;
+                cursor.0 -= 1;
+            }
+        }
+
+        Ok(())
+    }
+
     pub fn flush(&mut self) -> Result<()> {
+        if let Some(cursor) = self.cursor {
+            write!(self.out_buf, "\x1B[{};{}H", cursor.1, cursor.0)?;
+        }
         self.file.write(self.out_buf.as_bytes())?;
         self.out_buf.clear();
         Ok(())
     }
+
+    pub(crate) fn set_cursor_vis(file: &mut File, visible: bool) -> Result<()> {
+        write!(file, "\x1B[?25{}", if visible { 'h' } else { 'l' })?;
+        Ok(())
+    }
+}
+
+#[derive(PartialEq, Eq, Clone, Copy)]
+pub enum Direction {
+    Up,
+    Down,
+    Right,
+    Left,
 }
 
 #[derive(Debug, Clone, Copy)]

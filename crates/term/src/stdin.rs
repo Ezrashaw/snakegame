@@ -10,6 +10,14 @@ impl Terminal {
     }
 
     pub fn wait_enter(&mut self, timeout: Option<Duration>) -> Result<KeyEvent> {
+        self.wait_key(|k| k == Key::Enter, timeout)
+    }
+
+    pub fn wait_key(
+        &mut self,
+        want_key: impl Fn(Key) -> bool,
+        timeout: Option<Duration>,
+    ) -> Result<KeyEvent> {
         self.clear_input()?;
 
         let end_time = timeout.map(|t| Instant::now().unwrap() + t);
@@ -18,9 +26,13 @@ impl Terminal {
                 break Ok(KeyEvent::Timeout);
             }
 
-            if self.kbd_buf.pop() == Some(Key::Enter) {
-                return Ok(KeyEvent::Key(Key::Enter));
-            };
+            loop {
+                match self.kbd_buf.pop() {
+                    Some(k) if want_key(k) => return Ok(KeyEvent::Key(k)),
+                    Some(_) => (),
+                    None => break,
+                }
+            }
         }
     }
 

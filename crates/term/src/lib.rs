@@ -13,7 +13,7 @@ mod stdout;
 
 pub use draw::{draw, draw_centered, update, Box, CenteredStr, Clear, Draw, DrawCtx, Pixel, Popup};
 pub use stdin::{Key, KeyEvent};
-pub use stdout::{ansi_str_len, Color, Rect};
+pub use stdout::{ansi_str_len, Color, Direction, Rect};
 
 use oca_io::{
     file::File,
@@ -31,6 +31,7 @@ pub struct Terminal {
     signalfd: SignalFile,
 
     old_termios: Termios,
+    cursor: Option<(u16, u16)>,
     term_size: (u16, u16),
 }
 
@@ -43,7 +44,8 @@ impl Terminal {
         })?;
 
         let mut file = File::stdin().unwrap();
-        write!(file, "\x1B[?1049h\x1B[?25l\x1B[2J\x1B[H")?;
+        write!(file, "\x1B[?1049h\x1B[2J\x1B[H")?;
+        Self::set_cursor_vis(&mut file, false)?;
 
         Ok(Self {
             file,
@@ -55,6 +57,7 @@ impl Terminal {
                 Signal::WindowChange,
             ])?,
             old_termios,
+            cursor: None,
             term_size: oca_io::get_termsize()?,
         })
     }
@@ -89,12 +92,13 @@ impl Terminal {
             if !std::thread::panicking() {
                 write!(&mut self.file, "\x1B[2J\x1B[H\x1B[?1049l").unwrap();
             }
-            write!(&mut self.file, "\x1B[?25h").unwrap();
         }
         #[cfg(not(feature = "std"))]
         {
-            write!(&mut self.file, "\x1B[2J\x1B[H\x1B[?1049l\x1B[?25h").unwrap();
+            write!(&mut self.file, "\x1B[2J\x1B[H\x1B[?1049l").unwrap();
         }
+
+        Self::set_cursor_vis(&mut self.file, true).unwrap();
         self.old_termios.sys_set().unwrap();
     }
 }
