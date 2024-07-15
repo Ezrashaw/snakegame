@@ -78,7 +78,9 @@ impl Terminal {
                     None => Key::Esc,
                     _ => Key::Unknown,
                 },
-                ch @ (b'A'..=b'Z' | b'a'..=b'z') => Key::Char(ch.to_ascii_lowercase()),
+                ch @ (b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9') => {
+                    Key::Char(ch.to_ascii_lowercase())
+                }
                 _ => {
                     // println!("\x1B[H{x}\t\t");
                     Key::Unknown
