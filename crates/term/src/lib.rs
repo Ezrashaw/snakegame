@@ -1,4 +1,4 @@
-#![feature(strict_overflow_ops, associated_type_defaults, iter_repeat_n)]
+#![feature(strict_overflow_ops, associated_type_defaults)]
 #![warn(clippy::pedantic, clippy::nursery)]
 #![allow(
     clippy::missing_errors_doc,

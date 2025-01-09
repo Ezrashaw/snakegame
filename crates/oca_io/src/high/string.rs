@@ -1,6 +1,6 @@
 use core::{fmt, ops::Deref};
 
-use crate::StaticVec;
+use super::svec::StaticVec;
 
 #[macro_export]
 macro_rules! format {
@@ -85,9 +85,9 @@ impl<const N: usize> fmt::Write for StaticString<N> {
 
 #[cfg(test)]
 mod tests {
-    use core::fmt::Write;
+    use core::fmt::Write as _;
 
-    use crate::StaticString;
+    use super::StaticString;
 
     #[test]
     fn test1() {
