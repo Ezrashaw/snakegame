@@ -11,7 +11,7 @@ use core::time::Duration;
 use std::{fs::File, io::Read as _, thread};
 
 use oca_io::{CircularBuffer, Result};
-use term::{Color, Key, Pixel};
+use oca_term::{Color, Key, Pixel};
 
 use crate::ui::{Coord, GameUi, CANVAS_H, CANVAS_W};
 

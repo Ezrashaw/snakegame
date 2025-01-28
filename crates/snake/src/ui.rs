@@ -1,6 +1,6 @@
 use core::fmt;
 
-use term::{draw, Box, CenteredStr, Clear, Draw, DrawCtx, Rect, Terminal};
+use oca_term::{draw, Box, CenteredStr, Clear, Draw, DrawCtx, Rect, Terminal};
 
 use crate::leaderboard::{Leaderboard, LeaderboardUpdate};
 use oca_io::{timer::Instant, Result};
@@ -147,7 +147,7 @@ fn draw_static(term: &mut Terminal) -> Result<(u16, u16)> {
     // for debug mode.
     #[cfg(debug_assertions)]
     {
-        let git_width = term::ansi_str_len(GIT_TEXT.split_once('\n').unwrap().0);
+        let git_width = oca_term::ansi_str_len(GIT_TEXT.split_once('\n').unwrap().0);
         term.draw(w - git_width, h - 1, GIT_TEXT)?;
     }
 

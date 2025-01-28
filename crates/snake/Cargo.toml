@@ -5,12 +5,12 @@ edition = "2021"
 
 [dependencies]
 oca_io = { path = "../oca_io", default-features = false }
-term = { path = "../term" }
+oca_term = { path = "../oca_term" }
 
 [build-dependencies]
-term = { path = "../term" }
+oca_term = { path = "../oca_term" }
 
 [features]
 default = ["errno", "std"]
 errno = ["oca_io/errno"]
-std = ["term/std"]
+std = ["oca_term/std"]

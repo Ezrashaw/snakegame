@@ -1,5 +1,5 @@
+use oca_term::Color;
 use std::{env, fs, path::Path, process::Command};
-use term::Color;
 
 fn main() {
     let cmd_output = Command::new("git")

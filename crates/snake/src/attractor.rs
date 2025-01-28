@@ -1,7 +1,7 @@
 use std::thread;
 
 use oca_io::{CircularBuffer, Result};
-use term::{Color, Key, Pixel};
+use oca_term::{Color, Key, Pixel};
 
 use crate::{
     snake::{self, Direction},

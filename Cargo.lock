@@ -93,6 +93,13 @@ name = "oca_io"
 version = "0.1.0"
 
 [[package]]
+name = "oca_term"
+version = "0.1.0"
+dependencies = [
+ "oca_io",
+]
+
+[[package]]
 name = "proc-macro2"
 version = "1.0.85"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -200,7 +207,7 @@ name = "snake"
 version = "0.1.0"
 dependencies = [
  "oca_io",
- "term",
+ "oca_term",
 ]
 
 [[package]]
@@ -219,13 +226,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
-]
-
-[[package]]
-name = "term"
-version = "0.1.0"
-dependencies = [
- "oca_io",
 ]
 
 [[package]]

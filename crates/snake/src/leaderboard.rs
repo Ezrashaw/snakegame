@@ -5,7 +5,7 @@ use std::env;
 
 use oca_io::Result;
 use oca_io::{network::LeaderboardEntries, socket::Socket};
-use term::{Box, Draw, DrawCtx};
+use oca_term::{Box, Draw, DrawCtx};
 
 pub struct Leaderboard {
     pub entries: LeaderboardEntries,
@@ -133,7 +133,7 @@ impl Draw for &mut Leaderboard {
         (15, 14)
     }
 
-    fn draw<W: fmt::Write>(self, ctx: &mut term::DrawCtx<W>) -> Result<()> {
+    fn draw<W: fmt::Write>(self, ctx: &mut oca_term::DrawCtx<W>) -> Result<()> {
         // TODO: this could be fastdraw'ed
         ctx.draw(0, 0, Box::new(13, 12).with_horz_lines(&[1]))?;
         ctx.draw(2, 1, "\x1B[1;34mLEADERBOARD\x1B[0m")?;

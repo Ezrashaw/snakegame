@@ -10,8 +10,8 @@ mod ui;
 use core::{fmt::Write as _, time::Duration};
 use oca_io::{file::File, format, timer::Instant, Result};
 
+use oca_term::{Color, Key, KeyEvent, Popup};
 use snake::game_main;
-use term::{Color, Key, KeyEvent, Popup};
 use ui::GameUi;
 
 const GAME_OVER_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/game-over.txt"));
