@@ -16,6 +16,7 @@ const NSEC_PER_SEC: u64 = 1_000_000_000;
 
 #[repr(C)]
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+#[allow(clippy::redundant_pub_crate)]
 pub(crate) struct TimeSpec {
     seconds: u64,
     nanoseconds: u64,
@@ -88,6 +89,7 @@ impl Sub<Self> for Instant {
         };
         let seconds = self.0.seconds - rhs.0.seconds;
 
+        #[allow(clippy::cast_possible_truncation)]
         Duration::new(seconds, nsec as u32)
     }
 }
@@ -124,10 +126,10 @@ impl TimerFile {
         let fd = syscall_res!(
             SYS_timerfd_create,
             CLOCK_MONOTONIC,
-            0 // flags
+            0x0 // flags
         )?;
 
-        Ok(Self(unsafe { OwnedFile::from_fd(fd as i32) }))
+        Ok(Self(unsafe { OwnedFile::from_fd(fd.try_into()?) }))
     }
 
     pub fn set(&mut self, spec: &TimerSpec) -> Result<()> {

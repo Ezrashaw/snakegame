@@ -10,7 +10,7 @@ use super::{
     syscall::{syscall_res, SYS_connect, SYS_socket},
 };
 
-const AF_INET: u64 = 2;
+const AF_INET: u16 = 2;
 const SOCK_STREAM: u64 = 1;
 
 #[repr(C)]
@@ -31,7 +31,7 @@ impl Socket {
         let socket = syscall_res!(SYS_socket, AF_INET, SOCK_STREAM, 0)?;
 
         let addr = SysSockAddr {
-            family: AF_INET as u16,
+            family: AF_INET,
             port: addr.port().to_be(),
             addr: addr.ip().to_bits().to_be(),
             _zero: [0; 8],
@@ -44,7 +44,7 @@ impl Socket {
         )?;
 
         Ok(Self {
-            file: unsafe { OwnedFile::from_fd(socket as i32) },
+            file: unsafe { OwnedFile::from_fd(socket.try_into()?) },
         })
     }
 }

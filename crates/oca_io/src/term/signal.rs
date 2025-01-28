@@ -45,7 +45,7 @@ impl SignalFile {
             0x0
         )?;
 
-        Ok(Self(unsafe { OwnedFile::from_fd(signalfd as i32) }))
+        Ok(Self(unsafe { OwnedFile::from_fd(signalfd.try_into()?) }))
     }
 
     pub fn get_signal(&mut self) -> Result<Signal> {
@@ -60,6 +60,7 @@ impl SignalFile {
     }
 
     #[must_use]
+    #[allow(clippy::missing_const_for_fn)] // Clippy bug; this function can't be constant
     pub fn as_file(&self) -> &File {
         &self.0
     }

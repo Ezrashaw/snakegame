@@ -3,11 +3,9 @@
 #![allow(
     clippy::missing_panics_doc,
     clippy::missing_errors_doc,
-    clippy::module_name_repetitions,
-    clippy::cast_sign_loss,
-    clippy::cast_possible_truncation
+    clippy::module_name_repetitions
 )]
-#![no_std]
+#![cfg_attr(not(doc), no_std)]
 
 #[cfg(not(target_os = "linux"))]
 compile_error!("This program only runs on Linux");

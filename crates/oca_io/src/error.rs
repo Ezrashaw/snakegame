@@ -1,9 +1,10 @@
-use core::fmt;
+use core::{fmt, num};
 
 pub enum Error {
     Syscall(usize),
     Fmt,
     BufferFull,
+    CastError,
 }
 
 impl Error {
@@ -25,12 +26,19 @@ impl From<fmt::Error> for Error {
     }
 }
 
+impl From<num::TryFromIntError> for Error {
+    fn from(_: num::TryFromIntError) -> Self {
+        Self::CastError
+    }
+}
+
 impl fmt::Debug for Error {
     #[allow(clippy::too_many_lines)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Fmt => write!(f, "Error::Fmt"),
             Self::BufferFull => write!(f, "Error::BufferFull"),
+            Self::CastError => write!(f, "Error::CastError"),
 
             #[cfg(not(feature = "errno"))]
             Self::Syscall(errno) => write!(f, "Error::Syscall({errno})"),

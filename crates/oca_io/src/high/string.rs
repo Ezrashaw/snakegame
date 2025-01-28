@@ -24,14 +24,14 @@ impl<const N: usize> StaticString<N> {
         unsafe { self.0.set_len(0) };
     }
 
-    // modified from Rust source
+    /// Push a single character onto the [`StaticString`].
+    ///
+    /// This function is identical to [`String::push`] and works with multibyte UTF-8 characters.
     pub fn push(&mut self, ch: char) {
         match ch.len_utf8() {
-            1 => {
-                self.0.push(ch as u8);
-            }
+            1 => self.0.push(ch as u8),
             _ => self.0.push_slice(ch.encode_utf8(&mut [0; 4]).as_bytes()),
-        }
+        };
     }
 
     pub fn extend(&mut self, iter: impl Iterator<Item = char>) {
@@ -92,7 +92,7 @@ mod tests {
     #[test]
     fn test1() {
         let mut sstring = StaticString::<5>::new();
-        assert!(sstring.len() == 0);
+        assert!(sstring.is_empty());
         assert!(sstring.as_svec_mut().remaining_mut().len() == 5);
 
         sstring.write_str("1234").unwrap();

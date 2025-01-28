@@ -14,6 +14,11 @@ use crate::{high::svec::StaticVec, Error, Result};
 pub struct OwnedFile(File);
 
 impl OwnedFile {
+    /// Wrap a raw file descriptor in the [`OwnedFile`] abstraction.
+    ///
+    /// # SAFETY
+    ///
+    /// The file descriptor must be open and properly owned.
     #[must_use]
     pub const unsafe fn from_fd(fd: i32) -> Self {
         Self(File(fd))
