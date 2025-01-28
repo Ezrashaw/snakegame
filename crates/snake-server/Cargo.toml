@@ -1,7 +1,7 @@
 [package]
 name = "snake-server"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 oca_io = { path = "../oca_io", default-features = false }
