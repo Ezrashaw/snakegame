@@ -1,0 +1,13 @@
+[package]
+name = "sudoku"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+oca_io = { path = "../oca_io", default-features = false }
+oca_term = { path = "../oca_term" }
+
+[features]
+default = ["errno", "std"]
+errno = ["oca_io/errno"]
+std = ["oca_term/std"]
