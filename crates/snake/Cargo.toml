@@ -8,7 +8,7 @@ oca_io = { path = "../oca_io", default-features = false }
 oca_term = { path = "../oca_term" }
 
 [build-dependencies]
-oca_term = { path = "../oca_term" }
+pansi = { path = "../pansi" }
 
 [features]
 default = ["errno", "std"]

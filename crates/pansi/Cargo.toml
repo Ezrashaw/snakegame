@@ -1,0 +1,7 @@
+[package]
+name = "pansi"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+oca_term = { path = "../oca_term" }

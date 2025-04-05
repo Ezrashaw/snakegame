@@ -100,6 +100,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "pansi"
+version = "0.1.0"
+dependencies = [
+ "oca_term",
+]
+
+[[package]]
 name = "proc-macro2"
 version = "1.0.85"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -208,6 +215,7 @@ version = "0.1.0"
 dependencies = [
  "oca_io",
  "oca_term",
+ "pansi",
 ]
 
 [[package]]
@@ -234,6 +242,7 @@ version = "0.1.0"
 dependencies = [
  "oca_io",
  "oca_term",
+ "pansi",
 ]
 
 [[package]]
