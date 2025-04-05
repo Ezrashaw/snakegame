@@ -1,0 +1,4 @@
+{BRED} ▄▄▄▄▄
+{BRED}   █   {RESET;RED}█▀▀ ▀▀█▀▀ █▀▀█ ▀▀█▀▀ █▀▀▀ 
+{BRED}   █   {RESET;RED}█▀    █   ██▀▀   █   ▀▀▀█
+{BRED}  ▄█▄  {RESET;RED}▀▀▀   ▀   ▀ ▀▀ ▀▀▀▀▀ ▀▀▀▀ 

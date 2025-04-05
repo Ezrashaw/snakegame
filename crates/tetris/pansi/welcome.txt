@@ -1,0 +1,3 @@
+Welcome to {RED;BOLD}TETRIS{RESET}
+
+{DIM;WHITE}Push {BOLD}<ENTER>{NBOLD;DIM} to play!

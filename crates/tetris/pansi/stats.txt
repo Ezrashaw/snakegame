@@ -1,0 +1,4 @@
+    {BOLD;YELLOW}STATS{RESET}
+
+{BOLD}Score {DIM}---{NDIM} 000
+{BOLD}Time {DIM}--{NDIM} 00:00
