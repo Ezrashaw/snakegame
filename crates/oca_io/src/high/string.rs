@@ -20,7 +20,7 @@ impl<const N: usize> StaticString<N> {
         Self(StaticVec::new())
     }
 
-    pub fn clear(&mut self) {
+    pub const fn clear(&mut self) {
         unsafe { self.0.set_len(0) };
     }
 
@@ -51,7 +51,7 @@ impl<const N: usize> StaticString<N> {
     }
 
     #[must_use]
-    pub fn as_svec_mut(&mut self) -> &mut StaticVec<u8, N> {
+    pub const fn as_svec_mut(&mut self) -> &mut StaticVec<u8, N> {
         &mut self.0
     }
 }

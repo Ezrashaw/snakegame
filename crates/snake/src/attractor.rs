@@ -65,7 +65,7 @@ pub fn run(ui: &mut GameUi) -> Result<bool> {
     }
 }
 
-pub fn get_dir(move_segment: u8, head: &mut Coord) -> Option<(Direction, u8)> {
+pub const fn get_dir(move_segment: u8, head: &mut Coord) -> Option<(Direction, u8)> {
     #[allow(clippy::match_same_arms)]
     Some(match move_segment {
         0 => (Direction::Up, 4),

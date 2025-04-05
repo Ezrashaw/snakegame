@@ -13,7 +13,7 @@ use std::{fs::File, io::Read as _, thread};
 use oca_io::{CircularBuffer, Result};
 use oca_term::{Color, Key, Pixel};
 
-use crate::ui::{Coord, GameUi, CANVAS_H, CANVAS_W};
+use crate::ui::{CANVAS_H, CANVAS_W, Coord, GameUi};
 
 /// Defines the time between each movement of the snake. Over the couse of the game, this value
 /// will decrease. During this time, if a key is pressed, then we process the key event, and wait
@@ -91,14 +91,13 @@ pub fn game_main(ui: &mut GameUi) -> Result<Option<usize>> {
         thread::sleep(step_time);
 
         // Check for keys, but don't wait for anything (we've already waited).
-        // TODO: instead of this if-let block binding `key`, we want it to bind `direction` so we
-        // don't need the gross unwrap.
-        if let Some(key) = ui
+        if let Some(dir) = ui
             .term()
-            .get_key(|k| direction.change_from_key(k).is_some())?
+            .key_iter()
+            .find_map(|k| direction.change_from_key(k))
         {
-            // Handle a movement keypress, mapping keys to their respective directions.
-            direction = direction.change_from_key(key).unwrap();
+            // If we have processed a direction key, then update the direction accordingly.
+            direction = dir;
         }
 
         // Actually move the snake's head position, checking to see if we have hit a wall.
@@ -130,7 +129,11 @@ pub fn game_main(ui: &mut GameUi) -> Result<Option<usize>> {
             // Generate another fruit to replace that one we just ate. Note that we needn't remove
             // fruit from the bitboard because we ate it and will "digest" it (the normal snake
             // code will remove it).
-            gen_fruit(&mut rng, ui, &mut bitboard)?;
+            if !gen_fruit(&mut rng, ui, &mut bitboard)? {
+                // If we could not find a location for the fruit, then the user has won and we
+                // return a score of `999`.
+                return Ok(Some(999));
+            }
 
             // Tell the game's UI that we have a new score, this updates the leaderboard
             // statistics panel.
@@ -180,7 +183,11 @@ pub fn game_main(ui: &mut GameUi) -> Result<Option<usize>> {
 /// 3. Map the generated index onto the canvas (we iterate over the whole canvas, and only
 ///    increment on free squares).
 /// 4. Place the fruit on the canvas.
-fn gen_fruit(rng: &mut File, ui: &mut GameUi, bitboard: &mut [u64]) -> Result<()> {
+///
+/// This function returns a boolean that indicates whether a fruit was able to be placed. If the
+/// return value is `false`, then no valid location was found, and thus, the player has beaten the
+/// game (they have filled the screen).
+fn gen_fruit(rng: &mut File, ui: &mut GameUi, bitboard: &mut [u64]) -> Result<bool> {
     // Read eight bytes (a u64) into a buffer.
     let mut rand = [0u8; 8];
     rng.read_exact(&mut rand).unwrap();
@@ -211,17 +218,18 @@ fn gen_fruit(rng: &mut File, ui: &mut GameUi, bitboard: &mut [u64]) -> Result<()
         }
     }
 
-    // Sanity check to that we did manage to find a position for the fruit. Note that this is
-    // reached when the player "wins" (fills up whole canvas with the snake).
-    // TODO: gracefully handle the win condition
-    assert_ne!(fx, u16::MAX);
+    // If we do not find a location for the new fruit, then the player has entirely filled the
+    // screen; they have won. Report this to the caller.
+    if fx == u16::MAX {
+        return Ok(false);
+    }
 
     // Mark our new fruit's location on the bitboard and draw the fruit to the screen.
     let coord = Coord { x: fx, y: fy };
     set_bb(bitboard, coord, true);
     ui.draw_canvas(coord, Pixel::new(Color::Yellow, true))?;
 
-    Ok(())
+    Ok(true)
 }
 
 /// Mark a coordinate on the bitboard as either occupied or unoccupied.

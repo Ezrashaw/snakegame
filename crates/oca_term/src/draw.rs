@@ -298,7 +298,7 @@ impl Draw for Box<'_> {
                 }
             } else {
                 s.extend(iter::repeat_n(chars.0, w));
-            };
+            }
 
             s.push(corners.1);
             s
@@ -360,7 +360,7 @@ impl Draw for Pixel {
                 draw!(ctx, "\x1B[{}m██\x1B[0m", Color::to_str(&color))?;
             }
             Self::Clear => draw!(ctx, "  ")?,
-        };
+        }
         Ok(())
     }
 }

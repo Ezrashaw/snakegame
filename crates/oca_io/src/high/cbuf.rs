@@ -30,7 +30,7 @@ impl<T: Copy, const N: usize> CircularBuffer<T, N> {
         }
     }
 
-    pub fn pop(&mut self) -> Option<T> {
+    pub const fn pop(&mut self) -> Option<T> {
         // if the pointers are equal, there is nothing to read/the buffer is empty.
         if (self.back == self.front) && !self.full {
             return None;
@@ -44,7 +44,7 @@ impl<T: Copy, const N: usize> CircularBuffer<T, N> {
         Some(item)
     }
 
-    pub fn clear(&mut self) {
+    pub const fn clear(&mut self) {
         self.full = false;
         self.back = self.front;
     }

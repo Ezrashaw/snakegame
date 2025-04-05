@@ -62,7 +62,7 @@ impl<T, const N: usize> StaticVec<T, N> {
     ///
     /// If the vector is empty, this function does nothing and [`None`] is returned.
     /// Otherwise, [`Some`] is returned.
-    pub fn pop(&mut self) -> Option<T> {
+    pub const fn pop(&mut self) -> Option<T> {
         if self.len > 0 {
             self.len -= 1;
             Some(unsafe { self.buf[self.len].assume_init_read() })
@@ -118,7 +118,7 @@ impl<T, const N: usize> StaticVec<T, N> {
     /// - This function is safe if `len` is less than or equal to the current length.
     /// - Otherwise, the "new" elements must have already been initialized (using
     ///   [`Self::remaining_mut`]).
-    pub unsafe fn set_len(&mut self, len: usize) {
+    pub const unsafe fn set_len(&mut self, len: usize) {
         self.len = len;
     }
 }

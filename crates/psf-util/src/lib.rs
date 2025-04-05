@@ -39,7 +39,7 @@ impl TryFrom<&[u8]> for PsfFont {
         let bytes_per_glyph = next_u32();
         let height = next_u32();
         let width = next_u32();
-        let stride = (width + 7) / 8;
+        let stride = width.div_ceil(8);
 
         let total_glyph_bytes = (stride * height * glyph_count) as usize;
         let (glyphs, rest) = bytes.split_at(total_glyph_bytes);
@@ -115,7 +115,7 @@ impl PsfFont {
 
     #[must_use]
     pub const fn stride(&self) -> usize {
-        ((self.width + 7) / 8) as usize
+        self.width.div_ceil(8) as usize
     }
 
     pub fn print_table(&self) {

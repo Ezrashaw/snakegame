@@ -1,6 +1,6 @@
 use crate::Terminal;
 use core::time::Duration;
-use oca_io::{timer::Instant, Result};
+use oca_io::{Result, timer::Instant};
 
 impl Terminal {
     pub fn clear_input(&mut self) -> Result<()> {
@@ -38,6 +38,10 @@ impl Terminal {
 
     pub fn get_key(&mut self, want_key: impl Fn(Key) -> bool) -> Result<Option<Key>> {
         self.get_key_timeout(Some(Duration::ZERO), want_key)
+    }
+
+    pub const fn key_iter(&mut self) -> KeyIter<'_> {
+        KeyIter(self)
     }
 
     pub fn get_key_timeout(
@@ -125,4 +129,15 @@ pub enum Key {
     Left,
 
     Unknown,
+}
+
+pub struct KeyIter<'a>(&'a mut Terminal);
+
+impl Iterator for KeyIter<'_> {
+    type Item = Key;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.pollkey(Some(Duration::ZERO)).ok()?;
+        self.0.kbd_buf.pop()
+    }
 }

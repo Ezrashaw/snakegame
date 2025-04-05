@@ -14,7 +14,7 @@ pub fn init(f: impl FnOnce(&mut Termios)) -> Result<Termios> {
 
 macro_rules! set_bit {
     (fn $set:ident ($flag:ident) => $bit:literal) => {
-        pub fn $set(&mut self, x: bool) {
+        pub const fn $set(&mut self, x: bool) {
             if x {
                 self.$flag |= $bit;
             } else {

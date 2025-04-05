@@ -102,11 +102,11 @@ impl GameUi {
         self.update_lb(LeaderboardUpdate::Network(block_lb, true))
     }
 
-    pub fn lb(&mut self) -> Option<&mut Leaderboard> {
+    pub const fn lb(&mut self) -> Option<&mut Leaderboard> {
         self.lb.as_mut()
     }
 
-    pub fn term(&mut self) -> &mut Terminal {
+    pub const fn term(&mut self) -> &mut Terminal {
         &mut self.term
     }
 
@@ -218,7 +218,7 @@ impl Draw for &Stats {
                 ctx.goto(10, 4)?;
                 draw!(ctx, "{mins:0>2}:{secs:0>2}")?;
             }
-        };
+        }
         Ok(())
     }
 }
