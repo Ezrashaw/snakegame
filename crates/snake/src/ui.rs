@@ -1,16 +1,19 @@
 use core::fmt;
 
-use oca_term::{draw, Box, CenteredStr, Clear, Draw, DrawCtx, Rect, Terminal};
+use oca_game::import_pansi;
+use oca_term::{Box, CenteredStr, Clear, Draw, DrawCtx, Rect, Terminal, draw};
 
 use crate::leaderboard::{Leaderboard, LeaderboardUpdate};
-use oca_io::{timer::Instant, Result};
+use oca_io::{Result, timer::Instant};
 
-const CREDITS_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/credits.txt"));
-const STATS_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/stats.txt"));
-const SNAKE_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/snake.txt"));
-const HELP_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/help.txt"));
-#[cfg(debug_assertions)]
-const GIT_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/git.txt"));
+import_pansi! {
+    const CREDITS_TEXT = pansi "credits.txt";
+    const STATS_TEXT = pansi "stats.txt";
+    const SNAKE_TEXT = pansi "snake.txt";
+    const HELP_TEXT = pansi "help.txt";
+    #[cfg(debug_assertions)]
+    const GIT_TEXT = pansi "git.txt";
+}
 
 pub const CANVAS_W: u16 = 28;
 pub const CANVAS_H: u16 = 19;

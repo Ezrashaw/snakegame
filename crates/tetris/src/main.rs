@@ -6,13 +6,16 @@ mod tetris;
 mod ui;
 
 use core::{fmt::Write as _, time::Duration};
-use oca_io::{file::File, format, timer::Instant, Result};
+use oca_game::import_pansi;
+use oca_io::{Result, file::File, format, timer::Instant};
 
 use oca_term::{Color, Key, KeyEvent, Popup};
 use ui::GameUi;
 
-const GAME_OVER_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/game-over.txt"));
-const WELCOME_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/welcome.txt"));
+import_pansi! {
+    const GAME_OVER_TEXT = pansi "game-over.txt";
+    const WELCOME_TEXT = pansi "welcome.txt";
+}
 
 fn main() {
     if let Err(err) = snake_main() {

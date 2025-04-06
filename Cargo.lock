@@ -89,6 +89,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
 
 [[package]]
+name = "oca_game"
+version = "0.1.0"
+
+[[package]]
 name = "oca_io"
 version = "0.1.0"
 
@@ -213,6 +217,7 @@ dependencies = [
 name = "snake"
 version = "0.1.0"
 dependencies = [
+ "oca_game",
  "oca_io",
  "oca_term",
  "pansi",
@@ -240,6 +245,7 @@ dependencies = [
 name = "tetris"
 version = "0.1.0"
 dependencies = [
+ "oca_game",
  "oca_io",
  "oca_term",
  "pansi",

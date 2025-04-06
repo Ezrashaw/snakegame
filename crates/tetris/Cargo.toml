@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+oca_game = { version = "0.1.0", path = "../oca_game" }
 oca_io = { path = "../oca_io", default-features = false }
 oca_term = { path = "../oca_term" }
 
