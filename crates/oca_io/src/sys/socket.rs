@@ -7,7 +7,7 @@ use core::{
 use super::{
     super::Result,
     file::{File, OwnedFile},
-    syscall::{syscall_res, SYS_connect, SYS_socket},
+    syscall::{SYS_connect, SYS_socket, syscall_res},
 };
 
 const AF_INET: u16 = 2;
@@ -28,7 +28,9 @@ pub struct Socket {
 
 impl Socket {
     pub fn connect(addr: SocketAddrV4) -> Result<Self> {
-        let socket = syscall_res!(SYS_socket, AF_INET, SOCK_STREAM, 0)?;
+        // FIXME: shouldn't allow to pass less than u64, since that puts garbage into the registers
+        // and we _never_ want that.
+        let socket = syscall_res!(SYS_socket, u64::from(AF_INET), SOCK_STREAM, 0)?;
 
         let addr = SysSockAddr {
             family: AF_INET,
