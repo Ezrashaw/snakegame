@@ -1,0 +1,88 @@
+\documentclass{scrartcl}
+
+\usepackage{fontspec,microtype,bytefield,enumitem}
+
+\setmainfont{TeX Gyre Schola}
+
+\setkomafont{disposition}{\bfseries}
+
+\title{The \texttt{snakegame} Network Protocol}
+\author{Ezra Shaw}
+\date{8 June 2025}
+
+\begin{document}
+\maketitle
+
+\noindent
+The structure of every packet follows the following format:
+
+\vspace{12pt}\begin{bytefield}{24}
+	\bitheader{0-23} \\
+	\begin{rightwordgroup}{Header}
+	\bitbox{8}{Packet ID} & \bitbox{16}{Packet Length}
+	\end{rightwordgroup}\\
+	\wordbox{2}{Packet Data}
+\end{bytefield}
+
+That is, every packet (whether sent from the client or server), contains a three-byte header, followed by some data.
+The Packet Length is the length of the data; it excludes the three bytes of the header.
+All values are network-endian (big-endian).
+
+\section*{Connection Sequence}
+\begin{enumerate}[left=0cm]
+	\item The client opens a TCP connection to the server.
+	\item The client sends a CONNECT packet to the server, containing the client's hostname.
+	\item The server sends a LEADERBOARD packet to the client.
+	\item The connection is open.
+\end{enumerate}
+
+\section*{Client to Server Packets}
+\begin{enumerate}[left=0cm]
+	\item \textbf{CONNECT} (0x0)\\
+	The CONNECT packet is the first packet sent over the connection.
+	It contains the client's hostname.
+
+	\vspace{12pt}\begin{bytefield}{24}
+		\bitheader{0-23} \\
+		\begin{rightwordgroup}{Header}
+		\bitbox{8}{ID (0x0)} & \bitbox{16}{Length}
+		\end{rightwordgroup}\\
+		\wordbox{2}{Hostname}
+	\end{bytefield}
+
+	\item \textbf{GAME} (0x1)\\
+	The GAME packet is sent by the client to add a new entry to the leaderboard.
+	The first three data bytes are the player's name; the final byte is their score.
+
+	\vspace{12pt}\begin{bytefield}{24}
+		\bitheader{0-23} \\
+		\begin{rightwordgroup}{Header}
+		\bitbox{8}{ID (0x1)} & \bitbox{16}{Length (0x4)}
+		\end{rightwordgroup}\\
+		\wordbox{1}{Player Name}\\
+		\bitbox{8}{Score}
+	\end{bytefield}
+\end{enumerate}
+
+\section*{Server to Client Packets}
+\begin{enumerate}[left=0cm]
+	\item \textbf{LEADERBOARD} (0x0)\\
+	The LEADERBOARD packet is sent by the server each time the leaderboard changes.
+	This packet is always exactly 40 bytes, containing 10 entries.
+	Each entry follows the same format as in the GAME packet.
+	If a leaderboard position has not been filled, then the player name is equal to \verb|---| and the score is 0.
+
+	\vspace{12pt}\begin{bytefield}{24}
+		\bitheader{0-23} \\
+		\begin{rightwordgroup}{Header}
+		\bitbox{8}{ID (0x0)} & \bitbox{16}{Length (0x28)}
+		\end{rightwordgroup}\\
+		\wordbox{1}{Player Name}\\
+		\bitbox{8}{Score}\\
+		\wordbox[]{1}{$\vdots$} \\[1ex]
+		\wordbox{1}{Player Name}\\
+		\bitbox{8}{Score}
+	\end{bytefield}
+\end{enumerate}
+
+\end{document}
