@@ -26,6 +26,9 @@ fn main() {
 
 fn snake_main() -> Result<()> {
     let mut ui = GameUi::init()?;
+    // Flush to make sure we don't exhaust output buffer.
+    // FIXME: automatically detect a full output buffer, and automatically flush
+    ui.flush()?;
 
     loop {
         let popup = Popup::new(WELCOME_TEXT);

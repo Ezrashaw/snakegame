@@ -135,7 +135,7 @@ impl Draw for &mut Leaderboard {
 
     fn draw<W: fmt::Write>(self, ctx: &mut oca_term::DrawCtx<W>) -> Result<()> {
         // TODO: this could be fastdraw'ed
-        ctx.draw(0, 0, Box::new(13, 12).with_horz_lines(&[1]))?;
+        ctx.draw(0, 0, Box::new(13, 12).with_horz_lines(&[1]).with_fastdraw())?;
         ctx.draw(2, 1, "\x1B[1;34mLEADERBOARD\x1B[0m")?;
         for i in 1..=10 {
             ctx.draw(2, 2 + i, format!("{i:0>2}."))?;
