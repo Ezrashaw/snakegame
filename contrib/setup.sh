@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -xe
 
 # Tell the kernel not to write `prink` messages to the console.
