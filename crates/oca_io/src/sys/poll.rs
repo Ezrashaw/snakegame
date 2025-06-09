@@ -42,6 +42,7 @@ pub struct PollFd {
 
 impl PollFd {
     pub const IN: u16 = 0x1;
+    pub const OUT: u16 = 0x4;
     pub const RDHUP: u16 = 0x2000;
 
     #[must_use]

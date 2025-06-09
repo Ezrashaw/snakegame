@@ -10,26 +10,48 @@ use std::{
 };
 
 use oca_io::{
-    network::{read_packet, write_packet, LeaderboardEntry},
+    Result, exit,
+    network::{LeaderboardEntry, read_packet, write_packet},
     poll::PollFd,
-    Result,
 };
 
+fn exit_with_error(err: &'static str) -> ! {
+    println!("\x1B[91;1merror\x1B[0m: {err}");
+    exit(-1)
+}
+
+macro_rules! info {
+    ($($args:tt)*) => {
+        println!("\x1B[94;1minfo\x1B[0m: {}", format_args!($($args)*));
+    }
+}
+
 fn main() -> Result<()> {
-    let mut leaderboard = fs::read("games")
+    // Try to find a leaderboard file
+    let mut leaderboard = fs::read("leaderboard")
         .ok()
         .map(|lb| {
             let mut lb = ManuallyDrop::new(lb);
-            assert!(lb.len() % 4 == 0);
+            if lb.len() % 4 != 0 {
+                exit_with_error("could not read `leaderboard` file")
+            }
+
+            info!("using `leaderboard` file with {} entries", lb.len() / 4);
+
             unsafe { Vec::from_raw_parts(lb.as_mut_ptr().cast(), lb.len() / 4, lb.capacity() / 4) }
         })
+        // If there is no leaderboard file, that's OK: use an empty leaderboard.
         .unwrap_or_default();
 
     let server = TcpListener::bind((
         Ipv4Addr::UNSPECIFIED,
-        env::var("SNAKEPORT").unwrap().parse().unwrap(),
+        env::var("SNAKEPORT")
+            .unwrap_or_else(|_| exit_with_error("`SNAKEPORT` environment variable not defined"))
+            .parse()
+            .unwrap_or_else(|_| exit_with_error("`SNAKEPORT` not a valid port number")),
     ))
-    .unwrap();
+    .unwrap_or_else(|_| exit_with_error("failed to bind to port"));
+
     let mut clients = Vec::new();
     let mut poll_fds = vec![PollFd::new(server.as_raw_fd(), PollFd::IN | PollFd::RDHUP)];
 
@@ -78,7 +100,7 @@ fn main() -> Result<()> {
             let bytes = unsafe {
                 slice::from_raw_parts(leaderboard.as_ptr().cast(), leaderboard.len() * 4)
             };
-            fs::write("games", bytes).unwrap();
+            fs::write("leaderboard", bytes).unwrap();
 
             for i in 0..clients.len() {
                 if let Err(_err) = clients[i].send_leaderboard(&leaderboard) {
@@ -111,7 +133,9 @@ impl GameClient {
 
     pub fn handle_packet(&mut self, leaderboard: &mut Vec<LeaderboardEntry>) -> Result<()> {
         let (id, packet) = read_packet(&mut oca_io::file::File::from_fd(self.stream.as_raw_fd()))?;
+
         assert_eq!(id, 0x1);
+        assert_eq!(packet.len(), 4);
 
         let game = LeaderboardEntry(packet[0..3].try_into().unwrap(), packet[3]);
         let pos = leaderboard

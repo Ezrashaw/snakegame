@@ -1,9 +1,8 @@
-use core::{net::SocketAddrV4, str::FromStr, time::Duration};
-use std::{fs, io};
+use core::net::SocketAddrV4;
+use std::fs;
 
 use oca_io::{
     Result,
-    file::File,
     network::{self as oca_network, LeaderboardEntries},
     socket::Socket,
 };
@@ -12,64 +11,68 @@ use super::Leaderboard;
 
 impl Leaderboard {
     pub(super) fn read_leaderboard(&mut self, block: bool) -> Option<LeaderboardEntries> {
-        // let conn = match self.conn.as_mut() {
-        //     Ok(conn) => conn,
-        //     Err(thread) => {
-        //         if thread.as_ref().unwrap().is_finished() {
-        //             if let Ok((entries, conn)) = thread.take().unwrap().join().unwrap() {
-        //                 println!("\x1B[H ");
-        //                 self.conn = Ok(conn);
-        //                 return Some(entries);
-        //             }
-        //
-        //             let addr = self.addr.clone();
-        //             self.conn = Err(Some(thread::spawn(move || connect_tcp(&addr))));
-        //         }
-        //         return None;
-        //     }
-        // };
+        if !self.sock_is_conn {
+            match self.sock.sock_finish_conn() {
+                Ok(true) => {
+                    self.sock_is_conn = true;
+                    let hostname = fs::read_to_string("/proc/sys/kernel/hostname").unwrap();
+                    oca_network::write_packet(&mut self.sock, 0x0, hostname.trim().as_bytes())
+                        .unwrap();
 
-        // TODO: there is no sane reason to unwrap this
-        if !block
-            && !oca_io::poll::poll_read_fd(&File::from_fd(self.conn.as_fd()), Some(Duration::ZERO))
-                .unwrap()
-        {
-            return None;
+                    println!("\x1B[H ");
+                }
+                Ok(false) => {
+                    return None;
+                }
+                Err(_) => {
+                    self.sock = Socket::connect(self.addr, false).unwrap();
+                    self.sock_is_conn = self.sock.is_conn();
+
+                    println!("\x1B[H\x1B[91;1mN\x1B[0m");
+                }
+            }
         }
 
-        read_leaderboard(&mut self.conn)
+        if !block {
+            match self.sock.poll() {
+                Ok(Some(true)) => (),           // got data
+                Ok(Some(false)) => return None, // no data; no error
+                Err(_) | Ok(None) => {
+                    self.sock = Socket::connect(self.addr, false).unwrap();
+                    self.sock_is_conn = self.sock.is_conn();
+
+                    println!("\x1B[H\x1B[91;1mN\x1B[0m");
+                    return None;
+                }
+            }
+        }
+
+        read_leaderboard(&mut self.sock)
             .inspect_err(|_| {
-                todo!()
-                // println!("\x1B[H\x1B[1;31m▀\x1B[0m");
-                // let addr = self.addr.clone();
-                // self.conn = Err(Some(thread::spawn(move || connect_tcp(&addr))));
+                self.sock = Socket::connect(self.addr, false).unwrap();
+                self.sock_is_conn = self.sock.is_conn();
+
+                if !self.sock_is_conn {
+                    println!("\x1B[H\x1B[91;1mN");
+                }
             })
             .ok()
     }
 
     pub const fn has_conn(&self) -> bool {
-        // self.conn.is_ok()
-        true
+        self.sock_is_conn
     }
 
     pub fn send_game(&mut self, name: [u8; 3], score: u8) -> Result<()> {
         let mut packet = [0u8; 4];
         packet[0..3].copy_from_slice(&name);
         packet[3] = score;
-        oca_network::write_packet(&mut self.conn, 0x1, &packet)
+        oca_network::write_packet(&mut self.sock, 0x1, &packet)
     }
 }
 
-pub(super) fn connect_tcp(addr: &str) -> Result<(LeaderboardEntries, Socket)> {
-    // let mut conn = TcpStream::connect_timeout(
-    //     &SocketAddr::from_str(addr).map_err(io::Error::other)?,
-    //     Duration::from_secs(10),
-    // )?;
-    let mut conn = Socket::connect(
-        SocketAddrV4::from_str(addr)
-            .map_err(io::Error::other)
-            .unwrap(),
-    )?;
+pub(super) fn connect_tcp(addr: SocketAddrV4) -> Result<(LeaderboardEntries, Socket)> {
+    let mut conn = Socket::connect(addr, true)?;
 
     let hostname = fs::read_to_string("/proc/sys/kernel/hostname").unwrap();
     oca_network::write_packet(&mut conn, 0x0, hostname.trim().as_bytes())?;

@@ -29,7 +29,9 @@ mod x86 {
     pub const SYS_ioctl: u64 = 16;
     pub const SYS_socket: u64 = 41;
     pub const SYS_connect: u64 = 42;
+    pub const SYS_getsockopt: u64 = 55;
     pub const SYS_exit: u64 = 60;
+    pub const SYS_fcntl: u64 = 72;
     pub const SYS_clock_gettime: u64 = 228;
     pub const SYS_ppoll: u64 = 271;
     pub const SYS_timerfd_create: u64 = 283;
@@ -112,6 +114,27 @@ mod x86 {
                     in("rsi") $arg2,
                     in("rdx") $arg3,
                     in("r10") $arg4,
+
+                    out("rcx") _, // the kernel clobbers %rcx and r11
+                    out("r11") _, // ^^^
+                    lateout("rax") ret,
+                    options(nostack, preserves_flags)
+                );
+            }
+            ret
+        }};
+        ($id:ident, $arg1:expr, $arg2:expr, $arg3:expr, $arg4:expr, $arg5:expr) => {{
+            let mut ret: isize;
+            unsafe {
+                core::arch::asm!(
+                    "syscall",
+                    in("rax") $id,
+
+                    in("rdi") $arg1,
+                    in("rsi") $arg2,
+                    in("rdx") $arg3,
+                    in("r10") $arg4,
+                    in("r8") $arg5,
 
                     out("rcx") _, // the kernel clobbers %rcx and r11
                     out("r11") _, // ^^^

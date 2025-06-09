@@ -1,18 +1,20 @@
 mod network;
 
 use core::fmt::{self, Write};
+use core::str::FromStr;
 use std::env;
+use std::net::SocketAddrV4;
 
-use oca_io::Result;
+use oca_io::{Error, Result};
 use oca_io::{network::LeaderboardEntries, socket::Socket};
 use oca_term::{Box, Draw, DrawCtx};
 
 pub struct Leaderboard {
     pub entries: LeaderboardEntries,
     pub score: Option<u8>,
-    conn: Socket,
-    #[allow(dead_code)]
-    addr: String,
+    sock: Socket,
+    sock_is_conn: bool,
+    addr: SocketAddrV4,
     you_row: Option<u16>,
     has_10_pos: bool,
 }
@@ -20,7 +22,11 @@ pub struct Leaderboard {
 impl Leaderboard {
     pub fn init() -> Option<Result<Self>> {
         let addr = env::var("SNAKEADDR").ok()?;
-        let (entries, conn) = match network::connect_tcp(&addr) {
+        let Ok(addr) = SocketAddrV4::from_str(&addr) else {
+            return Some(Err(Error::Other("invalid SNAKEADDR address/port")));
+        };
+
+        let (entries, sock) = match network::connect_tcp(addr) {
             Ok(val) => val,
             Err(err) => return Some(Err(err)),
         };
@@ -28,7 +34,8 @@ impl Leaderboard {
         Some(Ok(Self {
             entries,
             score: None,
-            conn,
+            sock,
+            sock_is_conn: true,
             addr,
             you_row: None,
             has_10_pos: true,

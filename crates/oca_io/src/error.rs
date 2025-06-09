@@ -5,6 +5,7 @@ pub enum Error {
     Fmt,
     BufferFull,
     CastError,
+    Other(&'static str),
 }
 
 impl Error {
@@ -39,6 +40,7 @@ impl fmt::Debug for Error {
             Self::Fmt => write!(f, "Error::Fmt"),
             Self::BufferFull => write!(f, "Error::BufferFull"),
             Self::CastError => write!(f, "Error::CastError"),
+            Self::Other(s) => write!(f, "{s}"),
 
             #[cfg(not(feature = "errno"))]
             Self::Syscall(errno) => write!(f, "Error::Syscall({errno})"),
