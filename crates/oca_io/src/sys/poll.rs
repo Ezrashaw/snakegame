@@ -1,7 +1,7 @@
 use core::{ptr, slice, time::Duration};
 
-use super::syscall::{syscall_res, SYS_ppoll};
-use crate::{file::File, term::timer::TimeSpec, Result};
+use super::syscall::{SYS_ppoll, syscall_res};
+use crate::{Result, file::File, term::timer::TimeSpec};
 
 pub fn poll_read_fd(fd: &File, timeout: Option<Duration>) -> Result<bool> {
     let mut poll_fd = PollFd::new(fd.as_fd(), PollFd::IN);

@@ -1,9 +1,9 @@
 use core::{mem, ptr};
 
 use crate::{
-    file::{File, OwnedFile},
-    sys::syscall::{syscall_res, SYS_rt_sigprocmask, SYS_signalfd4},
     Result,
+    file::{File, OwnedFile},
+    sys::syscall::{SYS_rt_sigprocmask, SYS_signalfd4, syscall_res},
 };
 
 #[repr(u8)]

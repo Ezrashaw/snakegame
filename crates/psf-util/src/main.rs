@@ -1,6 +1,6 @@
 use std::fs;
 
-use psf_util::{psf2txt, txt2psf, ungzip, PsfFont};
+use psf_util::{PsfFont, psf2txt, txt2psf, ungzip};
 
 const DEFAULT_FONT: &str = "/usr/share/kbd/consolefonts/default8x16.psfu.gz";
 

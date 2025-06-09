@@ -1,6 +1,6 @@
 use core::hint::unreachable_unchecked;
 
-use syscall::{syscall, SYS_exit};
+use syscall::{SYS_exit, syscall};
 
 pub mod file;
 pub mod ioctl;

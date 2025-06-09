@@ -1,6 +1,6 @@
 use crate::{Draw, Terminal};
 use core::fmt::Write as _;
-use oca_io::{file::File, Result};
+use oca_io::{Result, file::File};
 
 impl Terminal {
     pub fn draw(&mut self, x: u16, y: u16, object: impl Draw) -> Result<()> {
@@ -162,6 +162,10 @@ mod tests {
 
     #[test]
     fn ansi_len_help_text() {
-        assert!(ansi_str_len("MOVE WITH \x1B[1;36mARROW KEYS\x1B[0m; EAT \x1B[1;31mFRUIT\x1B[0m; AVOID \x1B[1;32mTAIL\x1B[0m AND \x1B[1;2;37mWALLS\x1B[0m") == 53);
+        assert!(
+            ansi_str_len(
+                "MOVE WITH \x1B[1;36mARROW KEYS\x1B[0m; EAT \x1B[1;31mFRUIT\x1B[0m; AVOID \x1B[1;32mTAIL\x1B[0m AND \x1B[1;2;37mWALLS\x1B[0m"
+            ) == 53
+        );
     }
 }

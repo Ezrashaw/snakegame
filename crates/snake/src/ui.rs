@@ -1,9 +1,9 @@
 use core::fmt;
 
-use oca_term::{draw, Box, CenteredStr, Clear, Draw, DrawCtx, Rect, Terminal};
+use oca_term::{Box, CenteredStr, Clear, Draw, DrawCtx, Rect, Terminal, draw};
 
 use crate::leaderboard::{Leaderboard, LeaderboardUpdate};
-use oca_io::{timer::Instant, Result};
+use oca_io::{Result, timer::Instant};
 
 const CREDITS_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/credits.txt"));
 const STATS_TEXT: &str = include_str!(concat!(env!("OUT_DIR"), "/stats.txt"));

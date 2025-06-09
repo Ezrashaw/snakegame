@@ -1,4 +1,4 @@
-use crate::{ansi_str_len, Color, Rect};
+use crate::{Color, Rect, ansi_str_len};
 use core::{
     fmt::{self, Write},
     iter,

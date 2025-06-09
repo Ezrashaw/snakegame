@@ -2,10 +2,10 @@ use core::{net::SocketAddrV4, str::FromStr, time::Duration};
 use std::{fs, io};
 
 use oca_io::{
+    Result,
     file::File,
     network::{self as oca_network, LeaderboardEntries},
     socket::Socket,
-    Result,
 };
 
 use super::Leaderboard;

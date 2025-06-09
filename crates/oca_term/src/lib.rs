@@ -11,15 +11,15 @@ mod draw;
 mod stdin;
 mod stdout;
 
-pub use draw::{draw, draw_centered, update, Box, CenteredStr, Clear, Draw, DrawCtx, Pixel, Popup};
+pub use draw::{Box, CenteredStr, Clear, Draw, DrawCtx, Pixel, Popup, draw, draw_centered, update};
 pub use stdin::{Key, KeyEvent};
-pub use stdout::{ansi_str_len, Color, Direction, Rect};
+pub use stdout::{Color, Direction, Rect, ansi_str_len};
 
 use oca_io::{
+    CircularBuffer, Result, StaticString,
     file::File,
     signal::{Signal, SignalFile},
     termios::{self, Termios},
-    CircularBuffer, Result, StaticString,
 };
 
 use core::{fmt::Write, time::Duration};

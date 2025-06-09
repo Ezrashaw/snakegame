@@ -1,6 +1,6 @@
 use crate::{
-    sys::ioctl::{ioctl, IoctlRequest, STDIN_FD},
     Result,
+    sys::ioctl::{IoctlRequest, STDIN_FD, ioctl},
 };
 
 pub fn init(f: impl FnOnce(&mut Termios)) -> Result<Termios> {

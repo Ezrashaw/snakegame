@@ -1,4 +1,4 @@
-use crate::{file::File, Result};
+use crate::{Result, file::File};
 
 use super::svec::StaticVec;
 

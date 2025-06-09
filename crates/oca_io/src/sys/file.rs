@@ -7,9 +7,9 @@ use core::{
 
 use super::{
     ioctl::{self, STDIN_FD},
-    syscall::{syscall, syscall_res, SYS_close, SYS_read, SYS_write},
+    syscall::{SYS_close, SYS_read, SYS_write, syscall, syscall_res},
 };
-use crate::{high::svec::StaticVec, Error, Result};
+use crate::{Error, Result, high::svec::StaticVec};
 
 pub struct OwnedFile(File);
 

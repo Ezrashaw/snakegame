@@ -1,6 +1,6 @@
 mod network;
 
-use core::fmt;
+use core::fmt::{self, Write};
 use std::env;
 
 use oca_io::Result;
@@ -97,7 +97,7 @@ impl Leaderboard {
                     str.push_str("\x1B[1;90m---\x1B[1;39m");
                 } else {
                     // For leaderboard positions that have been filled, use a green color.
-                    str.push_str(&format!("\x1B[22;32m{name}\x1B[1;39m"));
+                    write!(str, "\x1B[22;32m{name}\x1B[1;39m")?;
                 }
 
                 // Use the leaderboard entry's score.
@@ -106,7 +106,7 @@ impl Leaderboard {
 
             // Finally, append the score and a newline. We have already set the colour of the
             // score, which is different between the "YOU" row and other rows.
-            str.push_str(&format!(" {score:0>3}\n"));
+            writeln!(str, " {score:0>3}")?;
         }
 
         // Effectuate the removal/drawing of the #10 position, making sure to only draw if
@@ -151,10 +151,10 @@ impl Draw for &mut Leaderboard {
         match update {
             LeaderboardUpdate::Score(score) => {
                 self.score = Some(score);
-                if let Some(you_row) = self.you_row {
-                    if you_row == 0 || score <= self.entries[you_row as usize - 1].1 {
-                        return ctx.draw(10, 3 + you_row, format!("\x1B[1;95m{score:0>3}\x1B[0m"));
-                    }
+                if let Some(you_row) = self.you_row
+                    && (you_row == 0 || score <= self.entries[you_row as usize - 1].1)
+                {
+                    return ctx.draw(10, 3 + you_row, format!("\x1B[1;95m{score:0>3}\x1B[0m"));
                 }
 
                 self.draw_entries(ctx)

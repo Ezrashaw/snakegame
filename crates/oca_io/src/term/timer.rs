@@ -6,9 +6,9 @@ use core::{
 };
 
 use crate::{
-    file::{File, OwnedFile},
-    sys::syscall::{syscall_res, SYS_clock_gettime, SYS_timerfd_create, SYS_timerfd_settime},
     Result,
+    file::{File, OwnedFile},
+    sys::syscall::{SYS_clock_gettime, SYS_timerfd_create, SYS_timerfd_settime, syscall_res},
 };
 
 const CLOCK_MONOTONIC: usize = 1;
