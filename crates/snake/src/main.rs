@@ -1,4 +1,3 @@
-#![feature(let_chains)]
 #![warn(clippy::pedantic, clippy::nursery)]
 #![allow(clippy::cast_possible_truncation, clippy::module_name_repetitions)]
 

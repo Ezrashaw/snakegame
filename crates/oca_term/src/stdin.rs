@@ -22,7 +22,7 @@ impl Terminal {
 
         let end_time = timeout.map(|t| Instant::now().unwrap() + t);
         loop {
-            if self.pollkey(end_time.map(|end| (end - Instant::now().unwrap())))? {
+            if self.pollkey(end_time.map(|end| end - Instant::now().unwrap()))? {
                 break Ok(KeyEvent::Timeout);
             }
 

@@ -153,6 +153,7 @@ impl Socket {
         Ok(true)
     }
 
+    #[must_use]
     pub const fn is_conn(&self) -> bool {
         self.conn
     }
