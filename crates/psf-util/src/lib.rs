@@ -30,10 +30,10 @@ impl TryFrom<&[u8]> for PsfFont {
             u32::from_le_bytes(val.try_into().unwrap())
         };
 
-        assert!(next_u32() == MAGIC_BYTES); // magic bytes
-        assert!(next_u32() == 0); // version
-        assert!(next_u32() == 32); // header length in bytes
-        assert!(next_u32() == 1); // flags (has unicode table)
+        assert_eq!(next_u32(), MAGIC_BYTES); // magic bytes
+        assert_eq!(next_u32(), 0); // version
+        assert_eq!(next_u32(), 32); // header length in bytes
+        assert_eq!(next_u32(), 1); // flags (has unicode table)
 
         let glyph_count = next_u32();
         let bytes_per_glyph = next_u32();
@@ -86,7 +86,7 @@ impl PsfFont {
     }
 
     pub fn double_size(&mut self) {
-        assert!(self.width == 8);
+        assert_eq!(self.width, 8);
         let mut glyphs = Vec::with_capacity((self.bytes_per_glyph * self.glyph_count * 4) as usize);
         for glyph in self.glyphs.chunks(self.height as usize) {
             for row in glyph {
@@ -275,8 +275,8 @@ pub fn txt2psf(mut lines: Lines, psf: &mut PsfFont) -> io::Result<()> {
     };
 
     let (width, height): (u32, u32) = (width.parse().unwrap(), height.parse().unwrap());
-    assert!(width == psf.width);
-    assert!(height == psf.height);
+    assert_eq!(width, psf.width);
+    assert_eq!(height, psf.height);
 
     while let Some(line) = lines.next() {
         if line.trim().is_empty() {
@@ -300,12 +300,12 @@ pub fn txt2psf(mut lines: Lines, psf: &mut PsfFont) -> io::Result<()> {
         }
 
         let data = psf.get_glyph_mut(char);
-        assert!(data.len() == height as usize); // TODO: one of the many things to fix
+        assert_eq!(data.len(), height as usize); // TODO: one of the many things to fix
 
         for h in 0..height {
             data[h as usize] = 0x0;
             let line = lines.next().unwrap();
-            assert!(line.trim().len() == width as usize);
+            assert_eq!(line.trim().len(), width as usize);
 
             let mut mask = 0b1000_0000;
             for ch in line.chars() {

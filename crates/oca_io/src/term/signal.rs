@@ -23,7 +23,7 @@ impl SignalFile {
         let mut sigmask = 0u64;
         for &sig in signals {
             let mask = 1 << (sig as u8 - 1);
-            assert!(sigmask & mask == 0); // checking for duplicate signals in slice
+            assert_eq!(sigmask & mask, 0); // checking for duplicate signals in slice
             sigmask |= mask;
         }
 
@@ -35,7 +35,7 @@ impl SignalFile {
             ptr::from_mut(&mut oldset),
             mem::size_of_val(&sigmask)
         )?;
-        assert!(oldset == 0);
+        assert_eq!(oldset, 0);
 
         let signalfd = syscall_res!(
             SYS_signalfd4,
@@ -51,7 +51,7 @@ impl SignalFile {
     pub fn get_signal(&mut self) -> Result<Signal> {
         let mut buf = [0u8; 128];
         let n = self.0.read(&mut buf)?;
-        assert!(n == 128);
+        assert_eq!(n, 128);
         let sig: u8 = u32::from_ne_bytes(buf[0..4].try_into().unwrap())
             .try_into()
             .unwrap();

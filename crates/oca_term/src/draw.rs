@@ -112,8 +112,8 @@ pub fn draw_centered(
     let (w, h) = object.size();
     assert!(w <= rect.w && h <= rect.h);
 
-    let hoff = (rect.h - h) % 2 != 0;
-    if (rect.w - w) % 2 != 0 || (allow_hoff ^ hoff) {
+    let hoff = !(rect.h - h).is_multiple_of(2);
+    if !(rect.w - w).is_multiple_of(2) || (allow_hoff ^ hoff) {
         let w = oca_io::get_termsize().unwrap().0;
         draw(out, "\x1B[33;1mWARNING: \x1B[0mfailed to center", w - 25, 1)?;
     }
@@ -169,7 +169,7 @@ impl<T: AsRef<str>> Draw for CenteredStr<T> {
 
             let line_w = ansi_str_len(line);
             let x = (w - line_w) / 2;
-            assert!(line_w == 0 || (w - line_w) % 2 == 0, "{idx}");
+            assert!(line_w == 0 || (w - line_w).is_multiple_of(2), "{idx}");
 
             if x > 0 {
                 draw!(ctx, "\x1B[{x}C")?;

@@ -23,7 +23,7 @@ pub fn read_packet(r: &mut File) -> Result<(u8, StaticVec<u8, MAX_PACKET_SIZE>)>
 
     let mut packet = StaticVec::new();
     let n = r.read_uninit(&mut packet, len.into())?;
-    assert!(n == len.into());
+    assert_eq!(n, len.into());
 
     Ok((id, packet))
 }

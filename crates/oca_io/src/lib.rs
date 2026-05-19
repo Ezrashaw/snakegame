@@ -1,4 +1,3 @@
-#![feature(maybe_uninit_slice, maybe_uninit_write_slice)]
 #![warn(clippy::nursery, clippy::pedantic)]
 #![allow(
     clippy::missing_panics_doc,

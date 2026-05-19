@@ -57,7 +57,7 @@ fn main() -> Result<()> {
 
     loop {
         let number_read = oca_io::poll::poll(&mut poll_fds, None)?;
-        assert!(number_read == 1);
+        assert_eq!(number_read, 1);
 
         let poll_fd = poll_fds
             .iter()
